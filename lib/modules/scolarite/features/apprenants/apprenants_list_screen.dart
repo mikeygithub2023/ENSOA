@@ -465,162 +465,175 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
     Classe? classeInscription,
     Promotion? promotionInscription,
   ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // On enregistre dans une promotion, pas dans une phase : il suffit
-        // donc qu'une promotion soit retenue. La phase transmise est celle
-        // où l'élève commence — la première du cursus à défaut de choix.
-        if (selectedDivision != null && classeInscription != null) ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+    // Sur tablette l'écran est large mais bas : les boutons, la recherche et
+    // la sélection prenaient la moitié de la hauteur, et il ne restait à la
+    // liste qu'une fente de trois lignes où l'on peinait à faire défiler.
+    // Tout tient maintenant dans un seul défilement — l'en-tête s'efface vers
+    // le haut et rend sa place aux élèves.
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              OutlinedButton.icon(
-                onPressed: () => _imprimerListe(
-                  apprenants: _filtrer(
-                    apprenantsAsync.value ?? const [],
-                    classesRetenues,
+              // On enregistre dans une promotion, pas dans une phase : il suffit
+              // donc qu'une promotion soit retenue. La phase transmise est celle
+              // où l'élève commence — la première du cursus à défaut de choix.
+              if (selectedDivision != null && classeInscription != null) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => _imprimerListe(
+                        apprenants: _filtrer(
+                          apprenantsAsync.value ?? const [],
+                          classesRetenues,
+                        ),
+                        division: selectedDivision,
+                        promotion: promotionInscription,
+                        stage: selectedClasse?.type == ClasseType.stage
+                            ? selectedClasse
+                            : null,
+                      ),
+                      icon: const Icon(Icons.print_outlined, size: 18),
+                      label: const Text('Imprimer la liste'),
+                    ),
+                    const SizedBox(width: 12),
+                    OutlinedButton.icon(
+                      onPressed: () => showImportApprenantsDialog(
+                        context,
+                        division: selectedDivision,
+                        classe: classeInscription,
+                      ),
+                      icon: const Icon(Icons.upload_file_outlined, size: 18),
+                      label: const Text('Importer un fichier Excel'),
+                    ),
+                    const SizedBox(width: 12),
+                    FilledButton.icon(
+                      onPressed: () => showRegisterApprenantDialog(
+                        context,
+                        division: selectedDivision,
+                        classe: classeInscription,
+                        promotion: promotionInscription,
+                      ),
+                      icon: const Icon(Icons.person_add_alt, size: 18),
+                      label: const Text('Enregistrement individuel'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _nomSearchCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Rechercher par nom',
+                        prefixIcon: Icon(Icons.search, size: 20),
+                        isDense: true,
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
                   ),
-                  division: selectedDivision,
-                  promotion: promotionInscription,
-                  stage: selectedClasse?.type == ClasseType.stage
-                      ? selectedClasse
-                      : null,
-                ),
-                icon: const Icon(Icons.print_outlined, size: 18),
-                label: const Text('Imprimer la liste'),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextField(
+                      controller: _matriculeSearchCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Rechercher par matricule',
+                        prefixIcon: Icon(Icons.search, size: 20),
+                        isDense: true,
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              OutlinedButton.icon(
-                onPressed: () => showImportApprenantsDialog(
-                  context,
-                  division: selectedDivision,
-                  classe: classeInscription,
+              if (isAdmin) ...[
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: _selectionMode
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextButton(
+                              onPressed: () => setState(() {
+                                _selectionMode = false;
+                                _selectedIds.clear();
+                              }),
+                              child: const Text('Annuler'),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton.icon(
+                              onPressed: _selectedIds.isEmpty
+                                  ? null
+                                  : () => _deleteSelected(
+                                      apprenantsAsync.value ?? const [],
+                                    ),
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                size: 18,
+                                color: AppColors.danger,
+                              ),
+                              label: Text(
+                                'Supprimer la sélection (${_selectedIds.length})',
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.danger,
+                                side: const BorderSide(color: AppColors.danger),
+                              ),
+                            ),
+                          ],
+                        )
+                      : OutlinedButton.icon(
+                          onPressed: () =>
+                              setState(() => _selectionMode = true),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            size: 18,
+                            color: AppColors.danger,
+                          ),
+                          label: const Text('Supprimer'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.danger,
+                            side: const BorderSide(color: AppColors.danger),
+                          ),
+                        ),
                 ),
-                icon: const Icon(Icons.upload_file_outlined, size: 18),
-                label: const Text('Importer un fichier Excel'),
-              ),
-              const SizedBox(width: 12),
-              FilledButton.icon(
-                onPressed: () => showRegisterApprenantDialog(
-                  context,
-                  division: selectedDivision,
-                  classe: classeInscription,
-                  promotion: promotionInscription,
-                ),
-                icon: const Icon(Icons.person_add_alt, size: 18),
-                label: const Text('Enregistrement individuel'),
-              ),
+              ],
+              const SizedBox(height: 16),
             ],
           ),
-          const SizedBox(height: 12),
-        ],
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _nomSearchCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Rechercher par nom',
-                  prefixIcon: Icon(Icons.search, size: 20),
-                  isDense: true,
-                ),
-                onChanged: (_) => setState(() {}),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextField(
-                controller: _matriculeSearchCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Rechercher par matricule',
-                  prefixIcon: Icon(Icons.search, size: 20),
-                  isDense: true,
-                ),
-                onChanged: (_) => setState(() {}),
-              ),
-            ),
-          ],
         ),
-        if (isAdmin) ...[
-          const SizedBox(height: 12),
-          Align(
-            alignment: Alignment.centerRight,
-            child: _selectionMode
-                ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextButton(
-                        onPressed: () => setState(() {
-                          _selectionMode = false;
-                          _selectedIds.clear();
-                        }),
-                        child: const Text('Annuler'),
-                      ),
-                      const SizedBox(width: 8),
-                      OutlinedButton.icon(
-                        onPressed: _selectedIds.isEmpty
-                            ? null
-                            : () => _deleteSelected(
-                                apprenantsAsync.value ?? const [],
-                              ),
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          size: 18,
-                          color: AppColors.danger,
-                        ),
-                        label: Text(
-                          'Supprimer la sélection (${_selectedIds.length})',
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.danger,
-                          side: const BorderSide(color: AppColors.danger),
-                        ),
-                      ),
-                    ],
-                  )
-                : OutlinedButton.icon(
-                    onPressed: () => setState(() => _selectionMode = true),
-                    icon: const Icon(
-                      Icons.delete_outline,
-                      size: 18,
-                      color: AppColors.danger,
-                    ),
-                    label: const Text('Supprimer'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.danger,
-                      side: const BorderSide(color: AppColors.danger),
-                    ),
-                  ),
-          ),
-        ],
-        const SizedBox(height: 16),
-        Expanded(
-          child: apprenantsAsync.when(
-            data: (apprenants) {
-              final divisionsById = {
-                for (final d in divisionsAsync.value ?? <Division>[]) d.id: d,
-              };
-              final classesById = {
-                for (final c in classesAsync.value ?? <Classe>[]) c.id: c,
-              };
-              final filtered = _filtrer(apprenants, classesRetenues);
+        apprenantsAsync.when(
+          data: (apprenants) {
+            final divisionsById = {
+              for (final d in divisionsAsync.value ?? <Division>[]) d.id: d,
+            };
+            final classesById = {
+              for (final c in classesAsync.value ?? <Classe>[]) c.id: c,
+            };
+            final filtered = _filtrer(apprenants, classesRetenues);
 
-              if (filtered.isEmpty) {
-                return const EmptyState(
+            if (filtered.isEmpty) {
+              return const SliverToBoxAdapter(
+                child: EmptyState(
                   message: 'Aucun apprenant trouvé.',
                   icon: Icons.groups_outlined,
-                );
-              }
+                ),
+              );
+            }
 
-              final filteredIds = filtered.map((a) => a.id).toSet();
-              final allSelected = filteredIds.every(_selectedIds.contains);
+            final filteredIds = filtered.map((a) => a.id).toSet();
+            final allSelected = filteredIds.every(_selectedIds.contains);
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (isAdmin && _selectionMode) ...[
-                    InkWell(
+            return SliverMainAxisGroup(
+              slivers: [
+                if (isAdmin && _selectionMode)
+                  SliverToBoxAdapter(
+                    child: InkWell(
                       onTap: () => setState(() {
                         if (allSelected) {
                           _selectedIds.removeAll(filteredIds);
@@ -653,42 +666,42 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                  ],
-                  Expanded(
-                    child: ListView.separated(
-                      itemCount: filtered.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 8),
-                      itemBuilder: (context, index) {
-                        final apprenant = filtered[index];
-                        final division = divisionsById[apprenant.divisionId];
-                        final classe = classesById[apprenant.classeId];
-                        return _ApprenantTile(
-                          apprenant: apprenant,
-                          divisionNom: division?.nom ?? '—',
-                          classeNom: classe?.nom,
-                          isAdmin: isAdmin,
-                          showCheckbox: _selectionMode,
-                          selected: _selectedIds.contains(apprenant.id),
-                          onSelectedChanged: (value) => setState(() {
-                            if (value ?? false) {
-                              _selectedIds.add(apprenant.id);
-                            } else {
-                              _selectedIds.remove(apprenant.id);
-                            }
-                          }),
-                          onDelete: () => _deleteOne(apprenant),
-                          onRequestDeletion: () => _requestDeletion(apprenant),
-                          onRejectDeletion: () => _rejectDeletion(apprenant),
-                        );
-                      },
-                    ),
                   ),
-                ],
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => EmptyState(
+                SliverList.separated(
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final apprenant = filtered[index];
+                    final division = divisionsById[apprenant.divisionId];
+                    final classe = classesById[apprenant.classeId];
+                    return _ApprenantTile(
+                      apprenant: apprenant,
+                      divisionNom: division?.nom ?? '—',
+                      classeNom: classe?.nom,
+                      isAdmin: isAdmin,
+                      showCheckbox: _selectionMode,
+                      selected: _selectedIds.contains(apprenant.id),
+                      onSelectedChanged: (value) => setState(() {
+                        if (value ?? false) {
+                          _selectedIds.add(apprenant.id);
+                        } else {
+                          _selectedIds.remove(apprenant.id);
+                        }
+                      }),
+                      onDelete: () => _deleteOne(apprenant),
+                      onRequestDeletion: () => _requestDeletion(apprenant),
+                      onRejectDeletion: () => _rejectDeletion(apprenant),
+                    );
+                  },
+                ),
+              ],
+            );
+          },
+          loading: () => const SliverToBoxAdapter(
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (error, _) => SliverToBoxAdapter(
+            child: EmptyState(
               message: 'Erreur de chargement : ${messageErreur(error)}',
               icon: Icons.error_outline,
             ),
