@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:sig_ensoa/core/erreurs.dart';
 import 'package:sig_ensoa/core/theme.dart';
 
 /// Notification de confirmation après un enregistrement réussi (créer,
@@ -20,6 +21,42 @@ void showSuccessSnackBar(BuildContext context, String message) {
       backgroundColor: AppColors.success,
       behavior: SnackBarBehavior.floating,
       duration: const Duration(seconds: 3),
+    ),
+  );
+}
+
+/// Le pendant de [showSuccessSnackBar] : ce qui n'a pas abouti.
+///
+/// Deux échecs très différents se ressemblaient jusqu'ici — « Erreur
+/// Supabase : ClientException... » disait la même chose pour une coupure de
+/// réseau et pour un refus du serveur. Le premier n'est pas une faute de
+/// l'agent et ne demande rien : il passe en message furtif, sans détail
+/// technique. Le second nomme ce que le serveur a refusé, et reste affiché
+/// plus longtemps parce qu'il y a quelque chose à corriger.
+void showErrorSnackBar(BuildContext context, Object erreur, {String? action}) {
+  final reseau = estProblemeReseau(erreur);
+  final texte = reseau
+      ? 'Serveur injoignable. Vérifiez la connexion, puis réessayez.'
+      : action == null
+      ? messageErreur(erreur)
+      : '$action : ${messageErreur(erreur)}';
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Row(
+        children: [
+          Icon(
+            reseau ? Icons.cloud_off_rounded : Icons.error_outline_rounded,
+            color: Colors.white,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text(texte)),
+        ],
+      ),
+      backgroundColor: reseau ? AppColors.inkMuted : AppColors.danger,
+      behavior: SnackBarBehavior.floating,
+      duration: Duration(seconds: reseau ? 4 : 6),
     ),
   );
 }

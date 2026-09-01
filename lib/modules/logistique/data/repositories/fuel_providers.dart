@@ -101,6 +101,29 @@ class RepartitionsNotifier extends Notifier<List<Repartition>> {
     ref.read(chargementProvider.notifier).marquerCharge('repartitions');
   }
 
+  /// Corrige le libellé d'une répartition — une faute de frappe, un
+  /// changement d'appellation. Les stocks qui s'y rattachent la suivent :
+  /// c'est la même ligne, seul son nom change.
+  Future<void> renommer(String id, String libelle) async {
+    await logistique
+        .from('repartition')
+        .update({'libelle': libelle})
+        .eq('id', int.parse(id));
+    await refresh();
+    // Les écrans qui affichent le libellé à côté d'un stock le lisent par
+    // jointure : sans ce rafraîchissement, ils garderaient l'ancien nom.
+    await ref.read(souteStocksProvider.notifier).refresh();
+  }
+
+  /// Supprime une répartition. La base refuse tant qu'une soute lui garde du
+  /// stock — et c'est bien : effacer la répartition laisserait du carburant
+  /// sans destinataire.
+  Future<void> supprimer(String id) async {
+    await logistique.from('repartition').delete().eq('id', int.parse(id));
+    await refresh();
+    await ref.read(souteStocksProvider.notifier).refresh();
+  }
+
   Future<Repartition> creer(String libelle) async {
     final row = await logistique
         .from('repartition')

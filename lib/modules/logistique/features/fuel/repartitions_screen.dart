@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:sig_ensoa/core/roles.dart';
 import 'package:sig_ensoa/core/theme.dart';
+import 'package:sig_ensoa/modules/logistique/compat.dart';
 import 'package:sig_ensoa/core/chargement.dart';
 import 'package:sig_ensoa/core/format.dart';
 import '../../data/repositories/fuel_providers.dart';
@@ -17,6 +19,13 @@ class RepartitionsTabContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final charge = estCharge(ref, ['repartitions', 'soutes', 'soute_stocks']);
     final repartitions = ref.watch(repartitionsAvecSoutesProvider);
+
+    // Le parc des répartitions se tient : seul le chef du service — et
+    // l'administrateur — le corrige.
+    final role = ref.watch(sessionProvider)?.user.role;
+    final peutCorriger =
+        role == RoleLogistique.chefSoutienTechnique ||
+        role == RoleLogistique.administrateur;
 
     if (!charge) {
       return const Padding(
@@ -47,12 +56,44 @@ class RepartitionsTabContent extends ConsumerWidget {
                           fontSize: 16,
                         ),
                       ),
-                      Text(
-                        '${formatMilliers(r.quantiteTotale)} L au total',
-                        style: const TextStyle(
-                          color: AppColors.inkMuted,
-                          fontSize: 12,
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '${formatMilliers(r.quantiteTotale)} L au total',
+                            style: const TextStyle(
+                              color: AppColors.inkMuted,
+                              fontSize: 12,
+                            ),
+                          ),
+                          if (peutCorriger) ...[
+                            IconButton(
+                              tooltip: 'Renommer',
+                              onPressed: () => _renommer(
+                                context,
+                                ref,
+                                r.repartition.id,
+                                r.repartition.libelle,
+                              ),
+                              icon: const Icon(Icons.edit_outlined, size: 20),
+                            ),
+                            IconButton(
+                              tooltip: 'Supprimer',
+                              onPressed: () => _supprimer(
+                                context,
+                                ref,
+                                r.repartition.id,
+                                r.repartition.libelle,
+                                r.quantiteTotale,
+                              ),
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                size: 20,
+                                color: AppColors.danger,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),
@@ -175,7 +216,6 @@ class _NouvelleRepartitionDialogState
                   // vit toujours. C'est `context.mounted` qui répond à la
                   // bonne question.
                   final navigateur = Navigator.of(context);
-                  final messager = ScaffoldMessenger.of(context);
                   try {
                     await ref
                         .read(repartitionsProvider.notifier)
@@ -189,14 +229,109 @@ class _NouvelleRepartitionDialogState
                   } catch (e) {
                     if (!context.mounted) return;
                     setState(() => _envoi = false);
-                    messager.showSnackBar(
-                      SnackBar(content: Text('Erreur Supabase : $e')),
-                    );
+                    showErrorSnackBar(context, e);
                   }
                 },
           child: const Text('Créer'),
         ),
       ],
     );
+  }
+}
+
+Future<void> _renommer(
+  BuildContext context,
+  WidgetRef ref,
+  String id,
+  String libelleActuel,
+) async {
+  final controleur = TextEditingController(text: libelleActuel);
+
+  final valide = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      scrollable: true,
+      title: const Text('Renommer la répartition'),
+      content: TextField(
+        controller: controleur,
+        autofocus: true,
+        decoration: const InputDecoration(labelText: 'Libellé (ex. BA1, CA3…)'),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Annuler'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Enregistrer'),
+        ),
+      ],
+    ),
+  );
+  if (valide != true || controleur.text.trim().isEmpty) return;
+
+  try {
+    await ref
+        .read(repartitionsProvider.notifier)
+        .renommer(id, controleur.text.trim());
+  } catch (e) {
+    if (!context.mounted) return;
+    showErrorSnackBar(context, e, action: 'Renommage impossible');
+  }
+}
+
+/// Une répartition qui porte encore du carburant ne se supprime pas : la base
+/// refuserait, et elle a raison — le stock resterait sans destinataire. On le
+/// dit avant, plutôt que de laisser le serveur répondre par une contrainte.
+Future<void> _supprimer(
+  BuildContext context,
+  WidgetRef ref,
+  String id,
+  String libelle,
+  int quantiteTotale,
+) async {
+  final messager = ScaffoldMessenger.of(context);
+
+  if (quantiteTotale > 0) {
+    messager.showSnackBar(
+      SnackBar(
+        content: Text(
+          '« $libelle » porte encore ${formatMilliers(quantiteTotale)} L. '
+          'Videz-la avant de la supprimer.',
+        ),
+      ),
+    );
+    return;
+  }
+
+  final confirme = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      scrollable: true,
+      title: const Text('Supprimer la répartition'),
+      content: Text(
+        '« $libelle » disparaîtra des dépotages et des distributions à venir. '
+        'Les mouvements déjà enregistrés la gardent en mémoire.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Annuler'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Supprimer'),
+        ),
+      ],
+    ),
+  );
+  if (confirme != true) return;
+
+  try {
+    await ref.read(repartitionsProvider.notifier).supprimer(id);
+  } catch (e) {
+    if (!context.mounted) return;
+    showErrorSnackBar(context, e, action: 'Suppression impossible');
   }
 }

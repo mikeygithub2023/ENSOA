@@ -145,9 +145,7 @@ class _ActiviteFormDialogState extends ConsumerState<ActiviteFormDialog> {
     } catch (e) {
       if (mounted) {
         setState(() => _envoi = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erreur Supabase : $e')));
+        showErrorSnackBar(context, e);
       }
     }
   }

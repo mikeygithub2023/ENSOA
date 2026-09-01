@@ -123,9 +123,7 @@ class _CloseRepairDialogState extends ConsumerState<CloseRepairDialog> {
     } catch (e) {
       if (mounted) {
         setState(() => _envoi = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erreur Supabase : $e')));
+        showErrorSnackBar(context, e);
       }
     }
   }

@@ -56,9 +56,7 @@ class _BonsArmesTabContentState extends ConsumerState<BonsArmesTabContent> {
       if (mounted) showSuccessSnackBar(context, 'Arme réintégrée avec succès.');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erreur Supabase : $e')));
+        showErrorSnackBar(context, e);
       }
     } finally {
       if (mounted) setState(() => _retoursEnCours.remove(d.id));

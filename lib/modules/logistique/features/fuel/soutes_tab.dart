@@ -247,9 +247,7 @@ class _MenuSouteState extends ConsumerState<_MenuSoute> {
       if (mounted) showSuccessSnackBar(context, 'Soute supprimée avec succès.');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erreur Supabase : $e')));
+        showErrorSnackBar(context, e);
       }
     } finally {
       // Remis à zéro même après un succès : si l'état venait à être réutilisé

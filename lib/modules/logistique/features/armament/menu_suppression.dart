@@ -106,9 +106,7 @@ class _MenuSuppressionArticleState
       if (mounted) showSuccessSnackBar(context, 'Suppression effectuée.');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erreur Supabase : $e')));
+        showErrorSnackBar(context, e);
       }
     } finally {
       // Remis à zéro même après un succès. En principe le widget a disparu

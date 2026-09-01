@@ -61,9 +61,7 @@ class _VehicleDetailScreenState extends ConsumerState<VehicleDetailScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _suppressionEnCours = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erreur Supabase : $e')));
+        showErrorSnackBar(context, e);
       }
     }
   }

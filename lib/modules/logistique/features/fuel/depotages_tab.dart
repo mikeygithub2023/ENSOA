@@ -102,7 +102,6 @@ Future<void> _confirmerSuppression(
   WidgetRef ref,
   Depotage depotage,
 ) async {
-  final messager = ScaffoldMessenger.of(context);
   final confirme = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
@@ -130,8 +129,7 @@ Future<void> _confirmerSuppression(
   try {
     await ref.read(depotagesProvider.notifier).supprimer(depotage);
   } catch (e) {
-    messager.showSnackBar(
-      SnackBar(content: Text('Suppression impossible : $e')),
-    );
+    if (!context.mounted) return;
+    showErrorSnackBar(context, e, action: 'Suppression impossible');
   }
 }

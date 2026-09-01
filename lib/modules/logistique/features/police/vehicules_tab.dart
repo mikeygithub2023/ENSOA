@@ -55,9 +55,7 @@ class _VehiculesTabContentState extends ConsumerState<VehiculesTabContent> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erreur Supabase : $e')));
+        showErrorSnackBar(context, e);
       }
     } finally {
       if (mounted) setState(() => _sortiesEnCours.remove(m.id));

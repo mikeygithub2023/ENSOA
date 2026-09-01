@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:sig_ensoa/core/erreurs.dart';
 import 'package:sig_ensoa/modules/logistique/compat.dart';
 import 'package:sig_ensoa/core/supabase_client.dart';
 import 'package:sig_ensoa/core/theme.dart';
@@ -47,6 +48,9 @@ class _DistributionFormDialogState
   bool _envoi = false;
   bool _recherche = false;
   String? _messageRecherche;
+
+  /// Ce que le serveur a répondu quand l'enregistrement a échoué.
+  String? _erreur;
 
   @override
   void dispose() {
@@ -387,6 +391,13 @@ class _DistributionFormDialogState
                 controller: _motifCtrl,
                 decoration: const InputDecoration(labelText: 'Motif'),
               ),
+              if (_erreur != null) ...[
+                const SizedBox(height: 16),
+                Text(
+                  _erreur!,
+                  style: const TextStyle(color: AppColors.danger, fontSize: 13),
+                ),
+              ],
             ],
           ),
         ),
@@ -457,11 +468,14 @@ class _DistributionFormDialogState
         Navigator.of(context).pop();
       }
     } catch (e) {
+      // Le message reste dans le formulaire : un bandeau en bas d'écran passe
+      // derrière le clavier de la tablette, et l'agent ne sait plus pourquoi
+      // sa distribution n'est pas partie.
       if (mounted) {
-        setState(() => _envoi = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erreur Supabase : $e')));
+        setState(() {
+          _envoi = false;
+          _erreur = messageErreur(e);
+        });
       }
     }
   }

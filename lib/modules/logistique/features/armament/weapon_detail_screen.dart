@@ -47,9 +47,7 @@ class _WeaponDetailScreenState extends ConsumerState<WeaponDetailScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Erreur Supabase : $e')));
+        showErrorSnackBar(context, e);
       }
     } finally {
       if (mounted) setState(() => _retourEnCours = false);
