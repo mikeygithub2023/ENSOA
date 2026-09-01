@@ -162,10 +162,8 @@ class _BlocScolarite extends ConsumerWidget {
       data: (a) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            spacing: 14,
-            runSpacing: 14,
-            children: [
+          _GrilleDeTuiles(
+            tuiles: [
               _Tuile(
                 icone: Icons.groups_rounded,
                 valeur: '${a.apprenants}',
@@ -224,10 +222,8 @@ class _BlocLogistique extends ConsumerWidget {
       data: (a) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Wrap(
-            spacing: 14,
-            runSpacing: 14,
-            children: [
+          _GrilleDeTuiles(
+            tuiles: [
               _Tuile(
                 icone: Icons.directions_car_filled_rounded,
                 valeur: '${a.vehiculesDisponibles}/${a.vehicules}',
@@ -301,15 +297,14 @@ class _Tuile extends StatelessWidget {
   final String legende;
   final Color couleur;
 
-  /// La même pour toutes, et la même que celle des tuiles d'attente : posées
-  /// côte à côte, des hauteurs dictées par la longueur des légendes donnaient
-  /// une rangée dentelée.
+  /// La même pour toutes : posées côte à côte, des hauteurs dictées par la
+  /// longueur des légendes donnaient une rangée dentelée. Elle tient la plus
+  /// bavarde d'entre elles — celle dont la légende passe sur deux lignes.
   static const double hauteur = 196;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 232,
       height: hauteur,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -328,7 +323,11 @@ class _Tuile extends StatelessWidget {
             ),
             child: Icon(icone, color: couleur, size: 20),
           ),
-          const SizedBox(height: 14),
+          // L'espace qui reste se met là, entre le pictogramme et le chiffre,
+          // plutôt qu'en bas de la tuile. Les chiffres s'alignent alors d'une
+          // tuile à l'autre, et la carte se remplit au lieu de sembler
+          // inachevée.
+          const Spacer(),
           Text(
             valeur,
             style: const TextStyle(
@@ -362,6 +361,45 @@ class _Tuile extends StatelessWidget {
   }
 }
 
+/// Range les tuiles sur toute la largeur disponible, à parts égales.
+///
+/// Elles avaient une largeur fixe de 232 pixels : sur un écran large, la
+/// rangée s'arrêtait au milieu et laissait une bande vide à droite. La
+/// largeur minimale ne décide plus que du nombre de tuiles qui tiennent sur
+/// une ligne ; celles-ci se partagent ensuite ce qu'il y a.
+class _GrilleDeTuiles extends StatelessWidget {
+  const _GrilleDeTuiles({required this.tuiles});
+
+  final List<Widget> tuiles;
+
+  static const double _espace = 14;
+  static const double _largeurMinimale = 232;
+
+  @override
+  Widget build(BuildContext context) {
+    if (tuiles.isEmpty) return const SizedBox.shrink();
+
+    return LayoutBuilder(
+      builder: (context, contraintes) {
+        final large = contraintes.maxWidth;
+        var parRangee = ((large + _espace) / (_largeurMinimale + _espace))
+            .floor();
+        if (parRangee < 1) parRangee = 1;
+        if (parRangee > tuiles.length) parRangee = tuiles.length;
+        final largeur = (large - _espace * (parRangee - 1)) / parRangee;
+
+        return Wrap(
+          spacing: _espace,
+          runSpacing: _espace,
+          children: [
+            for (final tuile in tuiles) SizedBox(width: largeur, child: tuile),
+          ],
+        );
+      },
+    );
+  }
+}
+
 class _TuilesEnAttente extends StatelessWidget {
   const _TuilesEnAttente({required this.nombre});
 
@@ -369,13 +407,10 @@ class _TuilesEnAttente extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 14,
-      runSpacing: 14,
-      children: [
+    return _GrilleDeTuiles(
+      tuiles: [
         for (var i = 0; i < nombre; i++)
           Container(
-            width: 232,
             height: _Tuile.hauteur,
             decoration: BoxDecoration(
               color: AppColors.blueMist,
