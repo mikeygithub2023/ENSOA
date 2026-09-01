@@ -169,6 +169,31 @@ class ControlesRepository {
   /// Même précaution que pour un apprenant : sans le `select()` final, une
   /// suppression refusée par la RLS passerait pour un succès.
   Future<void> deleteNote(String noteId) async {
+    // Une note sportive n'existe pas par elle-même : elle est calculée à
+    // partir de la performance, par un déclencheur qui la réécrit à chaque
+    // fois que celle-ci change. La supprimer seule laissait la performance
+    // en place — affichée « sans barème », puisque plus rien ne la notait —
+    // et la moindre correction l'aurait fait réapparaître. C'est la
+    // performance qu'il faut retirer : la note part avec elle.
+    final note = await scolarite
+        .from('notes')
+        .select('sous_module_id, apprenant_id')
+        .eq('id', noteId)
+        .maybeSingle();
+
+    final sousModuleId = note?['sous_module_id'] as String?;
+    if (sousModuleId != null) {
+      final performances = await scolarite
+          .from('performances_sportives')
+          .delete()
+          .eq('sous_module_id', sousModuleId)
+          .eq('apprenant_id', note!['apprenant_id'] as String)
+          .select('id');
+      // Une performance retirée emporte sa note. S'il n'y en avait pas —
+      // le sous-module n'est pas sportif —, on supprime la note elle-même.
+      if (performances.isNotEmpty) return;
+    }
+
     final supprimees = await scolarite
         .from('notes')
         .delete()
