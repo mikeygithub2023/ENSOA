@@ -49,10 +49,16 @@ class _CoursScreenState extends ConsumerState<CoursScreen> {
     final divisions = ref.watch(divisionsProvider).value ?? const <Division>[];
     final classes = ref.watch(classesListProvider).value ?? const <Classe>[];
     final profil = ref.watch(currentProfileProvider).value;
+    // Le Commandant de Brigade relève de l'encadrement au même titre que les
+    // autres : le programme d'une phase appartient à qui la commande. Il
+    // était absent de cette liste, si bien que l'écran ne lui offrait ni
+    // dépôt de cours, ni exercice, ni devoir — alors que les politiques,
+    // elles, l'y autorisent désormais sur les phases de sa promotion.
     final encadrement =
         profil?.role == AppRole.admin ||
         profil?.role == AppRole.chefDivision ||
-        profil?.role == AppRole.instructeur;
+        profil?.role == AppRole.instructeur ||
+        profil?.role == AppRole.commandantBrigade;
 
     final divisionUnique = divisions.length == 1 ? divisions.first : null;
     final divisionFilter = divisionUnique?.id ?? _divisionFilter;
