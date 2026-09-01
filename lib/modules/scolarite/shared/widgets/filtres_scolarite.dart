@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:sig_ensoa/core/roles.dart';
+import 'package:sig_ensoa/features/auth/providers/auth_providers.dart';
 
 import '../../models/classe.dart';
 import '../../models/promotion.dart';
@@ -30,7 +34,7 @@ class ChoixScolarite {
 /// n'existe pas — ils sont côte à côte, au même niveau sous la division.
 /// Les divisions qui n'ont que l'un ou l'autre affichent simplement moins
 /// de puces.
-class PromotionsEtStagesFilters extends StatelessWidget {
+class PromotionsEtStagesFilters extends ConsumerWidget {
   const PromotionsEtStagesFilters({
     super.key,
     required this.promotions,
@@ -60,14 +64,30 @@ class PromotionsEtStagesFilters extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (promotions.isEmpty && stages.isEmpty) return const SizedBox.shrink();
+
+    // Un Commandant de Brigade n'a qu'une promotion, et la portée « toute la
+    // division » n'a aucun sens pour lui : la puce « tout » lui proposait
+    // une vue qu'il n'a pas le droit d'avoir, et que le serveur lui aurait
+    // rendue vide. On la retire, et on retient sa promotion d'office —
+    // c'est la seule qu'il puisse regarder.
+    final estCommandant =
+        ref.watch(profilCourantProvider).value?.roleScolarite ==
+        RoleScolarite.commandantBrigade;
+
+    if (estCommandant && choix.estTout && promotions.length == 1) {
+      final sienne = promotions.first.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        onChoix(ChoixScolarite.promotion(sienne));
+      });
+    }
 
     return Wrap(
       spacing: 8,
       runSpacing: 8,
       children: [
-        if (avecToutes)
+        if (avecToutes && !estCommandant)
           FilterChipPill(
             label: _labelTout,
             selected: choix.estTout,

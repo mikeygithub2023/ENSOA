@@ -172,6 +172,7 @@ AppNotification _notificationFromRow(Map<String, dynamic> row) =>
       message: row['message'] as String,
       date: DateTime.parse(row['created_at'] as String),
       lue: row['read'] as bool,
+      noteId: row['note_id'] as String?,
     );
 
 /// Notifications persistées (table `notification`), filtrées côté RLS :
@@ -209,6 +210,7 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
             message: n.message,
             date: n.date,
             lue: true,
+            noteId: n.noteId,
           )
         else
           n,

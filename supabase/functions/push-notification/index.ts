@@ -17,9 +17,23 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
 
+// Un secret posé puis vidé vaut la chaîne vide, pas `undefined` : `??` ne
+// bascule donc pas sur le suivant, et `JSON.parse("")` faisait échouer la
+// fonction au chargement — aucune notification ne partait, sans un mot
+// d'explication. On retient le premier secret réellement renseigné.
+function secretRenseigne(...noms: string[]): string {
+  for (const nom of noms) {
+    const valeur = Deno.env.get(nom);
+    if (valeur && valeur.trim()) return valeur;
+  }
+  throw new Error(
+    "Aucun compte de service Firebase n'est renseigné : posez " +
+      noms.join(" ou ") + " dans les secrets du projet.",
+  );
+}
+
 const IDENTIFIANTS = JSON.parse(
-  Deno.env.get("FCM_SERVICE_ACCOUNT") ??
-    Deno.env.get("FIREBASE_SERVICE_ACCOUNT")!,
+  secretRenseigne("FCM_SERVICE_ACCOUNT", "FIREBASE_SERVICE_ACCOUNT"),
 );
 
 async function obtenirJetonAcces(): Promise<string> {
@@ -42,7 +56,12 @@ async function resoudreJetonsAppareils(notification: Record<string, unknown>): P
   }
 
   if (roleCible) {
-    const { data: profils } = await supabase.schema("socle").from("profiles").select("id").eq("role", roleCible);
+    // `role_cible` porte un rôle du soutien technique : il se compare à
+    // `role_logistique`, pas à `role`, qui est celui de la scolarité. La
+    // confusion ne rendait jamais personne, et la notification n'atteignait
+    // aucun appareil.
+    const { data: profils } = await supabase.schema("socle").from("profiles")
+      .select("id").eq("role_logistique", roleCible);
     const ids = (profils ?? []).map((p) => p.id as string);
     if (ids.length === 0) return [];
     const { data } = await supabase.schema("socle").from("device_token").select("token").in("utilisateur_id", ids);

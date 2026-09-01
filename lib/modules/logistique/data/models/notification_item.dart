@@ -16,6 +16,11 @@ class AppNotification {
   final DateTime date;
   final bool lue;
 
+  /// La note dont la suppression est demandée, pour une notification de ce
+  /// type. C'est elle qui permet à l'administrateur de trancher depuis la
+  /// liste : sans elle, il lisait la demande sans pouvoir y répondre.
+  final String? noteId;
+
   const AppNotification({
     required this.id,
     required this.categorie,
@@ -23,7 +28,10 @@ class AppNotification {
     required this.message,
     required this.date,
     this.lue = false,
+    this.noteId,
   });
+
+  bool get estDemandeDeSuppression => noteId != null;
 }
 
 extension NotificationCategoryIcon on NotificationCategory {
