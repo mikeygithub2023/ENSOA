@@ -104,8 +104,14 @@ Deno.serve(async (req) => {
       .from("profiles").select("role, role_logistique").eq("id", id).maybeSingle();
     if (!cible) return reponse({ error: "Compte introuvable." }, 404);
 
+    // Un compte dont le poste n'est pas reconnu — deux rôles qui ne
+    // correspondent à aucun poste, ou aucun rôle du tout — ne relevait de
+    // l'autorité de personne, et devenait donc indestructible. C'est
+    // précisément celui qu'il faut pouvoir reprendre en main, et cela revient
+    // à qui ouvre les comptes. L'écran d'administration applique déjà cette
+    // règle ; le serveur la refusait encore.
     const posteCible = posteDepuisRoles(cible.role ?? null, cible.role_logistique ?? null);
-    if (!posteCible || !postesPermis.includes(posteCible)) {
+    if (posteCible && !postesPermis.includes(posteCible)) {
       return reponse({ error: "Ce compte ne relève pas de votre autorité." }, 403);
     }
 

@@ -180,8 +180,8 @@ class SoutesStockCard extends StatelessWidget {
   /// laisse un peu de blanc, trop peu déborde.
   static double hauteurPour(int nombreDeSoutes) {
     const enTete = 103.0; // marges, titre, sous-titre
-    const parLigne = 40.0;
-    const marge = 16.0;
+    const parLigne = 46.0; // libellé, chiffre, barre, écart
+    const marge = 24.0;
     final corps = nombreDeSoutes == 0 ? 20.0 : nombreDeSoutes * parLigne;
     final calculee = enTete + corps + marge;
     // Jamais plus courte que la jauge du parc, qui l'accompagne.
