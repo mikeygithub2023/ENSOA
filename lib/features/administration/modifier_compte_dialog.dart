@@ -129,7 +129,7 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
               if (_poste == Poste.commandantBrigade) ...[
                 const SizedBox(height: 16),
                 ref
-                    .watch(promotionsProvider)
+                    .watch(promotionsNommeesProvider)
                     .when(
                       loading: () => const LinearProgressIndicator(),
                       error: (e, _) => Text(

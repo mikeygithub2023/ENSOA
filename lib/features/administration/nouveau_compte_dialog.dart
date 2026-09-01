@@ -148,7 +148,7 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                 if (_commandeUnePromotion) ...[
                   const SizedBox(height: 16),
                   ref
-                      .watch(promotionsProvider)
+                      .watch(promotionsNommeesProvider)
                       .when(
                         loading: () => const LinearProgressIndicator(),
                         error: (e, _) => Text(
