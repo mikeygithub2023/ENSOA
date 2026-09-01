@@ -13,6 +13,11 @@ import '../../shared/widgets/dashboard_widgets.dart';
 import '../../shared/widgets/skeleton.dart';
 import '../../shared/widgets/widgets.dart';
 
+/// La hauteur commune de la jauge du parc et de la pilule des soutes. Tient
+/// la plus haute des deux — la pilule, avec son titre, sa réglette et ses
+/// bornes chiffrées.
+const double _hauteurCartesJauge = 176;
+
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key, this.sansCadre = false});
 
@@ -196,9 +201,13 @@ class DashboardScreen extends ConsumerWidget {
               );
             }
             // Côte à côte, deux cartes de hauteurs différentes donnent une
-            // ligne bancale. `IntrinsicHeight` les aligne sur la plus haute,
-            // comme la rangée du dessus.
-            return IntrinsicHeight(
+            // ligne bancale. On leur impose donc une hauteur commune —
+            // sans passer par `IntrinsicHeight`, qui interrogerait la
+            // « pilule » sur sa hauteur naturelle : elle se dessine dans un
+            // `LayoutBuilder`, qui refuse cette question par une assertion et
+            // laissait la page entièrement blanche.
+            return SizedBox(
+              height: _hauteurCartesJauge,
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

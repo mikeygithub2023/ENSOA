@@ -304,7 +304,7 @@ class _Tuile extends StatelessWidget {
   /// La même pour toutes, et la même que celle des tuiles d'attente : posées
   /// côte à côte, des hauteurs dictées par la longueur des légendes donnaient
   /// une rangée dentelée.
-  static const double hauteur = 158;
+  static const double hauteur = 196;
 
   @override
   Widget build(BuildContext context) {

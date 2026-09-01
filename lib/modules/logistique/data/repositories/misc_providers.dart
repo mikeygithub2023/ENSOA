@@ -14,7 +14,7 @@ AppUser? findUser(List<AppUser> users, String id) {
   return null;
 }
 
-RoleLogistique _roleFromDb(String value) {
+RoleLogistique _roleFromDb(String? value) {
   switch (value) {
     case 'chef_soutien_technique':
       return RoleLogistique.chefSoutienTechnique;
@@ -37,12 +37,21 @@ RoleLogistique _roleFromDb(String value) {
   }
 }
 
+/// Depuis la fusion, un profil peut ne relever que de la scolarité : son
+/// matricule, son grade et son rôle du soutien technique sont alors nuls. Ce
+/// convertisseur les lisait comme des chaînes obligatoires — la première
+/// fiche d'élève rencontrée faisait échouer la lecture de tout le
+/// référentiel, et le journal d'audit se retrouvait à n'afficher que des
+/// identifiants techniques faute de savoir nommer qui que ce soit.
+///
+/// Et il lisait `role` — le rôle de la scolarité — là où il fallait
+/// `role_logistique`.
 AppUser _appUserFromRow(Map<String, dynamic> row) => AppUser(
   id: row['id'] as String,
-  matricule: row['matricule'] as String,
-  nomComplet: row['nom_complet'] as String,
-  grade: row['grade'] as String,
-  role: _roleFromDb(row['role'] as String),
+  matricule: (row['matricule'] as String?) ?? '',
+  nomComplet: (row['nom_complet'] as String?) ?? '',
+  grade: (row['grade'] as String?) ?? '',
+  role: _roleFromDb(row['role_logistique'] as String?),
   celluleId: row['cellule_id']?.toString(),
   actif: (row['actif'] as bool?) ?? true,
 );

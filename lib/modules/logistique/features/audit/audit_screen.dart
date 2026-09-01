@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../data/models/user.dart';
 import '../../data/repositories/misc_providers.dart';
 import '../../shared/widgets/widgets.dart';
 
@@ -33,12 +34,12 @@ class AuditScreen extends ConsumerWidget {
             separatorBuilder: (_, _) => const Divider(height: 1),
             itemBuilder: (context, i) {
               final e = entries[i];
-              final auteur = findUser(users, e.auteurId);
               return ListTile(
                 leading: const Icon(Icons.receipt_long_outlined),
                 title: Text('${e.action} — ${e.cible}'),
                 subtitle: Text(
-                  '${auteur?.nomComplet ?? e.auteurId} · ${df.format(e.date)}${e.detail != null ? ' · ${e.detail}' : ''}',
+                  '${_auteur(users, e.auteurId)} · ${df.format(e.date)}'
+                  '${e.detail != null ? ' · ${e.detail}' : ''}',
                 ),
               );
             },
@@ -47,4 +48,24 @@ class AuditScreen extends ConsumerWidget {
       ],
     );
   }
+}
+
+/// Qui a fait l'action, nommé comme on le nomme dans la maison.
+///
+/// La ligne portait jusqu'ici l'identifiant technique du compte —
+/// « 59978b52-9277-40c9… » — qui ne dit rien à personne. Un journal d'audit
+/// sert à savoir qui a agi ; s'il faut aller chercher ailleurs à qui
+/// appartient l'identifiant, il ne remplit pas son office.
+String _auteur(List<AppUser> users, String auteurId) {
+  final auteur = findUser(users, auteurId);
+  if (auteur == null) return 'Auteur inconnu';
+
+  final nom = auteur.nomComplet.trim();
+  if (nom.isEmpty) {
+    return auteur.matricule.isEmpty ? 'Auteur inconnu' : auteur.matricule;
+  }
+
+  final grade = auteur.grade.trim();
+  final nomme = grade.isEmpty ? nom : '$grade $nom';
+  return auteur.matricule.isEmpty ? nomme : '$nomme (${auteur.matricule})';
 }
