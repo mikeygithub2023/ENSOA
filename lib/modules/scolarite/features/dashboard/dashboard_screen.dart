@@ -31,30 +31,54 @@ class DashboardScreen extends ConsumerWidget {
             const SizedBox(height: 16),
           ],
           statsAsync.when(
-            data: (stats) => Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                SizedBox(
-                  width: 240,
-                  child: KpiCard(
-                    titre: 'Effectif total',
-                    valeur: '${stats.total}',
-                    sousTitre: 'Élèves & stagiaires',
-                    icone: Icons.groups_outlined,
+            // Les cartes occupent toute la largeur : à quatre par rangée sur
+            // le poste de travail, à deux sur la tablette en paysage, elles
+            // se partagent l'espace au lieu de laisser une bande vide à
+            // droite. La largeur minimale de 240 décide seulement du nombre
+            // qui tient sur une ligne.
+            data: (stats) => LayoutBuilder(
+              builder: (context, contraintes) {
+                final cartes = <(String, String, String, IconData)>[
+                  (
+                    'Effectif total',
+                    '${stats.total}',
+                    'Élèves & stagiaires',
+                    Icons.groups_outlined,
                   ),
-                ),
-                for (final entry in stats.parDivision)
-                  SizedBox(
-                    width: 240,
-                    child: KpiCard(
-                      titre: entry.division.nom,
-                      valeur: '${entry.count}',
-                      sousTitre: 'Effectif',
-                      icone: Icons.school_outlined,
+                  for (final entry in stats.parDivision)
+                    (
+                      entry.division.nom,
+                      '${entry.count}',
+                      'Effectif',
+                      Icons.school_outlined,
                     ),
-                  ),
-              ],
+                ];
+
+                const espace = 16.0;
+                final large = contraintes.maxWidth;
+                var parRangee = ((large + espace) / (240 + espace)).floor();
+                if (parRangee < 1) parRangee = 1;
+                if (parRangee > cartes.length) parRangee = cartes.length;
+                final largeur =
+                    (large - espace * (parRangee - 1)) / parRangee;
+
+                return Wrap(
+                  spacing: espace,
+                  runSpacing: espace,
+                  children: [
+                    for (final (titre, valeur, sousTitre, icone) in cartes)
+                      SizedBox(
+                        width: largeur,
+                        child: KpiCard(
+                          titre: titre,
+                          valeur: valeur,
+                          sousTitre: sousTitre,
+                          icone: icone,
+                        ),
+                      ),
+                  ],
+                );
+              },
             ),
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (error, _) => EmptyState(

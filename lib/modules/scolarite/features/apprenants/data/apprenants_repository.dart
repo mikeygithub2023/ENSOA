@@ -401,23 +401,32 @@ class ApprenantsRepository {
         .toSet();
     if (names.isEmpty) return;
 
-    final ids = <String>[];
+    // Un ensemble, pas une liste : deux libellés qui ne diffèrent que par la
+    // casse — « BAC » et « Bac », que rien n'empêche de coexister au
+    // catalogue, dont l'unicité est sensible à la casse — désignent la même
+    // ligne. Les insérer deux fois violerait l'unicité (apprenant, diplôme).
+    final ids = <String>{};
     for (final name in names) {
-      final existing = await scolarite
+      // `.limit(1)` avant `.maybeSingle()` : sans lui, un catalogue portant
+      // ces deux orthographes rendait deux lignes, et `maybeSingle` levait
+      // une erreur au lieu de choisir. L'enregistrement de l'élève échouait
+      // alors tout entier, pour un doublon dont personne n'était responsable.
+      final existant = await scolarite
           .from('diplomes')
           .select('id')
           .ilike('nom', name)
+          .limit(1)
           .maybeSingle();
-      if (existing != null) {
-        ids.add(existing['id'] as String);
-      } else {
-        final created = await scolarite
-            .from('diplomes')
-            .insert({'nom': name})
-            .select('id')
-            .single();
-        ids.add(created['id'] as String);
+      if (existant != null) {
+        ids.add(existant['id'] as String);
+        continue;
       }
+      final cree = await scolarite
+          .from('diplomes')
+          .insert({'nom': name})
+          .select('id')
+          .single();
+      ids.add(cree['id'] as String);
     }
 
     await scolarite.from('apprenant_diplomes').insert([

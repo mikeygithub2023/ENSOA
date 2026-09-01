@@ -122,7 +122,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { matricule, nom, prenom, grade, poste, motDePasse, titre, divisionId, celluleId } = body as {
+    const { matricule, nom, prenom, grade, poste, motDePasse, titre, divisionId, promotionId, celluleId } = body as {
       matricule: string;
       nom: string;
       prenom: string;
@@ -131,6 +131,7 @@ Deno.serve(async (req) => {
       motDePasse: string;
       titre: string | null;
       divisionId: string | null;
+      promotionId: string | null;
       celluleId: number | null;
     };
 
@@ -185,6 +186,9 @@ Deno.serve(async (req) => {
         role: roles[0],
         role_logistique: roles[1],
         division_id: divisionId,
+        // La promotion que commande un Commandant de Brigade — elle borne
+        // tout ce qu'il voit. Nulle pour les autres postes.
+        promotion_id: poste === "commandant_brigade" ? promotionId : null,
         cellule_id: celluleId,
         actif: true,
         // Le mot de passe posé ici est connu de celui qui ouvre le compte :

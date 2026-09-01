@@ -1,8 +1,10 @@
+import 'dart:io' show Platform;
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import 'package:sig_ensoa/core/erreurs.dart';
@@ -128,6 +130,9 @@ class _RegisterApprenantDialogState
   int _currentStep = 0;
   bool _submitting = false;
 
+  /// Le motif du dernier refus, affiché dans la boîte plutôt qu'en bandeau.
+  String? _erreur;
+
   /// Diplômes ajoutés au catalogue pendant cette session mais pas encore
   /// confirmés en base — fusionnés avec le catalogue Supabase (`diplomesProvider`)
   /// à chaque ouverture du sélecteur.
@@ -197,6 +202,33 @@ class _RegisterApprenantDialogState
   }
 
   bool _photoRemoved = false;
+
+  /// L'appareil photo n'existe que sur la tablette : `image_picker` ne sait
+  /// pas ouvrir de caméra sur le poste de travail, et proposer un bouton qui
+  /// ne fait rien serait pire que de ne pas le proposer.
+  bool get _peutPhotographier => Platform.isAndroid || Platform.isIOS;
+
+  /// Prise de vue sur place — l'élève est devant l'agent qui l'inscrit.
+  ///
+  /// La photo est réduite avant d'être gardée : une fiche signalétique n'a
+  /// pas besoin des douze mégapixels de la tablette, et l'envoi comme le
+  /// stockage s'en trouvent allégés d'autant.
+  Future<void> _prendrePhoto() async {
+    final photo = await ImagePicker().pickImage(
+      source: ImageSource.camera,
+      maxWidth: 800,
+      imageQuality: 75,
+      preferredCameraDevice: CameraDevice.rear,
+    );
+    if (photo == null) return;
+    final octets = await photo.readAsBytes();
+    if (!mounted) return;
+    setState(() {
+      _photoBytes = octets;
+      _photoName = photo.name.isEmpty ? 'photo.jpg' : photo.name;
+      _photoRemoved = false;
+    });
+  }
 
   Future<void> _pickPhoto() async {
     final result = await FilePicker.platform.pickFiles(
@@ -409,7 +441,10 @@ class _RegisterApprenantDialogState
   }
 
   Future<void> _submit() async {
-    setState(() => _submitting = true);
+    setState(() {
+      _submitting = true;
+      _erreur = null;
+    });
     final messenger = ScaffoldMessenger.of(context);
     final draft = _buildDraft();
 
@@ -438,15 +473,10 @@ class _RegisterApprenantDialogState
       );
     } catch (e) {
       if (!mounted) return;
-      setState(() => _submitting = false);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            'Erreur lors de l\'enregistrement : ${messageErreur(e)}',
-          ),
-          backgroundColor: AppColors.danger,
-        ),
-      );
+      setState(() {
+        _submitting = false;
+        _erreur = 'L\'enregistrement a été refusé : ${messageErreur(e)}';
+      });
     }
   }
 
@@ -518,6 +548,18 @@ class _RegisterApprenantDialogState
               ),
             ),
           ),
+          // Le motif d'un refus reste dans la boîte. En bandeau, il passait
+          // derrière le clavier de la tablette : l'enregistrement échouait
+          // sans qu'on sache jamais pourquoi.
+          if (_erreur != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+              child: Text(
+                _erreur!,
+                style: const TextStyle(color: AppColors.danger, fontSize: 13),
+              ),
+            ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             decoration: const BoxDecoration(
@@ -731,6 +773,7 @@ class _RegisterApprenantDialogState
               fileName: _photoName,
               networkUrl: _existingPhotoUrl,
               onPick: _pickPhoto,
+              onCapture: _peutPhotographier ? _prendrePhoto : null,
               onClear: _clearPhoto,
             ),
           ],
@@ -1205,6 +1248,7 @@ class _PhotoPicker extends StatelessWidget {
     required this.fileName,
     required this.onPick,
     required this.onClear,
+    this.onCapture,
     this.networkUrl,
   });
 
@@ -1213,6 +1257,11 @@ class _PhotoPicker extends StatelessWidget {
   final String? networkUrl;
   final VoidCallback onPick;
   final VoidCallback onClear;
+
+  /// Prendre la photo sur place. Nul sur le poste de travail, qui n'a pas
+  /// d'appareil : l'inscription s'y fait sur pièces, avec une photo déjà
+  /// numérisée.
+  final VoidCallback? onCapture;
 
   @override
   Widget build(BuildContext context) {
@@ -1251,6 +1300,12 @@ class _PhotoPicker extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+            if (onCapture != null)
+              IconButton(
+                icon: const Icon(Icons.photo_camera_outlined, size: 20),
+                tooltip: 'Reprendre la photo avec la tablette',
+                onPressed: onCapture,
+              ),
             TextButton(onPressed: onPick, child: const Text('Changer')),
             IconButton(
               icon: const Icon(Icons.close, size: 18),
@@ -1262,28 +1317,45 @@ class _PhotoPicker extends StatelessWidget {
       );
     }
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(AppRadii.control),
-      onTap: onPick,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.border),
-          borderRadius: BorderRadius.circular(AppRadii.control),
-          color: AppColors.blueMist,
-        ),
-        child: const Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.add_a_photo_outlined, color: AppColors.inkMuted),
-            SizedBox(height: 6),
-            Text(
-              'Ajouter une photo',
-              style: TextStyle(color: AppColors.inkMuted, fontSize: 12),
-            ),
-          ],
-        ),
+    // Sur tablette, l'élève est devant vous : le premier geste est de le
+    // photographier, pas de chercher un fichier. Les deux voies restent
+    // ouvertes, la prise de vue en tête.
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.border),
+        borderRadius: BorderRadius.circular(AppRadii.control),
+        color: AppColors.blueMist,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.add_a_photo_outlined, color: AppColors.inkMuted),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [
+              if (onCapture != null)
+                FilledButton.tonalIcon(
+                  onPressed: onCapture,
+                  icon: const Icon(Icons.photo_camera_outlined, size: 18),
+                  label: const Text('Prendre la photo'),
+                ),
+              OutlinedButton.icon(
+                onPressed: onPick,
+                icon: const Icon(Icons.folder_open_outlined, size: 18),
+                label: Text(
+                  onCapture == null
+                      ? 'Ajouter une photo'
+                      : 'Choisir un fichier',
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/erreurs.dart';
 import '../../core/postes.dart';
+import '../../modules/scolarite/models/promotion.dart';
 import '../../core/theme.dart';
 import '../../models/profil.dart';
 import '../auth/providers/auth_providers.dart';
@@ -42,6 +44,10 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
     widget.compte.roleScolarite,
     widget.compte.roleLogistique,
   );
+
+  /// La promotion commandée, pour un Commandant de Brigade. C'est elle qui
+  /// borne tout ce qu'il voit.
+  late String? _promotionId = widget.compte.promotionId;
   bool _enCours = false;
   String? _erreur;
 
@@ -71,6 +77,7 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
             grade: _grade.text.trim().isEmpty ? null : _grade.text.trim(),
             titre: _titre.text.trim().isEmpty ? null : _titre.text.trim(),
             poste: _poste!,
+            promotionId: _promotionId,
           );
       ref.invalidate(comptesProvider);
       if (mounted) Navigator.of(context).pop();
@@ -119,6 +126,43 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
                     : (p) => setState(() => _poste = p),
                 validator: (p) => p == null ? 'Choisissez un poste' : null,
               ),
+              if (_poste == Poste.commandantBrigade) ...[
+                const SizedBox(height: 16),
+                ref
+                    .watch(promotionsProvider)
+                    .when(
+                      loading: () => const LinearProgressIndicator(),
+                      error: (e, _) => Text(
+                        'Promotions illisibles : ${messageErreur(e)}',
+                        style: const TextStyle(
+                          color: AppColors.danger,
+                          fontSize: 12,
+                        ),
+                      ),
+                      data: (liste) => DropdownButtonFormField<String>(
+                        initialValue: _promotionId,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Promotion commandée',
+                          helperText:
+                              'Il ne verra que les phases de cette promotion '
+                              'et les élèves qui y sont affectés.',
+                          helperMaxLines: 2,
+                        ),
+                        items: [
+                          for (final p in liste)
+                            DropdownMenuItem(
+                              value: p.id,
+                              child: Text(p.intitule),
+                            ),
+                        ],
+                        onChanged: (v) => setState(() => _promotionId = v),
+                        validator: (v) => v == null
+                            ? 'Ce poste commande une promotion : choisissez-la'
+                            : null,
+                      ),
+                    ),
+              ],
               const SizedBox(height: 16),
               Row(
                 children: [

@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/identite.dart';
+import '../../core/erreurs.dart';
 import '../../core/postes.dart';
 import '../../core/roles.dart';
 import '../../core/theme.dart';
 import '../../modules/scolarite/models/division.dart';
+import '../../modules/scolarite/models/promotion.dart';
 import '../auth/providers/auth_providers.dart';
 import 'providers/comptes_providers.dart';
 
@@ -33,12 +35,18 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
 
   Poste? _poste;
   String? _divisionId;
+  String? _promotionId;
 
-  /// Un chef de division ou un commandant de brigade sans division ne voit
-  /// rien : la RLS borne à la sienne tout ce qu'il consulte. Pour les autres
-  /// postes de la scolarité, l'affectation peut attendre.
-  bool get _divisionObligatoire =>
-      _poste == Poste.chefDivision || _poste == Poste.commandantBrigade;
+  /// Un commandant de brigade commande une promotion, pas une division : la
+  /// RLS le borne aux phases de cette promotion et aux élèves qui y sont
+  /// affectés. On lui demande donc la promotion, et la division s'en déduit —
+  /// une paire saisie à la main pourrait se contredire.
+  bool get _commandeUnePromotion => _poste == Poste.commandantBrigade;
+
+  /// Un chef de division sans division ne voit rien : la RLS borne à la
+  /// sienne tout ce qu'il consulte. Pour les autres postes de la scolarité,
+  /// l'affectation peut attendre.
+  bool get _divisionObligatoire => _poste == Poste.chefDivision;
 
   bool _enCours = false;
   String? _erreur;
@@ -81,6 +89,7 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
             motDePasse: _motDePasse.text,
             titre: _titre.text.trim().isEmpty ? null : _titre.text.trim(),
             divisionId: _divisionId,
+            promotionId: _promotionId,
           );
       ref.invalidate(comptesProvider);
       if (mounted) Navigator.of(context).pop();
@@ -136,7 +145,51 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                 // et elle y est déterminante : c'est elle qui borne ce qu'un
                 // chef de division ou un instructeur voit. Sans elle, le
                 // compte s'ouvre mais ne montre rien.
-                if (_poste?.roleScolarite != null) ...[
+                if (_commandeUnePromotion) ...[
+                  const SizedBox(height: 16),
+                  ref
+                      .watch(promotionsProvider)
+                      .when(
+                        loading: () => const LinearProgressIndicator(),
+                        error: (e, _) => Text(
+                          'Promotions illisibles : ${messageErreur(e)}',
+                          style: const TextStyle(
+                            color: AppColors.danger,
+                            fontSize: 12,
+                          ),
+                        ),
+                        data: (liste) => DropdownButtonFormField<String>(
+                          initialValue: _promotionId,
+                          isExpanded: true,
+                          decoration: const InputDecoration(
+                            labelText: 'Promotion commandée',
+                            helperText:
+                                "Il ne verra que les phases de cette "
+                                "promotion et les élèves qui y sont affectés.",
+                            helperMaxLines: 2,
+                          ),
+                          items: [
+                            for (final p in liste)
+                              DropdownMenuItem(
+                                value: p.id,
+                                child: Text(p.intitule),
+                              ),
+                          ],
+                          onChanged: (v) => setState(() {
+                            _promotionId = v;
+                            // La division suit la promotion : c'est elle qui
+                            // la porte en base.
+                            _divisionId = liste
+                                .where((p) => p.id == v)
+                                .map((p) => p.divisionId)
+                                .firstOrNull;
+                          }),
+                          validator: (v) => v == null
+                              ? 'Ce poste commande une promotion : choisissez-la'
+                              : null,
+                        ),
+                      ),
+                ] else if (_poste?.roleScolarite != null) ...[
                   const SizedBox(height: 16),
                   divisions.when(
                     loading: () => const LinearProgressIndicator(),

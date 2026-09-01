@@ -27,6 +27,7 @@ class ComptesRepository {
     required String motDePasse,
     String? titre,
     String? divisionId,
+    String? promotionId,
     int? celluleId,
   }) async {
     final reponse = await supabase.functions.invoke(
@@ -40,6 +41,10 @@ class ComptesRepository {
         'motDePasse': motDePasse,
         'titre': titre,
         'divisionId': divisionId,
+        // La promotion que commande un Commandant de Brigade. C'est elle qui
+        // borne tout ce qu'il voit : sans elle, son compte s'ouvre sur du
+        // vide.
+        'promotionId': promotionId,
         'celluleId': celluleId,
       },
     );
@@ -71,6 +76,7 @@ class ComptesRepository {
     required String? grade,
     required String? titre,
     required Poste poste,
+    String? promotionId,
   }) async {
     await socle
         .from('profiles')
@@ -81,6 +87,10 @@ class ComptesRepository {
           'titre': titre,
           'role': poste.roleScolarite?.valeurDb,
           'role_logistique': poste.roleLogistique?.valeurDb,
+          // Nulle pour tout autre poste : une promotion qui resterait
+          // accrochée à un compte devenu instructeur lui ouvrirait des
+          // écrans qui ne le regardent plus.
+          'promotion_id': poste == Poste.commandantBrigade ? promotionId : null,
         })
         .eq('id', id);
   }
