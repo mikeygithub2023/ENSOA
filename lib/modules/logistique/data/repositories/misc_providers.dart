@@ -158,11 +158,11 @@ String _categorieToDb(NotificationCategory c) => c.name;
 AppNotification _notificationFromRow(Map<String, dynamic> row) =>
     AppNotification(
       id: row['id'].toString(),
-      categorie: _categorieFromDb(row['categorie'] as String),
-      titre: row['titre'] as String,
+      categorie: _categorieFromDb(row['type'] as String),
+      titre: row['title'] as String,
       message: row['message'] as String,
-      date: DateTime.parse(row['date'] as String),
-      lue: row['lue'] as bool,
+      date: DateTime.parse(row['created_at'] as String),
+      lue: row['read'] as bool,
     );
 
 /// Notifications persistées (table `notification`), filtrées côté RLS :
@@ -177,9 +177,9 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
 
   Future<void> refresh() async {
     final rows = await socle
-        .from('notification')
+        .from('notifications')
         .select()
-        .order('date', ascending: false);
+        .order('created_at', ascending: false);
     state = (rows as List)
         .map((r) => _notificationFromRow(r as Map<String, dynamic>))
         .toList();
@@ -187,9 +187,9 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
 
   Future<void> markRead(String id) async {
     await socle
-        .from('notification')
-        .update({'lue': true})
-        .eq('id', int.parse(id));
+        .from('notifications')
+        .update({'read': true})
+        .eq('id', id);
     state = [
       for (final n in state)
         if (n.id == id)
@@ -215,11 +215,11 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
     String? destinataireId,
     RoleLogistique? roleCible,
   }) async {
-    await socle.from('notification').insert({
-      'categorie': _categorieToDb(categorie),
-      'titre': titre,
+    await socle.from('notifications').insert({
+      'type': _categorieToDb(categorie),
+      'title': titre,
       'message': message,
-      'destinataire_id': destinataireId,
+      'profile_id': destinataireId,
       'role_cible': roleCible == null ? null : _roleToDb(roleCible),
     });
     await refresh();
@@ -273,14 +273,21 @@ final notificationsProvider =
 
 AuditEntry _auditEntryFromRow(Map<String, dynamic> row) => AuditEntry(
   id: row['id'].toString(),
-  date: DateTime.parse(row['date'] as String),
-  auteurId: row['utilisateur_id'] as String,
+  date: DateTime.parse(row['created_at'] as String),
+  auteurId: (row['actor_id'] as String?) ?? '',
   action: row['action'] as String,
-  cible: row['cible'] as String,
+  // Une ligne écrite par l'application nomme sa cible ; une ligne posée par
+  // un déclencheur de la scolarité nomme la table et l'enregistrement.
+  cible:
+      (row['cible'] as String?) ??
+      [
+        ?row['table_name'] as String?,
+        ?row['record_id'] as String?,
+      ].join(' '),
   detail: row['detail'] as String?,
 );
 
-/// Journal d'audit (table `historique`) — persisté pour de bon : avant, il
+/// Le journal d'audit — une seule table pour l'école entière (`audit_log`) :
 /// était réinitialisé à chaque redémarrage de l'app (état local uniquement).
 class AuditNotifier extends Notifier<List<AuditEntry>> {
   @override
@@ -291,9 +298,9 @@ class AuditNotifier extends Notifier<List<AuditEntry>> {
 
   Future<void> refresh() async {
     final rows = await socle
-        .from('historique')
+        .from('audit_log')
         .select()
-        .order('date', ascending: false)
+        .order('created_at', ascending: false)
         .limit(500);
     state = (rows as List)
         .map((r) => _auditEntryFromRow(r as Map<String, dynamic>))
@@ -307,8 +314,8 @@ class AuditNotifier extends Notifier<List<AuditEntry>> {
     String? detail,
   }) async {
     try {
-      await socle.from('historique').insert({
-        'utilisateur_id': auteurId,
+      await socle.from('audit_log').insert({
+        'actor_id': auteurId,
         'action': action,
         'cible': cible,
         'detail': detail,
