@@ -408,6 +408,52 @@ class DepotagesNotifier extends Notifier<List<Depotage>> {
         .ajusterQuantite(d.souteStockId, d.typeCarburant, d.quantiteRecue);
     await refresh();
   }
+
+  /// Corrige un dépotage déjà enregistré — une quantité mal saisie, un
+  /// carburant confondu, une soute erronée.
+  ///
+  /// Le stock suit la correction : on retire d'abord ce que l'ancien dépotage
+  /// avait ajouté, puis on ajoute le nouveau. En deux temps plutôt qu'en
+  /// calculant un écart, parce que la soute, la répartition ou le type de
+  /// carburant peuvent avoir changé en même temps que la quantité — l'écart
+  /// n'irait alors pas au bon endroit.
+  Future<void> modifier(Depotage ancien, Depotage nouveau) async {
+    await logistique
+        .from('depotage')
+        .update({
+          'qte_carburant_recue': nouveau.quantiteRecue,
+          'type_carburant': nouveau.typeCarburant,
+          'soute_stock_id': int.parse(nouveau.souteStockId),
+        })
+        .eq('id', int.parse(ancien.id));
+
+    final stocks = ref.read(souteStocksProvider.notifier);
+    await stocks.ajusterQuantite(
+      ancien.souteStockId,
+      ancien.typeCarburant,
+      -ancien.quantiteRecue,
+    );
+    await stocks.ajusterQuantite(
+      nouveau.souteStockId,
+      nouveau.typeCarburant,
+      nouveau.quantiteRecue,
+    );
+    await refresh();
+  }
+
+  /// Annule un dépotage : la ligne disparaît du journal et le carburant
+  /// qu'elle avait fait entrer ressort du stock.
+  ///
+  /// Rien n'empêche le stock de devenir négatif si le carburant a déjà été
+  /// distribué. C'est voulu : un stock négatif se voit et se corrige, tandis
+  /// qu'un refus silencieux laisserait le journal mentir.
+  Future<void> supprimer(Depotage d) async {
+    await logistique.from('depotage').delete().eq('id', int.parse(d.id));
+    await ref
+        .read(souteStocksProvider.notifier)
+        .ajusterQuantite(d.souteStockId, d.typeCarburant, -d.quantiteRecue);
+    await refresh();
+  }
 }
 
 final depotagesProvider = NotifierProvider<DepotagesNotifier, List<Depotage>>(
