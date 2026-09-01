@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "433070869369",
+    "project_id": "erp-ensoa",
+    "storage_bucket": "erp-ensoa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:433070869369:android:a18d15ff22d5fea28f7da8",
+        "android_client_info": {
+          "package_name": "ci.ensoa.erp_ensoa_logistique"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBllegDkRt_O4sFGE8dckc3VKvygtXQeho"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

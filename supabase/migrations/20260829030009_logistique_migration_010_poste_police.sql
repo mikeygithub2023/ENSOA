@@ -1,0 +1,14 @@
+-- ============================================================================
+-- LOGISTIQUE (ERP ENSOA) — repris de migration_010_poste_police.sql
+--
+-- FICHIER GÉNÉRÉ par supabase/outils/construire_migrations.sh.
+-- Ne pas éditer à la main : corriger la source, puis relancer le script.
+-- ============================================================================
+
+-- ============================================================================
+-- REMPLACÉ — ce script échoue car il utilise la nouvelle valeur d'enum
+-- 'poste_police' avant qu'elle soit validée (erreur Postgres 55P04).
+-- Utiliser à la place, dans l'ordre :
+--   1. migration_010a_poste_police_role.sql
+--   2. migration_010b_poste_police_tables.sql
+-- ============================================================================

@@ -1,0 +1,17 @@
+# Configuration CLI du projet unifié.
+#
+# `schemas` est la pièce à ne pas oublier : PostgREST n'expose que les schémas
+# listés ici. Sur le projet hébergé, le même réglage se fait dans
+# Dashboard > Settings > API > Exposed schemas.
+project_id = "alsglftuvvefxaadfzsj"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["socle", "scolarite", "logistique", "public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 17

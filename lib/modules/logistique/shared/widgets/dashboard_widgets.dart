@@ -1,0 +1,523 @@
+import 'package:flutter/material.dart';
+
+import 'package:sig_ensoa/core/theme.dart';
+import 'package:sig_ensoa/core/format.dart';
+
+/// Grande carte sombre de contraste (équivalent du calendrier "Training Days"
+/// de la référence) — sert ici à mettre en avant les échéances/alertes.
+class DarkFeatureCard extends StatelessWidget {
+  final String title;
+  final Widget child;
+  final Widget? trailing;
+
+  const DarkFeatureCard({
+    super.key,
+    required this.title,
+    required this.child,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: AppColors.contrastCard,
+        borderRadius: BorderRadius.circular(AppRadii.card),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              ?trailing,
+            ],
+          ),
+          const SizedBox(height: 16),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+/// Jauge circulaire (équivalent "Steps for Today").
+class GaugeCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final double progress; // 0..1
+  final String centerValue;
+  final String centerLabel;
+  final Color color;
+
+  const GaugeCard({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.progress,
+    required this.centerValue,
+    required this.centerLabel,
+    this.color = AppColors.blue,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.inkMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: 92,
+              height: 92,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 92,
+                    height: 92,
+                    child: CircularProgressIndicator(
+                      value: progress.clamp(0, 1),
+                      strokeWidth: 9,
+                      strokeCap: StrokeCap.round,
+                      backgroundColor: color.withValues(alpha: 0.12),
+                      valueColor: AlwaysStoppedAnimation(color),
+                    ),
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        centerValue,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          color: AppColors.ink,
+                        ),
+                      ),
+                      Text(
+                        centerLabel,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppColors.inkMuted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Barre de progression avec étiquette flottante (équivalent "Weight Loss Plan").
+class ProgressPillCard extends StatelessWidget {
+  final String title;
+  final String percentLabel;
+  final double progress; // 0..1
+  final String pillLabel;
+  final String startLabel;
+  final String endLabel;
+
+  const ProgressPillCard({
+    super.key,
+    required this.title,
+    required this.percentLabel,
+    required this.progress,
+    required this.pillLabel,
+    required this.startLabel,
+    required this.endLabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.ink,
+                  ),
+                ),
+                Text(
+                  percentLabel,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.inkMuted,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final fraction = progress.clamp(0.0, 1.0);
+                final pillX = (constraints.maxWidth - 70) * fraction;
+                return SizedBox(
+                  height: 40,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned(
+                        top: 14,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: AppColors.blueMist,
+                            borderRadius: BorderRadius.circular(AppRadii.pill),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 14,
+                        left: 0,
+                        width: constraints.maxWidth * fraction,
+                        child: Container(
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: AppColors.navy,
+                            borderRadius: BorderRadius.circular(AppRadii.pill),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: -8,
+                        left: pillX.clamp(0, constraints.maxWidth - 70),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.navy,
+                            borderRadius: BorderRadius.circular(AppRadii.pill),
+                          ),
+                          child: Text(
+                            pillLabel,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  startLabel,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.inkMuted,
+                  ),
+                ),
+                Text(
+                  endLabel,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.inkMuted,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Carte d'aperçu carburant — stock total en grand, puis entrées/sorties du
+/// jour comparées par des barres proportionnelles (remplace l'ancien
+/// affichage en bulles superposées, peu lisible dès que les valeurs sont
+/// petites ou nulles).
+class FuelOverviewCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final String stockLabel;
+  final String stockValue;
+  final int entrees;
+  final int sorties;
+
+  const FuelOverviewCard({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.stockLabel,
+    required this.stockValue,
+    required this.entrees,
+    required this.sorties,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final maxValeur = [entrees, sorties, 1].reduce((a, b) => a > b ? a : b);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppColors.ink,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 12, color: AppColors.inkMuted),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.blueMist,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.local_gas_station_rounded,
+                    color: AppColors.navy,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      stockValue,
+                      style: const TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    Text(
+                      stockLabel,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.inkMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            _barreComparaison(
+              label: 'Entrées (dépotage)',
+              valeur: entrees,
+              maxValeur: maxValeur,
+              couleur: AppColors.success,
+              prefixe: '+',
+            ),
+            const SizedBox(height: 14),
+            _barreComparaison(
+              label: 'Sorties (distribution)',
+              valeur: sorties,
+              maxValeur: maxValeur,
+              couleur: AppColors.ivoryOrange,
+              prefixe: '-',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _barreComparaison({
+    required String label,
+    required int valeur,
+    required int maxValeur,
+    required Color couleur,
+    required String prefixe,
+  }) {
+    final fraction = (valeur / maxValeur).clamp(0.0, 1.0);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(fontSize: 13, color: AppColors.inkMuted),
+            ),
+            Text(
+              '$prefixe${formatMilliers(valeur)} L',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: couleur,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            value: fraction,
+            minHeight: 8,
+            backgroundColor: couleur.withValues(alpha: 0.12),
+            valueColor: AlwaysStoppedAnimation(couleur),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Ligne d'item avec avatar/icône + indicateur de progression en points
+/// (équivalent des lignes "My Habits").
+class DotProgressRow extends StatelessWidget {
+  final IconData? icon;
+  final Widget? iconWidget;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final int completed;
+  final int total;
+  final VoidCallback? onTap;
+
+  const DotProgressRow({
+    super.key,
+    this.icon,
+    this.iconWidget,
+    required this.title,
+    required this.subtitle,
+    required this.completed,
+    required this.total,
+    this.iconColor = AppColors.blue,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: iconColor.withValues(alpha: 0.12),
+              child: iconWidget ?? Icon(icon, color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.inkMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              '$completed/$total',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.inkMuted,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Row(
+              children: List.generate(total.clamp(0, 12), (i) {
+                final filled = i < completed;
+                return Container(
+                  width: 6,
+                  height: 6,
+                  margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                  decoration: BoxDecoration(
+                    color: filled
+                        ? iconColor
+                        : iconColor.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

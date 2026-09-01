@@ -1,0 +1,169 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/postes.dart';
+import '../../core/theme.dart';
+import '../../models/profil.dart';
+import '../auth/providers/auth_providers.dart';
+import 'providers/comptes_providers.dart';
+
+/// Modification d'un compte : l'identité et le poste.
+///
+/// Le matricule n'y figure pas — c'est la clé de connexion, et la changer
+/// sans refaire le compte d'authentification laisserait son titulaire à la
+/// porte. Un matricule erroné se corrige en rouvrant le compte.
+class ModifierCompteDialog extends ConsumerStatefulWidget {
+  const ModifierCompteDialog({super.key, required this.compte});
+
+  final Profil compte;
+
+  @override
+  ConsumerState<ModifierCompteDialog> createState() =>
+      _ModifierCompteDialogState();
+}
+
+class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final _nom = TextEditingController(text: widget.compte.nom);
+  late final _prenom = TextEditingController(text: widget.compte.prenom);
+  late final _grade = TextEditingController(text: widget.compte.grade ?? '');
+  late final _titre = TextEditingController(text: widget.compte.titre ?? '');
+
+  late Poste? _poste = posteDepuisRoles(
+    widget.compte.roleScolarite,
+    widget.compte.roleLogistique,
+  );
+  bool _enCours = false;
+  String? _erreur;
+
+  @override
+  void dispose() {
+    _nom.dispose();
+    _prenom.dispose();
+    _grade.dispose();
+    _titre.dispose();
+    super.dispose();
+  }
+
+  Future<void> _valider() async {
+    if (!_formKey.currentState!.validate() || _poste == null) return;
+    setState(() {
+      _enCours = true;
+      _erreur = null;
+    });
+
+    try {
+      await ref
+          .read(comptesRepositoryProvider)
+          .modifier(
+            id: widget.compte.id,
+            nom: _nom.text.trim(),
+            prenom: _prenom.text.trim(),
+            grade: _grade.text.trim().isEmpty ? null : _grade.text.trim(),
+            titre: _titre.text.trim().isEmpty ? null : _titre.text.trim(),
+            poste: _poste!,
+          );
+      ref.invalidate(comptesProvider);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      setState(() => _erreur = '$e'.replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _enCours = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final moi = ref.watch(profilCourantProvider).value;
+    final monPoste = moi == null
+        ? null
+        : posteDepuisRoles(moi.roleScolarite, moi.roleLogistique);
+    final postesOuverts = (postesCreables[monPoste] ?? const <Poste>{}).toList();
+
+    return AlertDialog(
+      scrollable: true,
+      title: Text(widget.compte.matricule ?? 'Compte'),
+      content: SizedBox(
+        width: 440,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              DropdownButtonFormField<Poste>(
+                initialValue: postesOuverts.contains(_poste) ? _poste : null,
+                decoration: const InputDecoration(labelText: 'Poste'),
+                items: [
+                  for (final p in postesOuverts)
+                    DropdownMenuItem(value: p, child: Text(p.libelle)),
+                ],
+                onChanged: (p) => setState(() => _poste = p),
+                validator: (p) => p == null ? 'Choisissez un poste' : null,
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _grade,
+                      decoration: const InputDecoration(
+                        labelText: 'Grade (facultatif)',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _prenom,
+                      decoration: const InputDecoration(labelText: 'Prénom'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _nom,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(labelText: 'Nom'),
+                validator: (v) =>
+                    (v == null || v.trim().isEmpty) ? 'Champ requis' : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _titre,
+                decoration: const InputDecoration(
+                  labelText: 'Titre affiché (facultatif)',
+                  helperText:
+                      "Remplace le libellé du poste — « Commandant de "
+                      "l'école », par exemple. Le poste, lui, ne change pas.",
+                  helperMaxLines: 3,
+                ),
+              ),
+              if (_erreur != null) ...[
+                const SizedBox(height: 16),
+                Text(_erreur!, style: const TextStyle(color: AppColors.danger)),
+              ],
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _enCours ? null : () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
+        FilledButton(
+          onPressed: _enCours ? null : _valider,
+          child: _enCours
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Enregistrer'),
+        ),
+      ],
+    );
+  }
+}
