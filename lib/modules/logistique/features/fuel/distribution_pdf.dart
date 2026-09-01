@@ -4,6 +4,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
+import 'package:sig_ensoa/modules/scolarite/features/apprenants/pdf_fonts.dart';
 import '../../data/models/user.dart';
 import '../../data/repositories/fuel_providers.dart';
 
@@ -30,7 +31,10 @@ Future<void> imprimerEtatDistributions({
   final imgLogo = pw.MemoryImage(logoEnsoa);
   final df = DateFormat('dd/MM/yyyy');
 
-  final doc = pw.Document();
+  // Les polices intégrées au format PDF n'ont ni tiret cadratin ni lettres
+  // accentuées : les documents de la scolarité embarquent donc une vraie
+  // police, et celui-ci l'avait été oublié. Voir `chargerThemePdf`.
+  final doc = pw.Document(theme: await chargerThemePdf());
   doc.addPage(
     pw.MultiPage(
       pageFormat: PdfPageFormat.a4.landscape,
@@ -199,10 +203,18 @@ Future<void> imprimerEtatDistributions({
 
   await Printing.layoutPdf(
     onLayout: (format) => doc.save(),
-    name:
-        'Distribution carburant - ${souteLibelle ?? "toutes les soutes"}',
+    name: 'Distribution carburant - ${souteLibelle ?? "toutes les soutes"}',
   );
 }
 
-String _libelleSoutier(AppUser? u) =>
-    u == null ? '—' : '${u.grade} ${u.nomComplet}';
+/// Le nom du soutier, ou ce qui en tient lieu.
+///
+/// Le repli était un tiret cadratin, que les polices intégrées au format PDF
+/// ne possèdent pas : la colonne semblait porter une icône plutôt qu'un nom.
+/// On l'écrit en toutes lettres — et le document embarque désormais une
+/// police, si bien que l'accent s'imprime aussi.
+String _libelleSoutier(AppUser? u) {
+  if (u == null) return 'Non identifié';
+  final nomme = '${u.grade} ${u.nomComplet}'.trim();
+  return nomme.isEmpty ? 'Non identifié' : nomme;
+}

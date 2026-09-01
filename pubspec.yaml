@@ -54,6 +54,11 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    # Police de repli des documents imprimés. Elle n'est pas déclarée sous
+    # `fonts:` — l'interface ne s'en sert pas ; c'est la bibliothèque PDF qui
+    # en lit les octets, pour que les accents et le tiret cadratin s'impriment
+    # là où Arial n'existe pas. Voir `pdf_fonts.dart`.
+    - assets/fonts/
 
 # Icône de l'application — une seule source pour la tablette et le poste de
 # travail. L'écusson de l'ENSOA sert des deux côtés : l'application n'a qu'une

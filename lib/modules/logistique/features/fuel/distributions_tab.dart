@@ -30,6 +30,14 @@ class _DistributionsTabContentState
   Future<void> _imprimer(List<DistributionVue> lignes) async {
     setState(() => _impressionEnCours = true);
     try {
+      // Le référentiel des comptes se charge tout seul, mais de façon
+      // différée : au tout premier passage, il est encore vide quand on le
+      // lit. L'imprimé sortait alors sans aucun nom de soutier — une colonne
+      // entière de tirets. On l'attend plutôt que d'imprimer un document
+      // faux.
+      if (ref.read(usersProvider).isEmpty) {
+        await ref.read(usersProvider.notifier).refresh();
+      }
       final users = ref.read(usersProvider);
       final dfTitre = DateFormat('dd/MM/yyyy');
       String sousTitre;
@@ -58,6 +66,9 @@ class _DistributionsTabContentState
   Widget build(BuildContext context) {
     final charge = estCharge(ref, ['distributions', 'soutes', 'soute_stocks']);
     final soutes = ref.watch(soutesProvider);
+    // Suivi ici pour qu'il commence à se charger avec l'écran : c'est lui qui
+    // nomme le soutier sur l'imprimé.
+    ref.watch(usersProvider);
     final distributions = ref.watch(distributionsAvecLibellesProvider);
     final df = DateFormat('dd/MM/yyyy HH:mm');
 
