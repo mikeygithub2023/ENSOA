@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -38,6 +39,10 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
   final _matriculeSearchCtrl = TextEditingController();
   final Set<String> _selectedIds = {};
   bool _selectionMode = false;
+
+  /// Le titre et les filtres, visibles tant qu'on ne descend pas dans la
+  /// liste.
+  bool _enteteVisible = true;
 
   @override
   void dispose() {
@@ -373,60 +378,101 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
         ? null
         : {for (final c in phasesDeLaPromotion) c.id};
 
+    // Le titre et les filtres s'effacent dès qu'on descend dans la liste, et
+    // reviennent au premier geste vers le haut. Sur tablette en paysage ils
+    // mangeaient la moitié de la hauteur ; on ne les consulte pourtant qu'au
+    // moment de choisir ce qu'on regarde, pas pendant qu'on lit.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Élèves & Stagiaires'),
-        const SizedBox(height: 16),
-        if (divisionUnique == null)
-          divisionsAsync.when(
-            data: (divisions) => _DivisionFilters(
-              divisions: divisions,
-              selected: _divisionFilter,
-              onSelect: (id) => setState(() {
-                _divisionFilter = id;
-                _promotionFilter = null;
-                _stageFilter = null;
-                _classeFilter = null;
-              }),
-            ),
-            loading: () => const SizedBox(height: 40),
-            error: (_, _) => const SizedBox.shrink(),
-          ),
-        if (promotionsDeLaDivision.isNotEmpty ||
-            stagesDeLaDivision.isNotEmpty) ...[
-          if (divisionUnique == null) const SizedBox(height: 12),
-          PromotionsEtStagesFilters(
-            promotions: promotionsDeLaDivision,
-            stages: stagesDeLaDivision,
-            choix: ChoixScolarite(
-              promotionId: _promotionFilter,
-              stageId: _stageFilter,
-            ),
-            onChoix: (choix) => setState(() {
-              _promotionFilter = choix.promotionId;
-              _stageFilter = choix.stageId;
-              _classeFilter = null;
-            }),
-          ),
-        ],
-        if (phasesDeLaPromotion.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          _ClasseFilters(
-            classes: phasesDeLaPromotion,
-            selected: _classeFilter,
-            onSelect: (id) => setState(() => _classeFilter = id),
-          ),
-        ],
-        const SizedBox(height: 16),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          alignment: Alignment.topLeft,
+          child: _enteteVisible
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SectionHeader(title: 'Élèves & Stagiaires'),
+                    const SizedBox(height: 16),
+                    if (divisionUnique == null)
+                      divisionsAsync.when(
+                        data: (divisions) => _DivisionFilters(
+                          divisions: divisions,
+                          selected: _divisionFilter,
+                          onSelect: (id) => setState(() {
+                            _divisionFilter = id;
+                            _promotionFilter = null;
+                            _stageFilter = null;
+                            _classeFilter = null;
+                          }),
+                        ),
+                        loading: () => const SizedBox(height: 40),
+                        error: (_, _) => const SizedBox.shrink(),
+                      ),
+                    if (promotionsDeLaDivision.isNotEmpty ||
+                        stagesDeLaDivision.isNotEmpty) ...[
+                      if (divisionUnique == null) const SizedBox(height: 12),
+                      PromotionsEtStagesFilters(
+                        promotions: promotionsDeLaDivision,
+                        stages: stagesDeLaDivision,
+                        choix: ChoixScolarite(
+                          promotionId: _promotionFilter,
+                          stageId: _stageFilter,
+                        ),
+                        onChoix: (choix) => setState(() {
+                          _promotionFilter = choix.promotionId;
+                          _stageFilter = choix.stageId;
+                          _classeFilter = null;
+                        }),
+                      ),
+                    ],
+                    if (phasesDeLaPromotion.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _ClasseFilters(
+                        classes: phasesDeLaPromotion,
+                        selected: _classeFilter,
+                        onSelect: (id) => setState(() => _classeFilter = id),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                  ],
+                )
+              : const SizedBox(width: double.infinity),
+        ),
         Expanded(
-          child: selectedDivision != null
-              ? EntityTabsView(
-                  division: selectedDivision,
-                  classe: selectedClasse,
-                  classesRetenues: classesRetenues,
-                  sousPromotion: promotionInscription != null,
-                  elevesStagiairesTab: _apprenantsList(
+          child: NotificationListener<UserScrollNotification>(
+            onNotification: (notification) {
+              if (notification.metrics.axis != Axis.vertical) return false;
+              final visible = switch (notification.direction) {
+                ScrollDirection.reverse => false,
+                ScrollDirection.forward => true,
+                ScrollDirection.idle => _enteteVisible,
+              };
+              if (visible != _enteteVisible) {
+                setState(() => _enteteVisible = visible);
+              }
+              return false;
+            },
+            child: selectedDivision != null
+                ? EntityTabsView(
+                    division: selectedDivision,
+                    classe: selectedClasse,
+                    classesRetenues: classesRetenues,
+                    sousPromotion: promotionInscription != null,
+                    elevesStagiairesTab: _apprenantsList(
+                      apprenantsAsync,
+                      divisionsAsync,
+                      classesAsync,
+                      selectedDivision,
+                      selectedClasse,
+                      isAdmin,
+                      classesRetenues,
+                      classeInscription,
+                      promotionInscription,
+                    ),
+                  )
+                : _apprenantsList(
                     apprenantsAsync,
                     divisionsAsync,
                     classesAsync,
@@ -437,18 +483,7 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
                     classeInscription,
                     promotionInscription,
                   ),
-                )
-              : _apprenantsList(
-                  apprenantsAsync,
-                  divisionsAsync,
-                  classesAsync,
-                  selectedDivision,
-                  selectedClasse,
-                  isAdmin,
-                  classesRetenues,
-                  classeInscription,
-                  promotionInscription,
-                ),
+          ),
         ),
       ],
     );

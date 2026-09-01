@@ -301,10 +301,16 @@ class _Tuile extends StatelessWidget {
   final String legende;
   final Color couleur;
 
+  /// La même pour toutes, et la même que celle des tuiles d'attente : posées
+  /// côte à côte, des hauteurs dictées par la longueur des légendes donnaient
+  /// une rangée dentelée.
+  static const double hauteur = 158;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       width: 232,
+      height: hauteur,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.cardBg,
@@ -340,11 +346,15 @@ class _Tuile extends StatelessWidget {
               fontWeight: FontWeight.w700,
               color: AppColors.ink,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 2),
           Text(
             legende,
             style: const TextStyle(fontSize: 11, color: AppColors.inkMuted),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -366,7 +376,7 @@ class _TuilesEnAttente extends StatelessWidget {
         for (var i = 0; i < nombre; i++)
           Container(
             width: 232,
-            height: 132,
+            height: _Tuile.hauteur,
             decoration: BoxDecoration(
               color: AppColors.blueMist,
               borderRadius: BorderRadius.circular(AppRadii.card),

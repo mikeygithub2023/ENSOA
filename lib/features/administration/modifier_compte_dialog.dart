@@ -13,9 +13,18 @@ import 'providers/comptes_providers.dart';
 /// sans refaire le compte d'authentification laisserait son titulaire à la
 /// porte. Un matricule erroné se corrige en rouvrant le compte.
 class ModifierCompteDialog extends ConsumerStatefulWidget {
-  const ModifierCompteDialog({super.key, required this.compte});
+  const ModifierCompteDialog({
+    super.key,
+    required this.compte,
+    this.cestMoi = false,
+  });
 
   final Profil compte;
+
+  /// Son propre compte : tout se corrige, sauf le poste. Se rétrograder
+  /// soi-même laisserait l'école sans administrateur, et personne pour
+  /// revenir en arrière.
+  final bool cestMoi;
 
   @override
   ConsumerState<ModifierCompteDialog> createState() =>
@@ -93,12 +102,21 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
             children: [
               DropdownButtonFormField<Poste>(
                 initialValue: postesOuverts.contains(_poste) ? _poste : null,
-                decoration: const InputDecoration(labelText: 'Poste'),
+                decoration: InputDecoration(
+                  labelText: 'Poste',
+                  helperText: widget.cestMoi
+                      ? 'Votre propre poste ne se change pas ici : un autre '
+                            'administrateur doit le faire.'
+                      : null,
+                  helperMaxLines: 2,
+                ),
                 items: [
                   for (final p in postesOuverts)
                     DropdownMenuItem(value: p, child: Text(p.libelle)),
                 ],
-                onChanged: (p) => setState(() => _poste = p),
+                onChanged: widget.cestMoi
+                    ? null
+                    : (p) => setState(() => _poste = p),
                 validator: (p) => p == null ? 'Choisissez un poste' : null,
               ),
               const SizedBox(height: 16),

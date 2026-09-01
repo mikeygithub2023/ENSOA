@@ -520,10 +520,35 @@ Deno.serve(async (req) => {
     const { data: { user: appelant } } = await callerClient.auth.getUser();
     if (!appelant) return jsonResponse({ error: "Non authentifié." }, 401);
 
-    const { data: profilAppelant } = await adminClient.schema("socle").from("profiles")
+    const { data: profilAppelant, error: erreurProfil } = await adminClient
+      .schema("socle").from("profiles")
       .select("role, role_logistique")
       .eq("id", appelant.id)
       .maybeSingle();
+
+    // Une lecture de profil qui échoue rendait exactement le même refus qu'un
+    // profil sans droits : « réservé à l'administrateur », dit à
+    // l'administrateur lui-même. On sépare les deux — une panne se répare,
+    // un refus s'accepte.
+    if (erreurProfil) {
+      return jsonResponse(
+        {
+          error: "Votre profil n'a pas pu être lu sur le serveur : " +
+            erreurProfil.message,
+        },
+        500,
+      );
+    }
+    if (!profilAppelant) {
+      return jsonResponse(
+        {
+          error:
+            "Aucun profil n'est rattaché à ce compte : l'assistant ne sait " +
+            "pas ce que vous avez le droit de consulter.",
+        },
+        403,
+      );
+    }
 
     // Chacun n'interroge que ce qu'il commande. L'administrateur de l'école
     // porte les deux rôles : il voit tout. Le chef du Soutien Technique ne
@@ -535,7 +560,15 @@ Deno.serve(async (req) => {
 
     if (!voitScolarite && !voitLogistique) {
       return jsonResponse(
-        { error: "Réservé à l'administrateur et au chef du Soutien Technique." },
+        {
+          error:
+            "Réservé à l'administrateur et au chef du Soutien Technique. " +
+            `Votre compte porte : scolarité = ${
+              profilAppelant.role ?? "aucun rôle"
+            }, soutien technique = ${
+              profilAppelant.role_logistique ?? "aucun rôle"
+            }.`,
+        },
         403,
       );
     }

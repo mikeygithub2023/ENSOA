@@ -244,8 +244,13 @@ class _CarteState extends ConsumerState<_Carte> {
     // supprimer. C'est précisément celui qu'il faut pouvoir reprendre en
     // main, et cela revient à qui ouvre les comptes.
     final orphelin = poste == null;
-    final modifiable =
-        (widget.sousMonAutorite || orphelin) && !widget.cestMoi;
+    // Deux permissions, et pas une seule. Se désactiver ou se supprimer
+    // fermerait la porte derrière soi — cela reste interdit. Mais corriger son
+    // nom, son grade, ou écrire « Commandant de l'école » sur son propre
+    // compte ne met rien en péril, et jusqu'ici c'était impossible : le seul
+    // administrateur de l'école n'avait personne pour le faire à sa place.
+    final modifiable = widget.sousMonAutorite || orphelin;
+    final revocable = modifiable && !widget.cestMoi;
 
     return Card(
       child: ListTile(
@@ -293,27 +298,32 @@ class _CarteState extends ConsumerState<_Carte> {
                     ? null
                     : () => showDialog(
                         context: context,
-                        builder: (_) => ModifierCompteDialog(compte: compte),
+                        builder: (_) => ModifierCompteDialog(
+                          compte: compte,
+                          cestMoi: widget.cestMoi,
+                        ),
                       ),
                 icon: const Icon(Icons.edit_outlined),
               ),
-              IconButton(
-                tooltip: compte.actif ? 'Désactiver' : 'Réactiver',
-                onPressed: _enCours ? null : _basculerActivation,
-                icon: Icon(
-                  compte.actif
-                      ? Icons.block_outlined
-                      : Icons.check_circle_outline,
+              if (revocable) ...[
+                IconButton(
+                  tooltip: compte.actif ? 'Désactiver' : 'Réactiver',
+                  onPressed: _enCours ? null : _basculerActivation,
+                  icon: Icon(
+                    compte.actif
+                        ? Icons.block_outlined
+                        : Icons.check_circle_outline,
+                  ),
                 ),
-              ),
-              IconButton(
-                tooltip: 'Supprimer',
-                onPressed: _enCours ? null : _confirmerSuppression,
-                icon: const Icon(
-                  Icons.delete_outline,
-                  color: AppColors.danger,
+                IconButton(
+                  tooltip: 'Supprimer',
+                  onPressed: _enCours ? null : _confirmerSuppression,
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.danger,
+                  ),
                 ),
-              ),
+              ],
             ],
           ],
         ),

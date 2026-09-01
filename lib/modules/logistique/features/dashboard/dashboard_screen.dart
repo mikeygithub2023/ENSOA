@@ -195,12 +195,18 @@ class DashboardScreen extends ConsumerWidget {
                 children: [gauge, const SizedBox(height: 16), pill],
               );
             }
-            return Row(
-              children: [
-                Expanded(child: gauge),
-                const SizedBox(width: 16),
-                Expanded(child: pill),
-              ],
+            // Côte à côte, deux cartes de hauteurs différentes donnent une
+            // ligne bancale. `IntrinsicHeight` les aligne sur la plus haute,
+            // comme la rangée du dessus.
+            return IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: gauge),
+                  const SizedBox(width: 16),
+                  Expanded(child: pill),
+                ],
+              ),
             );
           },
         ),

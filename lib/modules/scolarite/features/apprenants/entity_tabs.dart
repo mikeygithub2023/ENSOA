@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 
 import 'package:sig_ensoa/core/theme.dart' hide AlertLevel, AlertLevelColor;
 import '../../models/classe.dart';
@@ -55,6 +56,9 @@ class _TabDef {
 class _EntityTabsViewState extends State<EntityTabsView>
     with TickerProviderStateMixin {
   late TabController _controller;
+
+  /// La barre d'onglets, escamotée pendant qu'on descend dans le contenu.
+  bool _ongletsVisibles = true;
 
   /// Le mot suit la portée : une promotion et ses phases ne contiennent
   /// que des élèves, un stage que des stagiaires. « Élèves/Stagiaires » ne
@@ -115,72 +119,100 @@ class _EntityTabsViewState extends State<EntityTabsView>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.cardBg,
-            borderRadius: BorderRadius.circular(AppRadii.control),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: TabBar(
-            controller: _controller,
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            labelColor: AppColors.navy,
-            unselectedLabelColor: AppColors.inkMuted,
-            indicatorColor: AppColors.navy,
-            indicatorWeight: 3,
-            labelStyle: const TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 13,
-            ),
-            unselectedLabelStyle: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-            tabs: [
-              for (final tab in _tabs)
-                Tab(
-                  icon: Icon(tab.icon, size: 18),
-                  text: tab.label,
-                  iconMargin: const EdgeInsets.only(bottom: 4),
-                ),
-            ],
-          ),
+        // La barre d'onglets s'efface elle aussi quand on descend dans le
+        // contenu, et revient au premier geste vers le haut : on change
+        // d'onglet avant de lire, pas pendant.
+        AnimatedSize(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          alignment: Alignment.topLeft,
+          child: _ongletsVisibles
+              ? Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBg,
+                    borderRadius: BorderRadius.circular(AppRadii.control),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: TabBar(
+                    controller: _controller,
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    labelColor: AppColors.navy,
+                    unselectedLabelColor: AppColors.inkMuted,
+                    indicatorColor: AppColors.navy,
+                    indicatorWeight: 3,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                    tabs: [
+                      for (final tab in _tabs)
+                        Tab(
+                          icon: Icon(tab.icon, size: 18),
+                          text: tab.label,
+                          iconMargin: const EdgeInsets.only(bottom: 4),
+                        ),
+                    ],
+                  ),
+                )
+              : const SizedBox(width: double.infinity),
         ),
-        const SizedBox(height: 16),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          child: SizedBox(height: _ongletsVisibles ? 16 : 0),
+        ),
         Expanded(
-          child: TabBarView(
-            controller: _controller,
-            children: [
-              SituationPriseArmesTabView(
-                division: widget.division,
-                classe: widget.classe,
-                classesRetenues: widget.classesRetenues,
-              ),
-              widget.elevesStagiairesTab,
-              if (widget.classe != null) ...[
-                StatistiquesClasseTabView(classe: widget.classe!),
-                ControlesTabView(
+          child: NotificationListener<UserScrollNotification>(
+            onNotification: (notification) {
+              if (notification.metrics.axis != Axis.vertical) return false;
+              final visibles = switch (notification.direction) {
+                ScrollDirection.reverse => false,
+                ScrollDirection.forward => true,
+                ScrollDirection.idle => _ongletsVisibles,
+              };
+              if (visibles != _ongletsVisibles) {
+                setState(() => _ongletsVisibles = visibles);
+              }
+              return false;
+            },
+            child: TabBarView(
+              controller: _controller,
+              children: [
+                SituationPriseArmesTabView(
                   division: widget.division,
                   classe: widget.classe,
+                  classesRetenues: widget.classesRetenues,
+                ),
+                widget.elevesStagiairesTab,
+                if (widget.classe != null) ...[
+                  StatistiquesClasseTabView(classe: widget.classe!),
+                  ControlesTabView(
+                    division: widget.division,
+                    classe: widget.classe,
+                  ),
+                ],
+                ConsultationsMedicalesTabView(
+                  division: widget.division,
+                  classe: widget.classe,
+                  classesRetenues: widget.classesRetenues,
+                ),
+                PermissionsTabView(
+                  division: widget.division,
+                  classe: widget.classe,
+                  classesRetenues: widget.classesRetenues,
+                ),
+                AbsencesTabView(
+                  division: widget.division,
+                  classe: widget.classe,
+                  classesRetenues: widget.classesRetenues,
                 ),
               ],
-              ConsultationsMedicalesTabView(
-                division: widget.division,
-                classe: widget.classe,
-                classesRetenues: widget.classesRetenues,
-              ),
-              PermissionsTabView(
-                division: widget.division,
-                classe: widget.classe,
-                classesRetenues: widget.classesRetenues,
-              ),
-              AbsencesTabView(
-                division: widget.division,
-                classe: widget.classe,
-                classesRetenues: widget.classesRetenues,
-              ),
-            ],
+            ),
           ),
         ),
       ],
