@@ -7,12 +7,15 @@ import 'package:printing/printing.dart';
 import '../../data/models/user.dart';
 import '../../data/repositories/fuel_providers.dart';
 
-/// Génère puis ouvre l'aperçu d'impression de l'état des distributions pour
-/// une soute donnée, au format strict de l'imprimé officiel ENSOA (en-tête
-/// EMGA/ENSOA, armoiries, tableau NOM ET PRENOMS / CONTACT / VEHICULE /
-/// IMMATRICULATION / QUANTITE / DATE / SOUTIER).
+/// Génère puis ouvre l'aperçu d'impression de l'état des distributions, au
+/// format strict de l'imprimé officiel ENSOA (en-tête EMGA/ENSOA, armoiries,
+/// tableau NOM ET PRENOMS / CONTACT / VEHICULE / IMMATRICULATION / QUANTITE /
+/// DATE / SOUTIER).
+///
+/// [souteLibelle] nul veut dire « toutes les soutes » : le service tient aussi
+/// un état d'ensemble, et rien ne justifiait de le lui refuser.
 Future<void> imprimerEtatDistributions({
-  required String souteLibelle,
+  required String? souteLibelle,
   required String sousTitre,
   required List<DistributionVue> lignes,
   required AppUser? Function(String utilisateurId) resoudreSoutier,
@@ -118,7 +121,9 @@ Future<void> imprimerEtatDistributions({
             ),
             pw.SizedBox(height: 18),
             pw.Text(
-              'SOUTE DE ${souteLibelle.toUpperCase()}',
+              souteLibelle == null
+                  ? 'TOUTES LES SOUTES'
+                  : 'SOUTE DE ${souteLibelle.toUpperCase()}',
               style: pw.TextStyle(
                 fontSize: 13,
                 fontWeight: pw.FontWeight.bold,
@@ -194,7 +199,8 @@ Future<void> imprimerEtatDistributions({
 
   await Printing.layoutPdf(
     onLayout: (format) => doc.save(),
-    name: 'Distribution carburant - $souteLibelle',
+    name:
+        'Distribution carburant - ${souteLibelle ?? "toutes les soutes"}',
   );
 }
 

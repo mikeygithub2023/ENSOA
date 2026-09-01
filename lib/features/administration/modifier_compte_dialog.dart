@@ -132,14 +132,31 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _titre,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Titre affiché (facultatif)',
-                  helperText:
-                      "Remplace le libellé du poste — « Commandant de "
-                      "l'école », par exemple. Le poste, lui, ne change pas.",
+                  helperText: _poste == null
+                      ? 'Remplace le libellé du poste dans toute '
+                            "l'application. Le poste, lui, ne change pas."
+                      : 'Laissé vide, on l\'appellera '
+                            '« ${_poste!.libelle} » dans toute '
+                            "l'application. Le poste, lui, ne change pas.",
                   helperMaxLines: 3,
                 ),
               ),
+              // Le titre d'usage à portée de doigt : c'est par là qu'un
+              // compte d'administrateur devient « Commandant de l'école ».
+              if (titreDUsage(_poste) != null) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ActionChip(
+                    avatar: const Icon(Icons.military_tech_outlined, size: 16),
+                    label: Text(titreDUsage(_poste)!),
+                    onPressed: () =>
+                        setState(() => _titre.text = titreDUsage(_poste)!),
+                  ),
+                ),
+              ],
               if (_erreur != null) ...[
                 const SizedBox(height: 16),
                 Text(_erreur!, style: const TextStyle(color: AppColors.danger)),

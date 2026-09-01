@@ -13,7 +13,6 @@ import '../../modules/logistique/data/repositories/fleet_providers.dart';
 import '../../modules/logistique/data/repositories/fuel_providers.dart';
 import '../../modules/logistique/data/repositories/misc_providers.dart';
 import '../../modules/logistique/data/repositories/oa_providers.dart';
-import '../../modules/logistique/data/repositories/organisation_providers.dart';
 import '../../modules/logistique/data/repositories/police_providers.dart';
 import '../../modules/scolarite/features/dashboard/providers/dashboard_providers.dart';
 import '../accueil/providers/apercu_providers.dart';
@@ -157,10 +156,6 @@ class _AppShellState extends ConsumerState<AppShell>
         ref.read(munitionsProvider.notifier).refresh();
         ref.read(equipementsProvider.notifier).refresh();
         ref.read(typesArmeProvider.notifier).refresh();
-      case '/logistique/organisation':
-        ref.read(personnelProvider.notifier).refresh();
-        ref.read(servicesProvider.notifier).refresh();
-        ref.read(cellulesProvider.notifier).refresh();
       case '/logistique/poste-police':
         ref.read(passagesVisiteursProvider.notifier).refresh();
         ref.read(passagesVehiculesProvider.notifier).refresh();

@@ -171,16 +171,6 @@ const elementsNav = <ElementNav>[
     permissions: {Permission.gererActivites},
   ),
   ElementNav(
-    chemin: '/logistique/organisation',
-    libelle: 'Personnel & services',
-    icone: Icons.badge_rounded,
-    section: SectionNav.soutienTechnique,
-    permissions: {
-      Permission.gererUtilisateurs,
-      Permission.administrerPlateforme,
-    },
-  ),
-  ElementNav(
     chemin: '/logistique/mes-taches',
     libelle: 'Mes tâches',
     icone: Icons.checklist_rounded,

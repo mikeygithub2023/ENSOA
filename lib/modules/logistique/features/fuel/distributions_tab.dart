@@ -44,7 +44,7 @@ class _DistributionsTabContentState
         sousTitre = 'DISTRIBUTION DE CARBURANT DE ${DateTime.now().year}';
       }
       await imprimerEtatDistributions(
-        souteLibelle: _souteFiltre!,
+        souteLibelle: _souteFiltre,
         sousTitre: sousTitre,
         lignes: lignes,
         resoudreSoutier: (id) => findUser(users, id),
@@ -134,15 +134,18 @@ class _DistributionsTabContentState
                 onPressed: () => setState(() => _periode = null),
               ),
             const SizedBox(width: 4),
+            // Le bouton ne se ferme que faute de matière : rien à imprimer,
+            // ou une impression déjà en route. Il restait grisé tant qu'une
+            // soute n'était pas choisie — sans le dire ailleurs que dans une
+            // bulle d'aide, et l'état d'ensemble se refusait tout seul.
             Tooltip(
-              message: _souteFiltre == null
-                  ? 'Sélectionnez une soute pour imprimer son état'
-                  : 'Imprimer l\'état des distributions',
+              message: filtrees.isEmpty
+                  ? 'Aucune distribution à imprimer pour ce filtre'
+                  : _souteFiltre == null
+                  ? 'Imprimer l\'état de toutes les soutes'
+                  : 'Imprimer l\'état de la soute $_souteFiltre',
               child: OutlinedButton.icon(
-                onPressed:
-                    (_souteFiltre == null ||
-                        filtrees.isEmpty ||
-                        _impressionEnCours)
+                onPressed: (filtrees.isEmpty || _impressionEnCours)
                     ? null
                     : () => _imprimer(filtrees),
                 icon: _impressionEnCours

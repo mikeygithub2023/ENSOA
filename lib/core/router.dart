@@ -22,7 +22,6 @@ import '../modules/logistique/features/fuel/fuel_screen.dart';
 import '../modules/logistique/features/notifications/notifications_screen.dart';
 import '../modules/logistique/features/oa/activite_detail_screen.dart';
 import '../modules/logistique/features/oa/oa_screen.dart';
-import '../modules/logistique/features/organisation/organisation_screen.dart';
 import '../modules/logistique/features/police/police_screen.dart';
 import '../modules/logistique/features/tasks/mes_taches_screen.dart';
 import '../modules/logistique/features/tasks/taches_equipe_screen.dart';
@@ -76,7 +75,6 @@ final _ecransPortes = <String, Widget Function()>{
   '/logistique/armement': () => const ArmamentScreen(),
   '/logistique/poste-police': () => const PoliceScreen(),
   '/logistique/activites': () => const OaScreen(),
-  '/logistique/organisation': () => const OrganisationScreen(),
   '/logistique/mes-taches': () => const MesTachesScreen(),
   '/logistique/taches-equipe': () => const TachesEquipeScreen(),
 

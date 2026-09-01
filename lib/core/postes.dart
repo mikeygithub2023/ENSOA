@@ -53,7 +53,7 @@ extension PosteLibelle on Poste {
     Poste.chefDivision => 'Chef de division',
     Poste.commandantBrigade => 'Commandant de Brigade',
     Poste.instructeur => 'Instructeur',
-    Poste.infirmerie => 'Infirmerie',
+    Poste.infirmerie => 'Service de santé',
     Poste.eleveStagiaire => 'Élève / Stagiaire',
     Poste.chefSoutienTechnique => 'Chef Soutien Technique',
     Poste.soutienPetrolier => 'Soutien pétrolier',
@@ -103,4 +103,17 @@ const postesCreables = <Poste, Set<Poste>>{
     Poste.garage,
     Poste.armurerie,
   },
+};
+
+/// Le titre sous lequel la maison nomme un poste, quand ce n'est pas son
+/// libellé administratif : à l'ENSOA, celui qui tient le compte
+/// d'administrateur est le Commandant de l'école. Le poste ne change pas —
+/// mêmes rôles, mêmes droits — seul le nom qu'on lui donne à l'écran change.
+///
+/// Ce n'est qu'une proposition, offerte au moment de l'ouverture du compte.
+/// Le champ « Titre affiché » reste libre, et laissé vide il rend au compte le
+/// libellé de son poste.
+String? titreDUsage(Poste? poste) => switch (poste) {
+  Poste.administrateur => "Commandant de l'école",
+  _ => null,
 };

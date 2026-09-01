@@ -213,16 +213,37 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                       : null,
                 ),
                 const SizedBox(height: 12),
+                // Le titre était présenté comme un champ libre parmi d'autres,
+                // et personne ne devinait qu'il servait à écrire « Commandant
+                // de l'école » sur un compte d'administrateur. Il nomme donc
+                // maintenant le poste choisi, et propose le titre d'usage
+                // quand il y en a un.
                 TextFormField(
                   controller: _titre,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Titre affiché (facultatif)',
-                    helperText:
-                        "Remplace le libellé du poste — « Commandant de "
-                        "l'école », par exemple.",
+                    helperText: _poste == null
+                        ? 'Remplace le libellé du poste dans toute '
+                              "l'application."
+                        : 'Laissé vide, on l\'appellera '
+                              '« ${_poste!.libelle} » dans toute '
+                              "l'application.",
                     helperMaxLines: 2,
                   ),
                 ),
+                if (titreDUsage(_poste) != null) ...[
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: ActionChip(
+                      avatar: const Icon(Icons.military_tech_outlined, size: 16),
+                      label: Text(titreDUsage(_poste)!),
+                      onPressed: () => setState(
+                        () => _titre.text = titreDUsage(_poste)!,
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _motDePasse,
