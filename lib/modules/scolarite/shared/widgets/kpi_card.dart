@@ -24,7 +24,7 @@ class KpiCard extends StatelessWidget {
   /// souple, et un titre plus long qu'un autre — le nom d'une division, par
   /// exemple — passait sur deux lignes et donnait une rangée dentelée. La
   /// hauteur tient le titre le plus long ; au-delà, il s'abrège.
-  static const double hauteur = 188;
+  static const double hauteur = 216;
 
   @override
   Widget build(BuildContext context) {

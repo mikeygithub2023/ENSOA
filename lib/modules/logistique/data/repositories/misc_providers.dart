@@ -314,6 +314,7 @@ class AuditNotifier extends Notifier<List<AuditEntry>> {
     state = (rows as List)
         .map((r) => _auditEntryFromRow(r as Map<String, dynamic>))
         .toList();
+    ref.read(chargementProvider.notifier).marquerCharge('journal');
   }
 
   Future<void> log({

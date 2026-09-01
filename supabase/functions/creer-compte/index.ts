@@ -90,13 +90,25 @@ Deno.serve(async (req) => {
     const { data: { user: appelant } } = await callerClient.auth.getUser();
     if (!appelant) return reponse({ error: "Non authentifié." }, 401);
 
-    const { data: profilAppelant } = await socle()
+    const { data: profilAppelant, error: erreurProfilAppelant } = await socle()
       .from("profiles")
       .select("role, role_logistique, actif")
       .eq("id", appelant.id)
       .maybeSingle();
 
-    if (!profilAppelant?.actif) {
+    // Une lecture en panne n'est pas un compte fermé : les confondre a déjà
+    // valu à l'administrateur qu'on lui dise que son propre compte était
+    // désactivé.
+    if (erreurProfilAppelant) {
+      return reponse(
+        { error: `Votre profil n'a pas pu être lu : ${erreurProfilAppelant.message}` },
+        500,
+      );
+    }
+    if (!profilAppelant) {
+      return reponse({ error: "Aucun profil n'est rattaché à ce compte." }, 403);
+    }
+    if (!profilAppelant.actif) {
       return reponse({ error: "Compte désactivé." }, 403);
     }
 

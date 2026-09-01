@@ -147,6 +147,139 @@ class GaugeCard extends StatelessWidget {
 }
 
 /// Barre de progression avec étiquette flottante (équivalent "Weight Loss Plan").
+/// Ce que chaque soute porte réellement, en litres.
+///
+/// Cette carte affichait auparavant un « remplissage » : le stock rapporté au
+/// seuil nominal, en pourcentage. Le seuil nominal n'est pourtant pas
+/// renseigné pour toutes les soutes, et là où il vaut zéro la carte ne
+/// montrait plus rien qu'un tiret et une réglette vide. On ne compare donc
+/// plus les soutes à un objectif, mais entre elles : la barre la plus longue
+/// est celle qui porte le plus, et le chiffre à côté dit combien.
+class SoutesStockCard extends StatelessWidget {
+  const SoutesStockCard({
+    super.key,
+    required this.title,
+    required this.total,
+    required this.soutes,
+  });
+
+  final String title;
+  final int total;
+
+  /// Le libellé de chaque soute et ce qu'elle contient, en litres.
+  final List<(String, int)> soutes;
+
+  /// Ce que cette carte occupera pour [nombreDeSoutes] lignes.
+  ///
+  /// Sa hauteur dépend du nombre de soutes, et la rangée du tableau de bord a
+  /// besoin de la connaître à l'avance pour aligner la jauge du parc dessus.
+  /// On la calcule plutôt que de la demander à `IntrinsicHeight` : ce dernier
+  /// interroge tout l'arbre sur ses dimensions naturelles, et une seule
+  /// mesure impossible — un `LayoutBuilder`, par exemple — fait échouer la
+  /// page entière. L'estimation est volontairement large : trop de place
+  /// laisse un peu de blanc, trop peu déborde.
+  static double hauteurPour(int nombreDeSoutes) {
+    const enTete = 103.0; // marges, titre, sous-titre
+    const parLigne = 40.0;
+    const marge = 16.0;
+    final corps = nombreDeSoutes == 0 ? 20.0 : nombreDeSoutes * parLigne;
+    final calculee = enTete + corps + marge;
+    // Jamais plus courte que la jauge du parc, qui l'accompagne.
+    return calculee < 140 ? 140 : calculee;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final plusGrande = soutes.fold<int>(0, (m, s) => s.$2 > m ? s.$2 : m);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.ink,
+                  ),
+                ),
+                Text(
+                  '${formatMilliers(total)} L',
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.navy,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Carburant présent, soute par soute',
+              style: TextStyle(fontSize: 12, color: AppColors.inkMuted),
+            ),
+            const SizedBox(height: 16),
+            if (soutes.isEmpty)
+              const Text(
+                'Aucune soute enregistrée.',
+                style: TextStyle(fontSize: 13, color: AppColors.inkMuted),
+              )
+            else
+              for (final (libelle, litres) in soutes)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              libelle,
+                              style: const TextStyle(fontSize: 13),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${formatMilliers(litres)} L',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadii.pill),
+                        child: LinearProgressIndicator(
+                          value: plusGrande == 0 ? 0 : litres / plusGrande,
+                          minHeight: 8,
+                          backgroundColor: AppColors.blueMist,
+                          valueColor: const AlwaysStoppedAnimation(
+                            AppColors.navy,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class ProgressPillCard extends StatelessWidget {
   final String title;
   final String percentLabel;

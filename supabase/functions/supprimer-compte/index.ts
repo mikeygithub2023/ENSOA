@@ -77,9 +77,21 @@ Deno.serve(async (req) => {
       return reponse({ error: "Vous ne pouvez pas supprimer votre propre compte." }, 400);
     }
 
-    const { data: profilAppelant } = await socle()
+    const { data: profilAppelant, error: erreurProfil } = await socle()
       .from("profiles").select("role, role_logistique, actif").eq("id", appelant.id).maybeSingle();
-    if (!profilAppelant?.actif) return reponse({ error: "Compte désactivé." }, 403);
+    // Une lecture en panne n'est pas un compte fermé : les confondre a déjà
+    // valu à l'administrateur qu'on lui dise que son propre compte était
+    // désactivé.
+    if (erreurProfil) {
+      return reponse(
+        { error: `Votre profil n'a pas pu être lu : ${erreurProfil.message}` },
+        500,
+      );
+    }
+    if (!profilAppelant) {
+      return reponse({ error: "Aucun profil n'est rattaché à ce compte." }, 403);
+    }
+    if (!profilAppelant.actif) return reponse({ error: "Compte désactivé." }, 403);
 
     const postesPermis = POSTES_CREABLES[
       posteDepuisRoles(profilAppelant.role ?? null, profilAppelant.role_logistique ?? null) ?? ""

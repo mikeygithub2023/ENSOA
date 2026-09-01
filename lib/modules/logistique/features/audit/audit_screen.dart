@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import 'package:sig_ensoa/core/chargement.dart';
 import '../../data/models/user.dart';
 import '../../data/repositories/misc_providers.dart';
+import '../../shared/widgets/skeleton.dart';
 import '../../shared/widgets/widgets.dart';
 
 class AuditScreen extends ConsumerWidget {
@@ -11,6 +13,10 @@ class AuditScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Le journal remonte cinq cents lignes et les noms de leurs auteurs :
+    // l'attente se voit. Sans rien pour la signaler, l'écran s'ouvrait vide
+    // et donnait à croire qu'il n'y avait rien à lire.
+    final charge = estCharge(ref, ['journal', 'utilisateurs']);
     final entries = ref.watch(auditProvider);
     final users = ref.watch(usersProvider);
     final df = DateFormat('dd/MM/yyyy HH:mm:ss');
@@ -25,26 +31,30 @@ class AuditScreen extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 20),
-        if (entries.isEmpty) const EmptyState(message: 'Aucune entrée'),
-        Card(
-          child: ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: entries.length,
-            separatorBuilder: (_, _) => const Divider(height: 1),
-            itemBuilder: (context, i) {
-              final e = entries[i];
-              return ListTile(
-                leading: const Icon(Icons.receipt_long_outlined),
-                title: Text('${e.action} — ${e.cible}'),
-                subtitle: Text(
-                  '${_auteur(users, e.auteurId)} · ${df.format(e.date)}'
-                  '${e.detail != null ? ' · ${e.detail}' : ''}',
-                ),
-              );
-            },
+        if (!charge)
+          const SkeletonList(itemCount: 6)
+        else if (entries.isEmpty)
+          const EmptyState(message: 'Aucune entrée')
+        else
+          Card(
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: entries.length,
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (context, i) {
+                final e = entries[i];
+                return ListTile(
+                  leading: const Icon(Icons.receipt_long_outlined),
+                  title: Text('${e.action} — ${e.cible}'),
+                  subtitle: Text(
+                    '${_auteur(users, e.auteurId)} · ${df.format(e.date)}'
+                    '${e.detail != null ? ' · ${e.detail}' : ''}',
+                  ),
+                );
+              },
+            ),
           ),
-        ),
       ],
     );
   }
