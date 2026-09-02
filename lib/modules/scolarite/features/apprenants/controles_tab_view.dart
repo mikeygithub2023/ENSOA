@@ -221,13 +221,17 @@ class _ControleSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Le Commandant de Brigade ne gère que le sport. Modules, contrôles
-    // continus et examens lui sont ouverts en lecture, mais la base refuse
-    // qu'il en crée, en corrige ou en supprime : l'écran cesse donc de le
-    // lui proposer. Le sport a sa propre section, où il garde la main.
-    final peutGerer =
-        ref.watch(currentProfileProvider).value?.role !=
-        AppRole.commandantBrigade;
+    final role = ref.watch(currentProfileProvider).value?.role;
+
+    // Créer un module, un contrôle continu ou un examen revient à ceux qui
+    // tiennent le programme. Le Commandant de Brigade en est exclu : il ne
+    // gère que le sport, qui a sa propre section juste au-dessus.
+    final peutCreer = role != AppRole.commandantBrigade;
+
+    // Le corriger ou le supprimer, en revanche, reste à l'administrateur :
+    // changer un coefficient ou effacer un contrôle avec toutes ses notes
+    // touche au barème d'une promotion entière.
+    final peutCorriger = role == AppRole.admin;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -240,7 +244,7 @@ class _ControleSection extends ConsumerWidget {
             // Le bouton reste actif même sans matière disponible : la
             // fenêtre explique alors ce qui manque. Désactivé, il laissait
             // l'utilisateur devant un bouton gris sans lui dire pourquoi.
-            if (peutGerer)
+            if (peutCreer)
               FilledButton.icon(
                 onPressed: () => showRegisterControleDialog(
                   context,
@@ -267,7 +271,7 @@ class _ControleSection extends ConsumerWidget {
               for (final controle in controles) ...[
                 _ControleTile(
                   controle: controle,
-                  peutGerer: peutGerer,
+                  peutCorriger: peutCorriger,
                   onVoirDetail: () => context.push(
                     '/scolarite/apprenants/controles/${controle.id}',
                   ),
@@ -294,7 +298,7 @@ class _ControleSection extends ConsumerWidget {
 class _ControleTile extends StatelessWidget {
   const _ControleTile({
     required this.controle,
-    required this.peutGerer,
+    required this.peutCorriger,
     required this.onVoirDetail,
     required this.onEdit,
     required this.onDelete,
@@ -302,9 +306,9 @@ class _ControleTile extends StatelessWidget {
 
   final Controle controle;
 
-  /// Faux pour le Commandant de Brigade : il lit ces contrôles sans y
-  /// toucher.
-  final bool peutGerer;
+  /// Seul l'administrateur corrige ou supprime un contrôle. Les autres le
+  /// lisent, et peuvent en créer si leur poste l'autorise.
+  final bool peutCorriger;
   final VoidCallback onVoirDetail;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -338,7 +342,7 @@ class _ControleTile extends StatelessWidget {
               onPressed: onVoirDetail,
               child: const Text('Détail'),
             ),
-            if (peutGerer) ...[
+            if (peutCorriger) ...[
               const SizedBox(width: 8),
               IconButton(
                 icon: const Icon(Icons.edit_outlined, size: 20),

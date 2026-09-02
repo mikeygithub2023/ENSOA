@@ -384,23 +384,32 @@ class ControleDetailView extends ConsumerWidget {
                 label: 'Coefficient ${controle.coefficient}',
                 level: AlertLevel.info,
               ),
-              const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(Icons.edit_outlined),
-                tooltip: 'Modifier',
-                onPressed: () => showEditControleDialog(
-                  context,
-                  division: division,
-                  classe: classe,
-                  existing: controle,
-                  moduleMatieres: editModuleMatieres,
+              // Corriger le libellé ou le coefficient d'un contrôle, ou le
+              // supprimer avec toutes ses notes, revient à toucher au barème
+              // d'une promotion entière. Cela reste à l'administrateur, quel
+              // que soit le commandement de celui qui regarde.
+              if (isAdmin) ...[
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: 'Modifier',
+                  onPressed: () => showEditControleDialog(
+                    context,
+                    division: division,
+                    classe: classe,
+                    existing: controle,
+                    moduleMatieres: editModuleMatieres,
+                  ),
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: AppColors.danger),
-                tooltip: 'Supprimer',
-                onPressed: () => _confirmDelete(context, ref),
-              ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.danger,
+                  ),
+                  tooltip: 'Supprimer',
+                  onPressed: () => _confirmDelete(context, ref),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 24),
