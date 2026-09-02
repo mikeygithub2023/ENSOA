@@ -274,19 +274,30 @@ class _RegisterApprenantDialogState
       _poidsCtrl,
       _qualificationCtrl,
       _permisCtrl,
+      _nouveauDiplomeCtrl,
     ]) {
       c.dispose();
     }
     super.dispose();
   }
 
+  /// Le champ de saisie d'un nouveau diplôme. Il appartient au formulaire et
+  /// non à la boîte : créé puis libéré au tour de celle-ci, il mourait sous
+  /// les yeux de son `TextField`. Car `showDialog` rend la main au `pop`,
+  /// alors que la boîte est encore en train de s'effacer et que son champ se
+  /// reconstruit — d'où « A TextEditingController was used after being
+  /// disposed », l'exception qui interrompait la reconstruction et emportait
+  /// avec elle le diplôme qu'on venait de saisir.
+  final _nouveauDiplomeCtrl = TextEditingController();
+
   Future<void> _openDiplomesPicker() async {
+    _nouveauDiplomeCtrl.clear();
     final catalogue =
         ref.read(diplomesProvider).value?.map((d) => d.nom) ?? const [];
     final tempAvailable = {...catalogue, ..._diplomesDisponibles}.toList()
       ..sort();
     final tempSelected = Set<String>.from(_selectedDiplomes);
-    final newDiplomeCtrl = TextEditingController();
+    final newDiplomeCtrl = _nouveauDiplomeCtrl;
 
     await showDialog<void>(
       context: context,
@@ -389,7 +400,6 @@ class _RegisterApprenantDialogState
         ),
       ),
     );
-    newDiplomeCtrl.dispose();
   }
 
   void _goNext() {
@@ -708,6 +718,7 @@ class _RegisterApprenantDialogState
             if (_isEditing)
               _FieldRow([
                 DropdownButtonFormField<ApprenantStatut>(
+                  isExpanded: true,
                   initialValue: _statut,
                   decoration: const InputDecoration(labelText: 'Statut'),
                   items: [
@@ -722,6 +733,7 @@ class _RegisterApprenantDialogState
               // Le sexe décide du barème appliqué aux épreuves sportives :
               // sans lui, une performance reste sans note.
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: _sexe,
                 decoration: const InputDecoration(labelText: 'Sexe'),
                 items: const [
@@ -792,6 +804,7 @@ class _RegisterApprenantDialogState
                 decoration: const InputDecoration(labelText: 'Ethnie'),
               ),
               DropdownButtonFormField<String>(
+                isExpanded: true,
                 initialValue: _situationMatrimoniale,
                 decoration: const InputDecoration(
                   labelText: 'Situation matrimoniale',
@@ -861,6 +874,7 @@ class _RegisterApprenantDialogState
               ),
             ]),
             DropdownButtonFormField<String>(
+              isExpanded: true,
               initialValue: _groupeSanguin,
               decoration: const InputDecoration(labelText: 'Groupe sanguin'),
               items: [

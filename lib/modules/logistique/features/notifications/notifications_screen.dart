@@ -37,8 +37,7 @@ class NotificationsScreen extends ConsumerWidget {
                 ? null
                 : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
             child: ListTile(
-              onTap: () =>
-                  ref.read(notificationsProvider.notifier).markRead(n.id),
+              onTap: () => _marquerLue(context, ref, n),
               leading: CircleAvatar(
                 backgroundColor: _color(n.categorie).withValues(alpha: 0.12),
                 child: Icon(
@@ -112,6 +111,31 @@ class NotificationsScreen extends ConsumerWidget {
       case NotificationCategory.activite:
         return AppColors.blueDeep;
     }
+  }
+}
+
+/// Un clic éteint la notification. Si le serveur refuse — le réseau est
+/// tombé, la ligne ne m'appartient pas —, elle se rallume et l'on dit
+/// pourquoi : sans cela elle se rallumait seule au rafraîchissement
+/// suivant, sans que personne comprenne.
+Future<void> _marquerLue(
+  BuildContext context,
+  WidgetRef ref,
+  AppNotification n,
+) async {
+  if (n.lue) return;
+  final messager = ScaffoldMessenger.of(context);
+  try {
+    await ref.read(notificationsProvider.notifier).markRead(n.id);
+  } catch (e) {
+    messager
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.danger,
+          content: Text('Notification non marquée comme lue : $e'),
+        ),
+      );
   }
 }
 

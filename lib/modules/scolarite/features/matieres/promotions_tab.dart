@@ -261,6 +261,7 @@ Future<void> _formulaire(
                 )
               else
                 DropdownButtonFormField<String>(
+                  isExpanded: true,
                   initialValue: divisionId,
                   decoration: const InputDecoration(labelText: 'Division'),
                   items: [

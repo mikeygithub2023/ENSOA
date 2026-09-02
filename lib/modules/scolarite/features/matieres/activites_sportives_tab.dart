@@ -464,6 +464,7 @@ class _ActiviteDialogState extends ConsumerState<_ActiviteDialog> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<UniteEpreuve>(
+              isExpanded: true,
               initialValue: _unite,
               decoration: const InputDecoration(labelText: 'Unité de mesure'),
               items: [
@@ -474,6 +475,7 @@ class _ActiviteDialogState extends ConsumerState<_ActiviteDialog> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<SensEpreuve>(
+              isExpanded: true,
               initialValue: _meilleur,
               decoration: const InputDecoration(
                 labelText: 'Sens de l\'activité',

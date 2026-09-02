@@ -32,6 +32,19 @@ class AppNotification {
   });
 
   bool get estDemandeDeSuppression => noteId != null;
+
+  /// La même notification, lue. Les champs sont finaux : pour en changer
+  /// un il faut reconstruire l'objet, et le refaire à la main partout
+  /// invitait à en oublier un.
+  AppNotification copieLue() => AppNotification(
+    id: id,
+    categorie: categorie,
+    titre: titre,
+    message: message,
+    date: date,
+    lue: true,
+    noteId: noteId,
+  );
 }
 
 extension NotificationCategoryIcon on NotificationCategory {

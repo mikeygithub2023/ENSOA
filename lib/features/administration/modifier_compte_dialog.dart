@@ -95,7 +95,8 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
     final monPoste = moi == null
         ? null
         : posteDepuisRoles(moi.roleScolarite, moi.roleLogistique);
-    final postesOuverts = (postesCreables[monPoste] ?? const <Poste>{}).toList();
+    final postesOuverts = (postesCreables[monPoste] ?? const <Poste>{})
+        .toList();
 
     return AlertDialog(
       scrollable: true,
@@ -109,6 +110,7 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               DropdownButtonFormField<Poste>(
+                isExpanded: true,
                 initialValue: postesOuverts.contains(_poste) ? _poste : null,
                 decoration: InputDecoration(
                   labelText: 'Poste',

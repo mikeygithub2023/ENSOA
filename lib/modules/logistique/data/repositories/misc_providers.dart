@@ -197,6 +197,16 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
   /// « voici ce qui vous attendait ».
   int? _nonLues;
 
+  /// Les notifications qu'on vient d'éteindre et dont le serveur n'a pas
+  /// encore rendu compte.
+  ///
+  /// Sans ce souvenir, un clic pouvait rester sans effet visible. Une
+  /// lecture partie une fraction de seconde plus tôt — la minuterie, le
+  /// flux temps réel — revenait avec l'ancienne valeur et rallumait la
+  /// notification, alors même que la base l'avait bien enregistrée comme
+  /// lue. Vu de la tablette : « je clique, et rien ne se passe ».
+  final Set<String> _luesLocalement = {};
+
   @override
   List<AppNotification> build() {
     Future.microtask(refresh);
@@ -257,9 +267,20 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
         .from('notifications')
         .select()
         .order('created_at', ascending: false);
-    final nouvelles = (rows as List)
+    final duServeur = (rows as List)
         .map((r) => _notificationFromRow(r as Map<String, dynamic>))
         .toList();
+
+    // Le serveur a rattrapé son retard sur ces lignes : on peut oublier.
+    _luesLocalement.removeAll([
+      for (final n in duServeur)
+        if (n.lue) n.id,
+    ]);
+
+    final nouvelles = [
+      for (final n in duServeur)
+        if (!n.lue && _luesLocalement.contains(n.id)) n.copieLue() else n,
+    ];
 
     // Sonner quand le nombre de non-lues augmente, et à cette condition
     // seule. Pas au premier chargement — on ne réveille pas quelqu'un qui
@@ -273,23 +294,43 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
     _nonLues = apres;
   }
 
+  /// Marquer lu, sans attendre le serveur pour l'afficher.
+  ///
+  /// Trois défauts se cumulaient ici. La pastille ne s'éteignait qu'au
+  /// retour du réseau — sur une tablette un aller-retour se voit, et celui
+  /// qui ne voit rien reclique. Le `update` n'avait pas de `select` : si la
+  /// RLS refusait la ligne, PostgREST répondait « aucune erreur, aucune
+  /// ligne touchée » et l'écran affichait comme lue une notification qui ne
+  /// l'était pas. Rien enfin ne remontait à l'appelant, qui n'avait pas de
+  /// quoi prévenir.
+  ///
+  /// L'ordre est donc inversé : on éteint tout de suite, on écrit ensuite,
+  /// et l'on rallume si le serveur n'a pas suivi. Une notification qu'on
+  /// croit avoir lue et qui revient déroute plus qu'une erreur annoncée.
   Future<void> markRead(String id) async {
-    await socle.from('notifications').update({'read': true}).eq('id', id);
+    final avant = state;
     state = [
       for (final n in state)
-        if (n.id == id)
-          AppNotification(
-            id: n.id,
-            categorie: n.categorie,
-            titre: n.titre,
-            message: n.message,
-            date: n.date,
-            lue: true,
-            noteId: n.noteId,
-          )
-        else
-          n,
+        if (n.id == id) n.copieLue() else n,
     ];
+    _luesLocalement.add(id);
+    _nonLues = state.where((n) => !n.lue).length;
+
+    try {
+      final touchees = await socle
+          .from('notifications')
+          .update({'read': true})
+          .eq('id', id)
+          .select('id');
+      if (touchees.isEmpty) {
+        throw Exception("Cette notification n'est pas la vôtre.");
+      }
+    } catch (_) {
+      _luesLocalement.remove(id);
+      state = avant;
+      _nonLues = avant.where((n) => !n.lue).length;
+      rethrow;
+    }
   }
 
   /// [destinataireId] cible un utilisateur précis, [roleCible] tout un rôle ;

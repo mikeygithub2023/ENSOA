@@ -609,6 +609,7 @@ class _ClassesTab extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<ClasseType>(
+                  isExpanded: true,
                   initialValue: type,
                   decoration: const InputDecoration(labelText: 'Type'),
                   items: [
@@ -620,6 +621,7 @@ class _ClassesTab extends ConsumerWidget {
                 const SizedBox(height: 12),
                 if (isAdmin)
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     initialValue: divisionId,
                     decoration: const InputDecoration(labelText: 'Division'),
                     items: [
@@ -660,6 +662,7 @@ class _ClassesTab extends ConsumerWidget {
                         );
                       }
                       return DropdownButtonFormField<String>(
+                        isExpanded: true,
                         initialValue: promotions.any((p) => p.id == promotionId)
                             ? promotionId
                             : null,
@@ -788,6 +791,7 @@ class _ClassesTab extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<ClasseType>(
+                  isExpanded: true,
                   initialValue: type,
                   decoration: const InputDecoration(labelText: 'Type'),
                   items: [
@@ -819,6 +823,7 @@ class _ClassesTab extends ConsumerWidget {
                         );
                       }
                       return DropdownButtonFormField<String>(
+                        isExpanded: true,
                         initialValue: promotions.any((p) => p.id == promotionId)
                             ? promotionId
                             : null,
@@ -1246,6 +1251,7 @@ class _AffectationsTab extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     initialValue: matiereId,
                     decoration: const InputDecoration(labelText: 'Matière'),
                     items: [
@@ -1258,6 +1264,7 @@ class _AffectationsTab extends ConsumerWidget {
                   const SizedBox(height: 12),
                   if (isAdmin)
                     DropdownButtonFormField<String>(
+                      isExpanded: true,
                       initialValue: divisionId,
                       decoration: const InputDecoration(labelText: 'Division'),
                       items: [
@@ -1278,6 +1285,7 @@ class _AffectationsTab extends ConsumerWidget {
                     ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
+                    isExpanded: true,
                     initialValue: classeId,
                     decoration: const InputDecoration(labelText: 'Classe'),
                     items: [

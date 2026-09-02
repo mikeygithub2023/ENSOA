@@ -125,6 +125,7 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 DropdownButtonFormField<Poste>(
+                  isExpanded: true,
                   initialValue: _poste,
                   decoration: const InputDecoration(labelText: 'Poste'),
                   items: [
