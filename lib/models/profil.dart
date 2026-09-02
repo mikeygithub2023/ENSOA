@@ -53,6 +53,10 @@ class Profil {
 
   String get nomComplet => '$prenom $nom'.trim();
 
+  /// Le nom d'usage militaire : le NOM d'abord, le prénom ensuite. C'est
+  /// ainsi qu'on appelle quelqu'un au rapport, et ainsi qu'il se présente.
+  String get nomDUsage => '$nom $prenom'.trim();
+
   /// L'identité telle qu'on désigne un militaire : le grade, puis le nom. Le
   /// personnel civil n'ayant pas de grade, on retombe sur le seul nom.
   String get identiteComplete =>

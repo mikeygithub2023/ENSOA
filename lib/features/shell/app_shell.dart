@@ -272,7 +272,7 @@ class _AppShellState extends ConsumerState<AppShell>
                                   child: FadeTransition(
                                     opacity: _fadeEntete,
                                     child: _Entete(
-                                      nomComplet: profil.nomComplet,
+                                      nomComplet: profil.nomDUsage,
                                       grade: profil.grade ?? '',
                                       poste: profil.appellation(poste?.libelle),
                                     ),
@@ -542,8 +542,17 @@ class _Entete extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // « Bienvenue, Lieutenant-Colonel Yannick DJAMA », puis sa
+              // fonction en dessous. On saluait le grade seul — « Bonjour,
+              // Lieutenant-Colonel » —, ce qui ne nommait personne : deux
+              // capitaines lisaient le même en-tête, et le nom se retrouvait
+              // relégué en petits caractères à côté du poste.
               Text(
-                grade.isEmpty ? 'Bonjour' : 'Bonjour, $grade',
+                [
+                  'Bienvenue,',
+                  if (grade.isNotEmpty) grade,
+                  nomComplet,
+                ].join(' '),
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
@@ -552,7 +561,7 @@ class _Entete extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '$nomComplet · $poste',
+                poste,
                 style: const TextStyle(fontSize: 13, color: AppColors.inkMuted),
               ),
             ],

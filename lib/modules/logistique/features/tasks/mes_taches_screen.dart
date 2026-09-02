@@ -33,6 +33,10 @@ class _MesTachesScreenState extends ConsumerState<MesTachesScreen> {
         return AlertLevel.info;
       case StatutTache.validee:
         return AlertLevel.info;
+      // Une tâche annulée n'attend plus rien ; son libellé « Annulée » le
+      // dit, inutile de l'accentuer par la couleur.
+      case StatutTache.annulee:
+        return AlertLevel.info;
     }
   }
 

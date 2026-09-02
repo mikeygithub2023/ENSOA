@@ -47,6 +47,8 @@ class TachesEquipeScreen extends ConsumerWidget {
         case StatutTache.terminee:
         case StatutTache.validee:
           return AlertLevel.info;
+        case StatutTache.annulee:
+          return AlertLevel.info;
       }
     }
 

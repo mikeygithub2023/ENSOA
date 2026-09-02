@@ -112,6 +112,8 @@ StatutTache _statutTacheFromDb(String v) {
       return StatutTache.terminee;
     case 'validee':
       return StatutTache.validee;
+    case 'annulee':
+      return StatutTache.annulee;
     default:
       return StatutTache.aFaire;
   }

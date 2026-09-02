@@ -66,7 +66,11 @@ extension StatutActiviteLabel on StatutActivite {
 
 /// aFaire → l'acteur exécute → terminee (en attente de validation OA) →
 /// validee (clôturée par l'OA).
-enum StatutTache { aFaire, terminee, validee }
+///
+/// annulee est hors de ce cours : une tâche ne s'y met pas d'elle-même, elle
+/// y tombe quand son activité est annulée. Il n'y a plus rien à faire, et
+/// plus rien à viser.
+enum StatutTache { aFaire, terminee, validee, annulee }
 
 extension StatutTacheLabel on StatutTache {
   String get label {
@@ -77,6 +81,8 @@ extension StatutTacheLabel on StatutTache {
         return 'En attente de validation';
       case StatutTache.validee:
         return 'Validée';
+      case StatutTache.annulee:
+        return 'Annulée';
     }
   }
 }

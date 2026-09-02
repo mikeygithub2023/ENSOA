@@ -52,10 +52,6 @@ class AccueilScreen extends ConsumerWidget {
             const SizedBox(height: 14),
             const _BlocLogistique(),
           ],
-          const SizedBox(height: 28),
-          const _TitreSection('Accès rapide'),
-          const SizedBox(height: 14),
-          _Raccourcis(profil: profil),
           const SizedBox(height: 12),
         ],
       ),
@@ -567,104 +563,6 @@ class _Amorce extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Les portes que ce poste ouvre, en clair. La barre d'icônes ne dit pas son
-/// nom ; ici, si.
-class _Raccourcis extends StatelessWidget {
-  const _Raccourcis({required this.profil});
-
-  final Profil profil;
-
-  @override
-  Widget build(BuildContext context) {
-    final raccourcis = <(String, IconData, String, Permission)>[
-      (
-        'Élèves & stagiaires',
-        Icons.groups_rounded,
-        '/scolarite/apprenants',
-        Permission.consulterApprenants,
-      ),
-      ('Cours', Icons.school_rounded, '/scolarite/cours', Permission.gererCours),
-      (
-        'Consultations',
-        Icons.medical_services_rounded,
-        '/scolarite/consultations',
-        Permission.gererConsultations,
-      ),
-      (
-        'Parc automobile',
-        Icons.directions_car_filled_rounded,
-        '/logistique/parc',
-        Permission.gererParc,
-      ),
-      (
-        'Carburant',
-        Icons.local_gas_station_rounded,
-        '/logistique/carburant',
-        Permission.gererCarburant,
-      ),
-      (
-        'Armement',
-        Icons.security_rounded,
-        '/logistique/armement',
-        Permission.gererArmement,
-      ),
-      (
-        'Poste de Police',
-        Icons.local_police_rounded,
-        '/logistique/poste-police',
-        Permission.gererPostePolice,
-      ),
-      (
-        'Comptes',
-        Icons.admin_panel_settings_rounded,
-        '/administration',
-        Permission.gererUtilisateurs,
-      ),
-    ].where((r) => profil.peut(r.$4)).toList();
-
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: [
-        for (final (libelle, icone, chemin, _) in raccourcis)
-          Material(
-            color: AppColors.cardBg,
-            borderRadius: BorderRadius.circular(AppRadii.pill),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(AppRadii.pill),
-              onTap: () => context.go(chemin),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 11,
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadii.pill),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(icone, size: 17, color: AppColors.blueDeep),
-                    const SizedBox(width: 9),
-                    Text(
-                      libelle,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.ink,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-      ],
     );
   }
 }
