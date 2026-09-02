@@ -729,7 +729,7 @@ class _PermissionTile extends StatelessWidget {
                   if (permission.personneContact != null) ...[
                     const SizedBox(height: 2),
                     Text(
-                      'Contact : ${permission.personneContact}',
+                      'Personne à prévenir : ${permission.personneContact}',
                       style: const TextStyle(
                         color: AppColors.inkMuted,
                         fontSize: 12,

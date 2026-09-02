@@ -135,12 +135,21 @@ pw.Widget _permissionHalf({
     apprenant.nom,
     apprenant.prenom,
   ].where((s) => s != null && s.trim().isNotEmpty).join(' ').toUpperCase();
-  final urgence = [
+  // Qui prévenir : celui que la permission désigne. À défaut — le champ est
+  // facultatif —, la personne à prévenir inscrite sur la fiche de l'élève,
+  // plutôt qu'une ligne vide sur un imprimé qui sort de l'école.
+  final urgenceDeLaFiche = [
     apprenant.urgenceNom,
     if (apprenant.urgenceLien != null && apprenant.urgenceLien!.isNotEmpty)
       '(${apprenant.urgenceLien})',
     apprenant.urgenceContact,
   ].where((s) => s != null && s.trim().isNotEmpty).join(' ');
+
+  final personneAPrevenir =
+      (permission.personneContact != null &&
+          permission.personneContact!.trim().isNotEmpty)
+      ? permission.personneContact!.trim()
+      : urgenceDeLaFiche;
 
   return pw.Column(
     crossAxisAlignment: pw.CrossAxisAlignment.center,
@@ -246,11 +255,12 @@ pw.Widget _permissionHalf({
               ),
             ),
             _field('MOTIF', permission.motif ?? ''),
-            _field('CONTACT', permission.personneContact ?? ''),
-            _field(
-              "PERSONNE A PREVENIR EN CAS D'URGENCE",
-              urgence.isEmpty ? '' : urgence,
-            ),
+            // Les deux lignes étaient interverties : « CONTACT », sur cet
+            // imprimé, est celui de l'élève — c'est à lui qu'on téléphone
+            // pendant sa permission. La personne saisie au formulaire est
+            // celle qu'on prévient s'il arrive quelque chose.
+            _field('CONTACT', apprenant.telephone ?? ''),
+            _field("PERSONNE A PREVENIR EN CAS D'URGENCE", personneAPrevenir),
           ],
         ),
       ),
