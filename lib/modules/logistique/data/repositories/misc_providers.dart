@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart' show AppLifecycleListener;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sig_ensoa/core/roles.dart';
@@ -186,6 +187,7 @@ AppNotification _notificationFromRow(Map<String, dynamic> row) =>
 class NotificationsNotifier extends Notifier<List<AppNotification>> {
   RealtimeChannel? _canal;
   Timer? _minuterie;
+  AppLifecycleListener? _cycleDeVie;
 
   @override
   List<AppNotification> build() {
@@ -193,6 +195,7 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
     _seTenirAuCourant();
     ref.onDispose(() {
       _minuterie?.cancel();
+      _cycleDeVie?.dispose();
       final canal = _canal;
       if (canal != null) supabase.removeChannel(canal);
     });
@@ -204,12 +207,16 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
   /// venir une demande de suppression, jusqu'à ce qu'il clique lui-même sur
   /// la rubrique — auquel cas il l'avait déjà trouvée.
   ///
-  /// Deux voies, à dessein. Le flux temps réel de Supabase donne l'alerte
-  /// dans la seconde ; la minuterie rattrape ce qu'il aurait manqué — une
-  /// coupure de réseau, un socket refermé par un pare-feu. Elle interroge une
-  /// table de quelques dizaines de lignes toutes les quatre-vingt-dix
-  /// secondes : le coût est nul, et l'on ne dépend pas d'un seul mécanisme
-  /// pour une information qu'on ne peut pas se permettre de rater.
+  /// Trois voies, à dessein. Le flux temps réel de Supabase donne l'alerte
+  /// dans la seconde. La minuterie rattrape ce qu'il aurait manqué — une
+  /// coupure de réseau, un socket refermé par un pare-feu : c'est elle qui
+  /// garantit le délai, vingt secondes au pire, et elle seule qu'on puisse
+  /// promettre. Le retour d'arrière-plan enfin, car une tablette qu'on
+  /// rallume a pu dormir des heures, socket compris.
+  ///
+  /// Interroger une table de quelques dizaines de lignes à cette cadence ne
+  /// coûte rien, et l'on ne dépend pas d'un seul mécanisme pour une
+  /// information qu'on ne peut pas se permettre de rater.
   void _seTenirAuCourant() {
     _canal = supabase
         .channel('notifications-du-compte')
@@ -222,9 +229,11 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
         .subscribe();
 
     _minuterie = Timer.periodic(
-      const Duration(seconds: 90),
+      const Duration(seconds: 20),
       (_) => _rafraichirSansBruit(),
     );
+
+    _cycleDeVie = AppLifecycleListener(onResume: _rafraichirSansBruit);
   }
 
   /// Le rafraîchissement de fond ne doit jamais faire tomber l'application :
