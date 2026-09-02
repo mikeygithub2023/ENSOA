@@ -30,6 +30,11 @@ dependencies:
 
   # Présentation
   google_fonts: ^8.2.1
+
+  # La sonnerie des notifications. `SystemSound.play` n'y suffirait pas :
+  # l'alerte système du bureau est ignorée sur Android, où se trouve
+  # justement celui qu'il faut prévenir.
+  audioplayers: ^6.5.1
   fl_chart: ^1.2.0
 
   # Documents : bulletins, listes, bons de distribution
@@ -54,6 +59,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/sons/
     # Police de repli des documents imprimés. Elle n'est pas déclarée sous
     # `fonts:` — l'interface ne s'en sert pas ; c'est la bibliothèque PDF qui
     # en lit les octets, pour que les accents et le tiret cadratin s'impriment

@@ -7,6 +7,7 @@ import 'package:sig_ensoa/core/roles.dart';
 import 'package:supabase_flutter/supabase_flutter.dart'
     show PostgresChangeEvent, RealtimeChannel;
 
+import 'package:sig_ensoa/core/sonnerie.dart';
 import 'package:sig_ensoa/core/supabase_client.dart';
 import 'package:sig_ensoa/core/chargement.dart';
 import '../models/audit_entry.dart';
@@ -189,6 +190,11 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
   Timer? _minuterie;
   AppLifecycleListener? _cycleDeVie;
 
+  /// Le nombre de non-lues au dernier passage. Nul tant que rien n'a été lu
+  /// une première fois : c'est ce qui distingue « il en arrive une » de
+  /// « voici ce qui vous attendait ».
+  int? _nonLues;
+
   @override
   List<AppNotification> build() {
     Future.microtask(refresh);
@@ -249,9 +255,20 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
         .from('notifications')
         .select()
         .order('created_at', ascending: false);
-    state = (rows as List)
+    final nouvelles = (rows as List)
         .map((r) => _notificationFromRow(r as Map<String, dynamic>))
         .toList();
+
+    // Sonner quand le nombre de non-lues augmente, et à cette condition
+    // seule. Pas au premier chargement — on ne réveille pas quelqu'un qui
+    // vient d'ouvrir l'application pour lui annoncer ce qu'il a déjà vu
+    // hier — ni quand une notification est marquée lue, ce qui fait bouger
+    // le compte dans l'autre sens.
+    final avant = _nonLues;
+    final apres = nouvelles.where((n) => !n.lue).length;
+    state = nouvelles;
+    if (avant != null && apres > avant) Sonnerie.notification();
+    _nonLues = apres;
   }
 
   Future<void> markRead(String id) async {
