@@ -164,6 +164,8 @@ NotificationCategory _categorieFromDb(String value) {
       return NotificationCategory.maintenance;
     case 'armement':
       return NotificationCategory.armement;
+    case 'activite':
+      return NotificationCategory.activite;
     default:
       return NotificationCategory.systeme;
   }
