@@ -174,11 +174,13 @@ const _permissionsScolarite = <RoleScolarite, Set<Permission>>{
   // porte sur des lignes et non sur des écrans.
   RoleScolarite.commandantPromotion: {
     Permission.consulterApprenants,
+    Permission.gererApprenants,
     Permission.gererCours,
     Permission.gererMatieres,
   },
   RoleScolarite.commandantBrigade: {
     Permission.consulterApprenants,
+    Permission.gererApprenants,
     Permission.gererCours,
     Permission.gererMatieres,
   },
