@@ -42,8 +42,7 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
   /// affectés. On lui demande donc la promotion, et la division s'en déduit —
   /// une paire saisie à la main pourrait se contredire.
   bool get _commandeUnePromotion =>
-      _poste == Poste.commandantBrigade ||
-      _poste == Poste.commandantPromotion;
+      _poste == Poste.commandantBrigade || _poste == Poste.commandantPromotion;
 
   /// Un commandant de division sans division ne voit rien : la RLS borne à la
   /// sienne tout ce qu'il consulte. Pour les autres postes de la scolarité,
@@ -108,7 +107,8 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
     final monPoste = moi == null
         ? null
         : posteDepuisRoles(moi.roleScolarite, moi.roleLogistique);
-    final postesOuverts = (postesCreables[monPoste] ?? const <Poste>{}).toList();
+    final postesOuverts = (postesCreables[monPoste] ?? const <Poste>{})
+        .toList();
     final divisions = ref.watch(divisionsProvider);
 
     return AlertDialog(
@@ -130,7 +130,14 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                     for (final p in postesOuverts)
                       DropdownMenuItem(value: p, child: Text(p.libelle)),
                   ],
-                  onChanged: (p) => setState(() => _poste = p),
+                  // Changer de poste efface la portée : une division choisie
+                  // pour un commandant resterait accrochée à un compte
+                  // devenu Service de santé, qui n'en a pas.
+                  onChanged: (p) => setState(() {
+                    _poste = p;
+                    _divisionId = null;
+                    _promotionId = null;
+                  }),
                   validator: (p) => p == null ? 'Choisissez un poste' : null,
                 ),
                 if (_poste != null) ...[
@@ -143,10 +150,16 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                     ),
                   ),
                 ],
-                // Deux portées possibles selon le poste : une promotion pour
-                // les deux commandants qui en tiennent une, une division pour
-                // le commandant de division. Sans elle, le compte s'ouvre
-                // mais ne montre rien.
+                // Chaque poste a la portée qui lui revient, et elle ne se
+                // demande qu'à ceux qu'elle borne : une promotion pour les
+                // deux commandants qui en tiennent une, une division pour le
+                // commandant de division.
+                //
+                // Les autres n'en ont pas, et le champ ne doit pas leur être
+                // proposé. Le Service de santé soigne toute l'école — le
+                // rattacher à une division laisserait croire qu'il ne répond
+                // que d'elle. L'administrateur, lui, commande l'école
+                // entière.
                 if (_commandeUnePromotion) ...[
                   const SizedBox(height: 16),
                   ref
@@ -191,7 +204,7 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                               : null,
                         ),
                       ),
-                ] else if (_poste?.roleScolarite != null) ...[
+                ] else if (_divisionObligatoire) ...[
                   const SizedBox(height: 16),
                   divisions.when(
                     loading: () => const LinearProgressIndicator(),
@@ -205,17 +218,18 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                     data: (liste) => DropdownButtonFormField<String>(
                       initialValue: _divisionId,
                       isExpanded: true,
-                      decoration: InputDecoration(
-                        labelText: _divisionObligatoire
-                            ? 'Division'
-                            : 'Division (facultatif)',
+                      decoration: const InputDecoration(
+                        labelText: 'Division commandée',
+                        helperText:
+                            'Il ne verra que les élèves de cette division.',
+                        helperMaxLines: 2,
                       ),
                       items: [
                         for (final d in liste)
                           DropdownMenuItem(value: d.id, child: Text(d.nom)),
                       ],
                       onChanged: (v) => setState(() => _divisionId = v),
-                      validator: (v) => _divisionObligatoire && v == null
+                      validator: (v) => v == null
                           ? 'Ce poste commande une division : choisissez-la'
                           : null,
                     ),
@@ -234,9 +248,8 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                               '${Identite.emailDepuisMatricule(_matricule.text.trim())}',
                     helperMaxLines: 2,
                   ),
-                  validator: (v) => (v == null || v.trim().isEmpty)
-                      ? 'Champ requis'
-                      : null,
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Champ requis' : null,
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -263,9 +276,8 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                   controller: _nom,
                   textCapitalization: TextCapitalization.characters,
                   decoration: const InputDecoration(labelText: 'Nom'),
-                  validator: (v) => (v == null || v.trim().isEmpty)
-                      ? 'Champ requis'
-                      : null,
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Champ requis' : null,
                 ),
                 const SizedBox(height: 12),
                 // Le titre était présenté comme un champ libre parmi d'autres,
@@ -291,11 +303,13 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                   Align(
                     alignment: Alignment.centerLeft,
                     child: ActionChip(
-                      avatar: const Icon(Icons.military_tech_outlined, size: 16),
-                      label: Text(titreDUsage(_poste)!),
-                      onPressed: () => setState(
-                        () => _titre.text = titreDUsage(_poste)!,
+                      avatar: const Icon(
+                        Icons.military_tech_outlined,
+                        size: 16,
                       ),
+                      label: Text(titreDUsage(_poste)!),
+                      onPressed: () =>
+                          setState(() => _titre.text = titreDUsage(_poste)!),
                     ),
                   ),
                 ],
