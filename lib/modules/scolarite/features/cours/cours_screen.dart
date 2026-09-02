@@ -24,8 +24,8 @@ final _dateFmt = DateFormat('dd/MM/yyyy');
 /// devoirs.
 ///
 /// Le choix de la division est escamoté dès qu'une seule est visible —
-/// c'est le cas du chef de division et de l'instructeur, cloisonnés sur la
-/// leur (voir la migration 034) : il n'y a rien à choisir.
+/// c'est le cas du commandant de division et des deux commandants d'une
+/// promotion, cloisonnés sur la leur : il n'y a rien à choisir.
 ///
 /// Chacun dépose ses supports — l'élève partage les siens avec sa classe —
 /// mais ne modifie et ne supprime que ce qu'il a déposé, l'encadrement
@@ -57,7 +57,7 @@ class _CoursScreenState extends ConsumerState<CoursScreen> {
     final encadrement =
         profil?.role == AppRole.admin ||
         profil?.role == AppRole.chefDivision ||
-        profil?.role == AppRole.instructeur ||
+        profil?.role == AppRole.commandantPromotion ||
         profil?.role == AppRole.commandantBrigade;
 
     final divisionUnique = divisions.length == 1 ? divisions.first : null;

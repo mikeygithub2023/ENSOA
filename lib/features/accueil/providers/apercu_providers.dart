@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/supabase_client.dart';
 
 /// Les chiffres de l'école, tels que la RLS les laisse voir à celui qui
-/// regarde. Un chef de division ne compte que ses apprenants, un armurier ne
+/// regarde. Un commandant de division ne compte que ses apprenants, un armurier ne
 /// voit que ce qui le regarde : les compteurs ci-dessous n'ajoutent aucun
 /// filtre, ils héritent de celui du serveur.
 ///

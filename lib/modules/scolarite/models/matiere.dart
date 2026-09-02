@@ -16,7 +16,7 @@ class Matiere {
 }
 
 /// Affectation d'une matière du catalogue à une (division, classe), avec son
-/// coefficient pour cette classe — gérée par le chef de division concerné.
+/// coefficient pour cette classe — gérée par le commandant de division concerné.
 class MatiereModule {
   const MatiereModule({
     required this.id,

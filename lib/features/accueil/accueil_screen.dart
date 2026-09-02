@@ -14,7 +14,7 @@ import 'providers/apercu_providers.dart';
 ///
 /// Un instructeur n'y voit que la scolarité, un armurier que le soutien
 /// technique, un administrateur les deux. Les chiffres viennent de la base
-/// avec la RLS pour seul filtre : un chef de division y lit l'effectif de sa
+/// avec la RLS pour seul filtre : un commandant de division y lit l'effectif de sa
 /// division, pas celui de l'école.
 class AccueilScreen extends ConsumerWidget {
   const AccueilScreen({super.key});
@@ -188,7 +188,7 @@ class _BlocScolarite extends ConsumerWidget {
                 icone: Icons.school_rounded,
                 valeur: '${a.cours}',
                 titre: 'Cours',
-                legende: 'Déposés par les instructeurs',
+                legende: "Déposés par l'encadrement",
                 couleur: AppColors.success,
               ),
             ],

@@ -72,9 +72,10 @@ class PromotionsEtStagesFilters extends ConsumerWidget {
     // une vue qu'il n'a pas le droit d'avoir, et que le serveur lui aurait
     // rendue vide. On la retire, et on retient sa promotion d'office —
     // c'est la seule qu'il puisse regarder.
+    final role = ref.watch(profilCourantProvider).value?.roleScolarite;
     final estCommandant =
-        ref.watch(profilCourantProvider).value?.roleScolarite ==
-        RoleScolarite.commandantBrigade;
+        role == RoleScolarite.commandantBrigade ||
+        role == RoleScolarite.commandantPromotion;
 
     if (estCommandant && choix.estTout && promotions.length == 1) {
       final sienne = promotions.first.id;

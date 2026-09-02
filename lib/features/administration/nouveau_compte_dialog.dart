@@ -41,9 +41,11 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
   /// RLS le borne aux phases de cette promotion et aux élèves qui y sont
   /// affectés. On lui demande donc la promotion, et la division s'en déduit —
   /// une paire saisie à la main pourrait se contredire.
-  bool get _commandeUnePromotion => _poste == Poste.commandantBrigade;
+  bool get _commandeUnePromotion =>
+      _poste == Poste.commandantBrigade ||
+      _poste == Poste.commandantPromotion;
 
-  /// Un chef de division sans division ne voit rien : la RLS borne à la
+  /// Un commandant de division sans division ne voit rien : la RLS borne à la
   /// sienne tout ce qu'il consulte. Pour les autres postes de la scolarité,
   /// l'affectation peut attendre.
   bool get _divisionObligatoire => _poste == Poste.chefDivision;
@@ -141,10 +143,10 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                     ),
                   ),
                 ],
-                // La division n'a de sens que pour les postes de la scolarité,
-                // et elle y est déterminante : c'est elle qui borne ce qu'un
-                // chef de division ou un instructeur voit. Sans elle, le
-                // compte s'ouvre mais ne montre rien.
+                // Deux portées possibles selon le poste : une promotion pour
+                // les deux commandants qui en tiennent une, une division pour
+                // le commandant de division. Sans elle, le compte s'ouvre
+                // mais ne montre rien.
                 if (_commandeUnePromotion) ...[
                   const SizedBox(height: 16),
                   ref

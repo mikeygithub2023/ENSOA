@@ -20,10 +20,13 @@ extension AppRoleCompat on RoleScolarite {
   String get dbValue => valeurDb;
 }
 
-/// Un rôle inconnu retombe sur le moins ouvert des rôles du personnel, comme
-/// dans l'application d'origine.
+/// Un rôle inconnu retombe sur le plus fermé de tous.
+///
+/// Il retombait sur `instructeur`, ce qui donnait à un rôle qu'on ne sait pas
+/// lire l'accès aux fiches des élèves. La RLS l'aurait refusé, mais l'écran
+/// se serait ouvert : mieux vaut qu'un rôle inconnu ne puisse rien.
 AppRole appRoleFromString(String? valeur) =>
-    roleScolariteDepuisDb(valeur) ?? RoleScolarite.instructeur;
+    roleScolariteDepuisDb(valeur) ?? RoleScolarite.eleveStagiaire;
 
 /// Le profil tel que le connaissent les écrans de la scolarité : un rôle,
 /// une division, éventuellement une promotion.
@@ -78,7 +81,10 @@ class Profile {
     id: p.id,
     nom: p.nom,
     prenom: p.prenom,
-    role: p.roleScolarite ?? RoleScolarite.instructeur,
+    // Un compte qui ne relève pas de la scolarité — un armurier, un
+    // soutier — n'y a aucun rôle. Lui en prêter un ouvrirait des écrans qui
+    // ne le regardent pas.
+    role: p.roleScolarite ?? RoleScolarite.eleveStagiaire,
     grade: p.grade,
     divisionId: p.divisionId,
     promotionId: p.promotionId,

@@ -90,7 +90,11 @@ class ComptesRepository {
           // Nulle pour tout autre poste : une promotion qui resterait
           // accrochée à un compte devenu instructeur lui ouvrirait des
           // écrans qui ne le regardent plus.
-          'promotion_id': poste == Poste.commandantBrigade ? promotionId : null,
+          'promotion_id':
+              (poste == Poste.commandantBrigade ||
+                  poste == Poste.commandantPromotion)
+              ? promotionId
+              : null,
         })
         .eq('id', id);
   }

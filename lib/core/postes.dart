@@ -17,9 +17,11 @@ import 'roles.dart';
 ///   - l'administrateur administre l'école entière, pas la moitié.
 enum Poste {
   administrateur,
+  // Le nom technique reste `chefDivision` : il voyage jusqu'à la base, où
+  // soixante-dix-neuf règles d'accès le nomment. Seul son libellé change.
   chefDivision,
+  commandantPromotion,
   commandantBrigade,
-  instructeur,
   infirmerie,
   eleveStagiaire,
   chefSoutienTechnique,
@@ -35,8 +37,8 @@ enum Poste {
 const rolesDuPoste = <Poste, (RoleScolarite?, RoleLogistique?)>{
   Poste.administrateur: (RoleScolarite.admin, RoleLogistique.administrateur),
   Poste.chefDivision: (RoleScolarite.chefDivision, null),
+  Poste.commandantPromotion: (RoleScolarite.commandantPromotion, null),
   Poste.commandantBrigade: (RoleScolarite.commandantBrigade, null),
-  Poste.instructeur: (RoleScolarite.instructeur, null),
   Poste.infirmerie: (RoleScolarite.medecin, RoleLogistique.sante),
   Poste.eleveStagiaire: (RoleScolarite.eleveStagiaire, null),
   Poste.chefSoutienTechnique: (null, RoleLogistique.chefSoutienTechnique),
@@ -50,9 +52,9 @@ const rolesDuPoste = <Poste, (RoleScolarite?, RoleLogistique?)>{
 extension PosteLibelle on Poste {
   String get libelle => switch (this) {
     Poste.administrateur => 'Administrateur',
-    Poste.chefDivision => 'Chef de division',
-    Poste.commandantBrigade => 'Commandant de Brigade',
-    Poste.instructeur => 'Instructeur',
+    Poste.chefDivision => 'Commandant de division',
+    Poste.commandantPromotion => 'Commandant de promotion',
+    Poste.commandantBrigade => 'Commandant de brigade',
     Poste.infirmerie => 'Service de santé',
     Poste.eleveStagiaire => 'Élève / Stagiaire',
     Poste.chefSoutienTechnique => 'Chef Soutien Technique',
@@ -91,8 +93,8 @@ const postesCreables = <Poste, Set<Poste>>{
   Poste.administrateur: {
     Poste.administrateur,
     Poste.chefDivision,
+    Poste.commandantPromotion,
     Poste.commandantBrigade,
-    Poste.instructeur,
     Poste.infirmerie,
     Poste.chefSoutienTechnique,
     Poste.postePolice,

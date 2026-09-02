@@ -45,8 +45,8 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
     widget.compte.roleLogistique,
   );
 
-  /// La promotion commandée, pour un Commandant de Brigade. C'est elle qui
-  /// borne tout ce qu'il voit.
+  /// La promotion commandée, pour l'un des deux commandants qui en tiennent
+  /// une. C'est elle qui borne tout ce qu'ils voient.
   late String? _promotionId = widget.compte.promotionId;
   bool _enCours = false;
   String? _erreur;
@@ -126,7 +126,8 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
                     : (p) => setState(() => _poste = p),
                 validator: (p) => p == null ? 'Choisissez un poste' : null,
               ),
-              if (_poste == Poste.commandantBrigade) ...[
+              if (_poste == Poste.commandantBrigade ||
+                  _poste == Poste.commandantPromotion) ...[
                 const SizedBox(height: 16),
                 ref
                     .watch(promotionsNommeesProvider)

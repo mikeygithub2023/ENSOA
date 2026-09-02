@@ -294,8 +294,9 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
         ref.watch(currentProfileProvider).value?.role == AppRole.admin;
 
     final divisions = divisionsAsync.value ?? const <Division>[];
-    // Une seule division visible — c'est le cas d'un chef de division ou
-    // d'un instructeur, cloisonnés sur la leur : il n'y a rien à choisir,
+    // Une seule division visible — c'est le cas d'un commandant de division
+    // ou d'un commandant de promotion, cloisonnés sur la leur : il n'y a rien
+    // à choisir,
     // on entre directement dans cette division et l'écran s'ouvre sur ses
     // classes et stages.
     final divisionUnique = divisions.length == 1 ? divisions.first : null;

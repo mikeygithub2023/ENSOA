@@ -14,8 +14,8 @@ library;
 enum RoleScolarite {
   admin,
   chefDivision,
+  commandantPromotion,
   commandantBrigade,
-  instructeur,
   eleveStagiaire,
   medecin,
 }
@@ -23,8 +23,8 @@ enum RoleScolarite {
 const _valeursScolarite = {
   RoleScolarite.admin: 'admin',
   RoleScolarite.chefDivision: 'chef_division',
+  RoleScolarite.commandantPromotion: 'commandant_promotion',
   RoleScolarite.commandantBrigade: 'commandant_brigade',
-  RoleScolarite.instructeur: 'instructeur',
   RoleScolarite.eleveStagiaire: 'eleve_stagiaire',
   RoleScolarite.medecin: 'medecin',
 };
@@ -34,9 +34,9 @@ extension RoleScolariteDb on RoleScolarite {
 
   String get libelle => switch (this) {
     RoleScolarite.admin => 'Administrateur scolarité',
-    RoleScolarite.chefDivision => 'Chef de division',
-    RoleScolarite.commandantBrigade => 'Commandant de Brigade',
-    RoleScolarite.instructeur => 'Instructeur',
+    RoleScolarite.chefDivision => 'Commandant de division',
+    RoleScolarite.commandantPromotion => 'Commandant de promotion',
+    RoleScolarite.commandantBrigade => 'Commandant de brigade',
     RoleScolarite.eleveStagiaire => 'Élève / Stagiaire',
     RoleScolarite.medecin => 'Médecin',
   };
@@ -161,15 +161,19 @@ const _permissionsScolarite = <RoleScolarite, Set<Permission>>{
     Permission.gererCours,
     Permission.gererMatieres,
   },
-  // Il commande une promotion : la RLS le borne à celle-ci, l'application lui
-  // ouvre les mêmes écrans qu'à un instructeur.
-  RoleScolarite.commandantBrigade: {
+  // Les deux commandants d'une promotion ouvrent les mêmes écrans : la RLS
+  // les borne l'un et l'autre aux phases de leur promotion. Ce qui les
+  // distingue ne se voit pas ici mais en base — le Commandant de Brigade ne
+  // saisit que les notes du module Sport, celui de Promotion les saisit
+  // toutes. Une permission de plus ne changerait rien à cette limite, qui
+  // porte sur des lignes et non sur des écrans.
+  RoleScolarite.commandantPromotion: {
     Permission.voirTableauBordScolarite,
     Permission.consulterApprenants,
     Permission.gererCours,
     Permission.gererMatieres,
   },
-  RoleScolarite.instructeur: {
+  RoleScolarite.commandantBrigade: {
     Permission.voirTableauBordScolarite,
     Permission.consulterApprenants,
     Permission.gererCours,

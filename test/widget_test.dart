@@ -10,7 +10,7 @@ void main() {
 
   test('un profil cumule les permissions de ses deux rôles', () {
     final permissions = permissionsDe(
-      scolarite: RoleScolarite.instructeur,
+      scolarite: RoleScolarite.commandantBrigade,
       logistique: RoleLogistique.armurerie,
     );
     expect(permissions.contains(Permission.consulterApprenants), isTrue);

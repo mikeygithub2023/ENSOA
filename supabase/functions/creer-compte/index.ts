@@ -25,8 +25,8 @@ const socle = () => adminClient.schema("socle");
 const ROLES_DU_POSTE: Record<string, [string | null, string | null]> = {
   administrateur: ["admin", "administrateur"],
   chef_division: ["chef_division", null],
+  commandant_promotion: ["commandant_promotion", null],
   commandant_brigade: ["commandant_brigade", null],
-  instructeur: ["instructeur", null],
   infirmerie: ["medecin", "sante"],
   eleve_stagiaire: ["eleve_stagiaire", null],
   chef_soutien_technique: [null, "chef_soutien_technique"],
@@ -46,8 +46,8 @@ const POSTES_CREABLES: Record<string, string[]> = {
   administrateur: [
     "administrateur",
     "chef_division",
+    "commandant_promotion",
     "commandant_brigade",
-    "instructeur",
     "infirmerie",
     "chef_soutien_technique",
     "poste_police",
@@ -188,7 +188,10 @@ Deno.serve(async (req) => {
         division_id: divisionId,
         // La promotion que commande un Commandant de Brigade — elle borne
         // tout ce qu'il voit. Nulle pour les autres postes.
-        promotion_id: poste === "commandant_brigade" ? promotionId : null,
+        promotion_id:
+          poste === "commandant_brigade" || poste === "commandant_promotion"
+            ? promotionId
+            : null,
         cellule_id: celluleId,
         actif: true,
         // Le mot de passe posé ici est connu de celui qui ouvre le compte :
