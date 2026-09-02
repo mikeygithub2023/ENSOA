@@ -25,10 +25,22 @@ class AuthRepository {
     await supabase.auth.updateUser(UserAttributes(password: nouveau));
     final id = supabase.auth.currentUser?.id;
     if (id == null) return;
-    await socle
+    // Le `select` n'est pas décoratif : sans lui, une mise à jour que la RLS
+    // refuserait passerait pour un succès — PostgREST répond « aucune ligne
+    // touchée », sans erreur —, et le compte garderait éternellement la
+    // mention « Mot de passe à changer ».
+    final baissees = await socle
         .from('profiles')
         .update({'doit_changer_mot_de_passe': false})
-        .eq('id', id);
+        .eq('id', id)
+        .select('id');
+
+    if (baissees.isEmpty) {
+      throw Exception(
+        'Le mot de passe a bien été changé, mais le compte reste marqué '
+        "« à changer » : signalez-le à l'administrateur.",
+      );
+    }
   }
 
   Future<void> deconnexion() => supabase.auth.signOut();

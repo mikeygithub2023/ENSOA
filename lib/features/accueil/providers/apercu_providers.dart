@@ -90,3 +90,47 @@ final apercuLogistiqueProvider = FutureProvider<ApercuLogistique>((ref) async {
     armesEnDotation: enDotation.count,
   );
 });
+
+/// Ce que l'Officier Adjoint a sous les yeux : ses activités et l'état de
+/// leurs tâches.
+///
+/// Il relève du soutien technique, et voyait donc jusqu'ici les compteurs de
+/// ce module — véhicules disponibles, litres en soute, armes inventoriées.
+/// Rien de tout cela ne le concerne : il monte les activités de l'école et
+/// valide les tâches que les services déclarent terminées.
+class ApercuActivites {
+  const ApercuActivites({
+    required this.enCours,
+    required this.aValider,
+    required this.tachesEnCours,
+    required this.terminees,
+  });
+
+  /// Planifiées ou déjà commencées — ce qui est encore devant lui.
+  final int enCours;
+
+  /// Les tâches qu'un service déclare finies et qui attendent son visa.
+  /// C'est le seul chiffre sur lequel il doit agir.
+  final int aValider;
+
+  final int tachesEnCours;
+  final int terminees;
+
+  bool get vide => enCours == 0 && terminees == 0 && tachesEnCours == 0;
+}
+
+final apercuActivitesProvider = FutureProvider<ApercuActivites>((ref) async {
+  final activites = await logistique.from('activite').select('statut');
+  final taches = await logistique.from('tache_activite').select('statut');
+
+  int compter(List<dynamic> lignes, Set<String> statuts) => lignes
+      .where((l) => statuts.contains((l as Map)['statut'] as String?))
+      .length;
+
+  return ApercuActivites(
+    enCours: compter(activites, {'planifiee', 'en_cours'}),
+    terminees: compter(activites, {'terminee'}),
+    aValider: compter(taches, {'terminee'}),
+    tachesEnCours: compter(taches, {'a_faire'}),
+  );
+});

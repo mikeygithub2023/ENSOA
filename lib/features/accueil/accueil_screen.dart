@@ -37,7 +37,16 @@ class AccueilScreen extends ConsumerWidget {
             const SizedBox(height: 14),
             const _BlocScolarite(),
           ],
-          if (profil.releveDuSoutienTechnique) ...[
+          // L'Officier Adjoint relève du soutien technique sans en tenir
+          // aucun service : il monte les activités de l'école et vise les
+          // tâches que les services déclarent faites. Les compteurs du parc
+          // et des soutes ne lui apprennent rien — il a les siens.
+          if (profil.roleLogistique == RoleLogistique.officierAdjoint) ...[
+            const SizedBox(height: 28),
+            const _TitreSection('Activités'),
+            const SizedBox(height: 14),
+            const _BlocActivites(),
+          ] else if (profil.releveDuSoutienTechnique) ...[
             const SizedBox(height: 28),
             const _TitreSection('Soutien technique'),
             const SizedBox(height: 14),
@@ -201,6 +210,74 @@ class _BlocScolarite extends ConsumerWidget {
                   "promotions et les classes : les élèves s'y rattachent.",
               chemin: '/scolarite/matieres',
               action: 'Ouvrir les référentiels',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// L'aperçu de l'Officier Adjoint : ses activités, et l'état des tâches
+/// qu'il a réparties entre les services.
+///
+/// « Tâches à valider » est le seul chiffre sur lequel il ait à agir : c'est
+/// pourquoi il porte la couleur d'alerte dès qu'il n'est pas nul.
+class _BlocActivites extends ConsumerWidget {
+  const _BlocActivites();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final apercu = ref.watch(apercuActivitesProvider);
+
+    return apercu.when(
+      loading: () => const _TuilesEnAttente(nombre: 4),
+      error: (e, _) => _Incident(message: '$e'),
+      data: (a) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _GrilleDeTuiles(
+            tuiles: [
+              _Tuile(
+                icone: Icons.event_note_rounded,
+                valeur: '${a.enCours}',
+                titre: 'Activités en cours',
+                legende: 'Planifiées ou commencées',
+              ),
+              _Tuile(
+                icone: Icons.fact_check_rounded,
+                valeur: '${a.aValider}',
+                titre: 'Tâches à valider',
+                legende: 'Les services les déclarent faites',
+                couleur: a.aValider > 0
+                    ? AppColors.ivoryOrange
+                    : AppColors.blueDeep,
+              ),
+              _Tuile(
+                icone: Icons.pending_actions_rounded,
+                valeur: '${a.tachesEnCours}',
+                titre: 'Tâches en cours',
+                legende: 'Confiées, pas encore rendues',
+                couleur: AppColors.blueBright,
+              ),
+              _Tuile(
+                icone: Icons.done_all_rounded,
+                valeur: '${a.terminees}',
+                titre: 'Activités terminées',
+                legende: 'Depuis l\'ouverture',
+                couleur: AppColors.success,
+              ),
+            ],
+          ),
+          if (a.vide) ...[
+            const SizedBox(height: 12),
+            const _Amorce(
+              texte:
+                  "Aucune activité n'est encore inscrite au programme. "
+                  "Commencez par en créer une, puis répartissez ses tâches "
+                  "entre les services.",
+              chemin: '/logistique/activites',
+              action: 'Ouvrir les activités',
             ),
           ],
         ],
