@@ -420,36 +420,30 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
           ),
         ],
         const SizedBox(height: 16),
+        // « Toutes » n'est pas l'absence de portée mais la portée la plus
+        // large : l'école entière, ou ce que la RLS en laisse voir. Elle
+        // ouvre donc les mêmes onglets qu'une division — situation de prise
+        // d'armes, consultations, permissions, absences —, cumulés. Seule la
+        // saisie y est fermée : on n'enregistre pas une permission sans dire
+        // dans quelle phase.
         Expanded(
-          child: selectedDivision != null
-              ? EntityTabsView(
-                  division: selectedDivision,
-                  classe: selectedClasse,
-                  classesRetenues: classesRetenues,
-                  sousPromotion: promotionInscription != null,
-                  elevesStagiairesTab: _apprenantsList(
-                    apprenantsAsync,
-                    divisionsAsync,
-                    classesAsync,
-                    selectedDivision,
-                    selectedClasse,
-                    isAdmin,
-                    classesRetenues,
-                    classeInscription,
-                    promotionInscription,
-                  ),
-                )
-              : _apprenantsList(
-                  apprenantsAsync,
-                  divisionsAsync,
-                  classesAsync,
-                  selectedDivision,
-                  selectedClasse,
-                  isAdmin,
-                  classesRetenues,
-                  classeInscription,
-                  promotionInscription,
-                ),
+          child: EntityTabsView(
+            division: selectedDivision,
+            classe: selectedClasse,
+            classesRetenues: classesRetenues,
+            sousPromotion: promotionInscription != null,
+            elevesStagiairesTab: _apprenantsList(
+              apprenantsAsync,
+              divisionsAsync,
+              classesAsync,
+              selectedDivision,
+              selectedClasse,
+              isAdmin,
+              classesRetenues,
+              classeInscription,
+              promotionInscription,
+            ),
+          ),
         ),
       ],
     );

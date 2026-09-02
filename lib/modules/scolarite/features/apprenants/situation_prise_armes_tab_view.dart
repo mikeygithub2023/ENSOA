@@ -136,7 +136,9 @@ class SituationPriseArmesTabView extends ConsumerWidget {
     this.classesRetenues,
   });
 
-  final Division division;
+  /// Nulle sous « Toutes » : la vue cumule alors ce que l'utilisateur a le
+  /// droit de voir, divisions confondues.
+  final Division? division;
   final Classe? classe;
 
   /// Phases d'une promotion sélectionnée sans phase précise, nul sinon.
@@ -146,27 +148,36 @@ class SituationPriseArmesTabView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final classe = this.classe;
     final portee = classe == null ? classesRetenues : null;
+    final division = this.division;
     final apprenantsAsync =
         (classe != null
                 ? ref.watch(apprenantsByClasseProvider(classe.id))
-                : ref.watch(apprenantsByDivisionProvider(division.id)))
+                : division != null
+                ? ref.watch(apprenantsByDivisionProvider(division.id))
+                : ref.watch(apprenantsListProvider))
             .dansLesClasses(portee, (a) => a.classeId);
     final permissionsAsync =
         (classe != null
                 ? ref.watch(permissionsByClasseProvider(classe.id))
-                : ref.watch(permissionsByDivisionProvider(division.id)))
+                : division != null
+                ? ref.watch(permissionsByDivisionProvider(division.id))
+                : ref.watch(permissionsToutesProvider))
             .dansLesClasses(portee, (p) => p.classeId);
     final absencesAsync =
         (classe != null
                 ? ref.watch(absencesByClasseProvider(classe.id))
-                : ref.watch(absencesByDivisionProvider(division.id)))
+                : division != null
+                ? ref.watch(absencesByDivisionProvider(division.id))
+                : ref.watch(absencesToutesProvider))
             .dansLesClasses(portee, (a) => a.classeId);
     final consultationsAsync =
         (classe != null
                 ? ref.watch(consultationsMedicalesByClasseProvider(classe.id))
-                : ref.watch(
+                : division != null
+                ? ref.watch(
                     consultationsMedicalesByDivisionProvider(division.id),
-                  ))
+                  )
+                : ref.watch(consultationsMedicalesToutesProvider))
             .dansLesClasses(portee, (c) => c.classeId);
     // Sous "Toutes phases / stages", l'effectif mélange les classes : on
     // rappelle celle de chaque apprenant entre parenthèses.

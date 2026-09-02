@@ -29,7 +29,9 @@ class ConsultationsMedicalesTabView extends ConsumerWidget {
     this.classesRetenues,
   });
 
-  final Division division;
+  /// Nulle sous « Toutes » : la vue cumule alors ce que l'utilisateur a le
+  /// droit de voir, divisions confondues.
+  final Division? division;
   final Classe? classe;
 
   /// Phases d'une promotion sélectionnée sans phase précise, nul sinon.
@@ -39,17 +41,22 @@ class ConsultationsMedicalesTabView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final classe = this.classe;
     final portee = classe == null ? classesRetenues : null;
+    final division = this.division;
     final apprenantsAsync =
         (classe != null
                 ? ref.watch(apprenantsByClasseProvider(classe.id))
-                : ref.watch(apprenantsByDivisionProvider(division.id)))
+                : division != null
+                ? ref.watch(apprenantsByDivisionProvider(division.id))
+                : ref.watch(apprenantsListProvider))
             .dansLesClasses(portee, (a) => a.classeId);
     final consultationsAsync =
         (classe != null
                 ? ref.watch(consultationsMedicalesByClasseProvider(classe.id))
-                : ref.watch(
+                : division != null
+                ? ref.watch(
                     consultationsMedicalesByDivisionProvider(division.id),
-                  ))
+                  )
+                : ref.watch(consultationsMedicalesToutesProvider))
             .dansLesClasses(portee, (c) => c.classeId);
     final classesAsync = ref.watch(classesListProvider);
     final role = ref.watch(currentProfileProvider).value?.role;

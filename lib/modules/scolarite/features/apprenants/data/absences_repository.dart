@@ -52,6 +52,17 @@ class AbsencesRepository {
 
   /// Toutes les absences d'un apprenant précis — utilisé dans sa fiche
   /// détaillée.
+  /// Toutes celles que l'utilisateur a le droit de voir, divisions
+  /// confondues — la vue « Toutes ». La RLS borne le résultat : un
+  /// commandant de division n'y trouve que la sienne.
+  Future<List<Absence>> fetchToutes() async {
+    final rows = await scolarite
+        .from('absences')
+        .select()
+        .order('date_debut', ascending: false);
+    return rows.map(Absence.fromJson).toList();
+  }
+
   Future<List<Absence>> fetchByApprenant(String apprenantId) async {
     final rows = await scolarite
         .from('absences')

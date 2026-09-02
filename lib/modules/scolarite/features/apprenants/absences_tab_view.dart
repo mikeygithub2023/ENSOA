@@ -23,7 +23,9 @@ class AbsencesTabView extends ConsumerWidget {
     this.classesRetenues,
   });
 
-  final Division division;
+  /// Nulle sous « Toutes » : la vue cumule alors ce que l'utilisateur a le
+  /// droit de voir, divisions confondues.
+  final Division? division;
   final Classe? classe;
 
   /// Phases d'une promotion sélectionnée sans phase précise, nul sinon.
@@ -33,15 +35,20 @@ class AbsencesTabView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final classe = this.classe;
     final portee = classe == null ? classesRetenues : null;
+    final division = this.division;
     final apprenantsAsync =
         (classe != null
                 ? ref.watch(apprenantsByClasseProvider(classe.id))
-                : ref.watch(apprenantsByDivisionProvider(division.id)))
+                : division != null
+                ? ref.watch(apprenantsByDivisionProvider(division.id))
+                : ref.watch(apprenantsListProvider))
             .dansLesClasses(portee, (a) => a.classeId);
     final absencesAsync =
         (classe != null
                 ? ref.watch(absencesByClasseProvider(classe.id))
-                : ref.watch(absencesByDivisionProvider(division.id)))
+                : division != null
+                ? ref.watch(absencesByDivisionProvider(division.id))
+                : ref.watch(absencesToutesProvider))
             .dansLesClasses(portee, (a) => a.classeId);
     final classesAsync = ref.watch(classesListProvider);
 
@@ -51,7 +58,9 @@ class AbsencesTabView extends ConsumerWidget {
         Row(
           children: [
             const Expanded(child: SectionHeader(title: 'Absences')),
-            if (classe != null)
+            // La saisie demande une division ET une phase : sous « Toutes »,
+            // il n'y a rien à quoi rattacher l'enregistrement.
+            if (classe != null && division != null)
               FilledButton.icon(
                 onPressed: apprenantsAsync.maybeWhen(
                   data: (apprenants) => apprenants.isEmpty

@@ -36,3 +36,12 @@ final ordonnanceLignesByConsultationProvider = FutureProvider.autoDispose
           .watch(consultationsMedicalesRepositoryProvider)
           .fetchOrdonnanceLignes(consultationId);
     });
+
+/// Toutes les consultations visibles, divisions confondues — la vue
+/// « Toutes ».
+final consultationsMedicalesToutesProvider =
+    FutureProvider.autoDispose<List<ConsultationMedicale>>((ref) {
+      return ref
+          .watch(consultationsMedicalesRepositoryProvider)
+          .fetchToutes();
+    });

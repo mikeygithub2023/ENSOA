@@ -29,7 +29,9 @@ class EntityTabsView extends StatefulWidget {
     this.sousPromotion = false,
   });
 
-  final Division division;
+  /// Nulle sous « Toutes » : les onglets cumulent alors les divisions que
+  /// l'utilisateur a le droit de voir.
+  final Division? division;
   final Classe? classe;
   final Widget elevesStagiairesTab;
 
@@ -98,7 +100,7 @@ class _EntityTabsViewState extends State<EntityTabsView>
       final oldController = _controller;
       _controller = TabController(length: _tabs.length, vsync: this);
       oldController.dispose();
-    } else if (oldWidget.division.id != widget.division.id ||
+    } else if (oldWidget.division?.id != widget.division?.id ||
         oldWidget.classe?.id != widget.classe?.id) {
       _controller.index = 0;
     }
@@ -161,7 +163,8 @@ class _EntityTabsViewState extends State<EntityTabsView>
               if (widget.classe != null) ...[
                 StatistiquesClasseTabView(classe: widget.classe!),
                 ControlesTabView(
-                  division: widget.division,
+                  // Une classe est retenue : sa division l'est donc aussi.
+                  division: widget.division!,
                   classe: widget.classe,
                 ),
               ],

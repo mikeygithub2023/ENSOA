@@ -61,6 +61,16 @@ class PermissionsRepository {
     return rows.map(Permission.fromJson).toList();
   }
 
+  /// Toutes celles que l'utilisateur a le droit de voir, divisions
+  /// confondues — la vue « Toutes ». La RLS borne le résultat.
+  Future<List<Permission>> fetchToutes() async {
+    final rows = await scolarite
+        .from('permissions')
+        .select()
+        .order('date_depart', ascending: false);
+    return rows.map(Permission.fromJson).toList();
+  }
+
   /// Toutes les permissions d'un apprenant précis — utilisé dans sa fiche
   /// détaillée.
   Future<List<Permission>> fetchByApprenant(String apprenantId) async {

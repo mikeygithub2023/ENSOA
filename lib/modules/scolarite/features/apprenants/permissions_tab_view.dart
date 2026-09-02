@@ -27,7 +27,9 @@ class PermissionsTabView extends ConsumerStatefulWidget {
     this.classesRetenues,
   });
 
-  final Division division;
+  /// Nulle sous « Toutes » : la vue cumule alors ce que l'utilisateur a le
+  /// droit de voir, divisions confondues.
+  final Division? division;
   final Classe? classe;
 
   /// Phases d'une promotion sélectionnée sans phase précise, nul sinon.
@@ -41,7 +43,7 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
   final Set<String> _selectedIds = {};
   bool _printing = false;
 
-  Division get _division => widget.division;
+  Division? get _division => widget.division;
   Classe? get _classe => widget.classe;
 
   Future<void> _print({
@@ -56,17 +58,26 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
       final armoiries = (await rootBundle.load(
         'assets/images/armoiries_ci.png',
       )).buffer.asUint8List();
+      // Sous « Toutes », les permissions viennent de plusieurs divisions :
+      // chacune retrouve la sienne par son `division_id`, plutôt que d'être
+      // imprimée sous celle de l'écran, qui n'existe pas.
+      final divisionsById = {
+        for (final d in ref.read(divisionsProvider).value ?? const <Division>[])
+          d.id: d,
+      };
+
       final items = <PermissionPrintData>[];
       for (final permission in permissions) {
         final apprenant = apprenantsById[permission.apprenantId];
         final classe = _classe ?? classesById[permission.classeId];
-        if (apprenant == null || classe == null) continue;
+        final division = _division ?? divisionsById[permission.divisionId];
+        if (apprenant == null || classe == null || division == null) continue;
         items.add(
           PermissionPrintData(
             permission: permission,
             apprenant: apprenant,
             classe: classe,
-            division: _division,
+            division: division,
           ),
         );
       }
@@ -106,12 +117,16 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
     final apprenantsAsync =
         (classe != null
                 ? ref.watch(apprenantsByClasseProvider(classe.id))
-                : ref.watch(apprenantsByDivisionProvider(_division.id)))
+                : _division != null
+                ? ref.watch(apprenantsByDivisionProvider(_division!.id))
+                : ref.watch(apprenantsListProvider))
             .dansLesClasses(portee, (a) => a.classeId);
     final permissionsAsync =
         (classe != null
                 ? ref.watch(permissionsByClasseProvider(classe.id))
-                : ref.watch(permissionsByDivisionProvider(_division.id)))
+                : _division != null
+                ? ref.watch(permissionsByDivisionProvider(_division!.id))
+                : ref.watch(permissionsToutesProvider))
             .dansLesClasses(portee, (p) => p.classeId);
     final classesAsync = ref.watch(classesListProvider);
 
@@ -175,7 +190,9 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
               },
               orElse: () => const SizedBox.shrink(),
             ),
-            if (classe != null) ...[
+            // La saisie demande une division ET une phase : sous « Toutes »,
+            // il n'y a rien à quoi rattacher l'enregistrement.
+            if (classe != null && _division != null) ...[
               const SizedBox(width: 8),
               FilledButton.icon(
                 onPressed: apprenantsAsync.maybeWhen(
@@ -183,7 +200,7 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
                       ? null
                       : () => showRegisterPermissionDialog(
                           context,
-                          division: _division,
+                          division: _division!,
                           classe: classe,
                           apprenants: apprenants,
                         ),
@@ -202,6 +219,13 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
               final apprenantsById = {for (final a in apprenants) a.id: a};
               final classesById = {
                 for (final c in classesAsync.value ?? const <Classe>[]) c.id: c,
+              };
+              // Sous « Toutes », chaque permission retrouve sa division par
+              // son `division_id` : l'écran, lui, n'en désigne aucune.
+              final divisionsById = {
+                for (final d
+                    in ref.watch(divisionsProvider).value ?? const <Division>[])
+                  d.id: d,
               };
               return permissionsAsync.when(
                 data: (permissions) {
@@ -240,10 +264,13 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
                         onModifier: () {
                           final laClasse =
                               classesById[permission.classeId] ?? classe;
-                          if (laClasse == null) return;
+                          final laDivision =
+                              _division ??
+                              divisionsById[permission.divisionId];
+                          if (laClasse == null || laDivision == null) return;
                           showRegisterPermissionDialog(
                             context,
-                            division: widget.division,
+                            division: laDivision,
                             classe: laClasse,
                             apprenants: apprenantsAsync.value ?? const [],
                             existante: permission,

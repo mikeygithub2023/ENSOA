@@ -23,3 +23,8 @@ final absencesByApprenantProvider = FutureProvider.autoDispose
           .watch(absencesRepositoryProvider)
           .fetchByApprenant(apprenantId);
     });
+
+/// Toutes les absences visibles, divisions confondues — la vue « Toutes ».
+final absencesToutesProvider = FutureProvider.autoDispose<List<Absence>>((ref) {
+  return ref.watch(absencesRepositoryProvider).fetchToutes();
+});

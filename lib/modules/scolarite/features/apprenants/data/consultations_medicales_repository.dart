@@ -60,6 +60,16 @@ class ConsultationsMedicalesRepository {
     return rows.map(ConsultationMedicale.fromJson).toList();
   }
 
+  /// Toutes celles que l'utilisateur a le droit de voir, divisions
+  /// confondues — la vue « Toutes ». La RLS borne le résultat.
+  Future<List<ConsultationMedicale>> fetchToutes() async {
+    final rows = await scolarite
+        .from('consultations_medicales')
+        .select()
+        .order('date_souhaitee', ascending: false);
+    return rows.map(ConsultationMedicale.fromJson).toList();
+  }
+
   /// Toutes les consultations d'un apprenant précis — utilisé dans sa
   /// fiche détaillée.
   Future<List<ConsultationMedicale>> fetchByApprenant(

@@ -25,3 +25,12 @@ final permissionsByApprenantProvider = FutureProvider.autoDispose
           .watch(permissionsRepositoryProvider)
           .fetchByApprenant(apprenantId);
     });
+
+/// Toutes les permissions visibles, divisions confondues — la vue
+/// « Toutes ». Ce que chacun y trouve dépend de la RLS, pas de ce
+/// fournisseur : un commandant de division n'y voit que la sienne.
+final permissionsToutesProvider = FutureProvider.autoDispose<List<Permission>>((
+  ref,
+) {
+  return ref.watch(permissionsRepositoryProvider).fetchToutes();
+});
