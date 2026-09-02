@@ -304,8 +304,17 @@ class ControleDetailView extends ConsumerWidget {
       apprenantsByClasseProvider(controle.classeId),
     );
     final notesAsync = ref.watch(notesByControleProvider(controle.id));
-    final isAdmin =
-        ref.watch(currentProfileProvider).value?.role == AppRole.admin;
+    final role = ref.watch(currentProfileProvider).value?.role;
+    final isAdmin = role == AppRole.admin;
+
+    // Le Commandant de Brigade ne note que le sport. Sur un contrôle d'une
+    // autre nature, l'écran ne lui propose pas de saisir : le serveur le
+    // refuserait, et un bouton qui ne mène qu'à un refus vaut moins que pas
+    // de bouton du tout. Il continue de lire ces notes — commander une
+    // promotion, c'est en connaître les résultats.
+    final peutNoter =
+        !(role == AppRole.commandantBrigade &&
+            controle.type != ControleType.sport);
 
     List<Matiere> editModuleMatieres = const [];
     if (controle.type == ControleType.module) {
@@ -401,6 +410,7 @@ class ControleDetailView extends ConsumerWidget {
                   apprenantsAsync: apprenantsAsync,
                   notesAsync: notesAsync,
                   isAdmin: isAdmin,
+                  peutNoter: peutNoter,
                   onDeleteNote: (note) =>
                       _confirmDeleteNote(context, ref, note),
                   onRequestDeletion: (note) =>
@@ -413,6 +423,7 @@ class ControleDetailView extends ConsumerWidget {
                   apprenantsAsync: apprenantsAsync,
                   notesAsync: notesAsync,
                   isAdmin: isAdmin,
+                  peutNoter: peutNoter,
                   onDeleteNote: (note) =>
                       _confirmDeleteNote(context, ref, note),
                   onRequestDeletion: (note) =>
@@ -439,6 +450,7 @@ class _ModuleNotesBody extends ConsumerWidget {
     required this.apprenantsAsync,
     required this.notesAsync,
     required this.isAdmin,
+    required this.peutNoter,
     required this.onDeleteNote,
     required this.onRequestDeletion,
     required this.onRejectDeletion,
@@ -448,6 +460,9 @@ class _ModuleNotesBody extends ConsumerWidget {
   final AsyncValue<List<Apprenant>> apprenantsAsync;
   final AsyncValue<List<Note>> notesAsync;
   final bool isAdmin;
+
+  /// L'utilisateur peut-il saisir une note sur ce contrôle ?
+  final bool peutNoter;
   final ValueChanged<Note> onDeleteNote;
   final ValueChanged<Note> onRequestDeletion;
   final ValueChanged<Note> onRejectDeletion;
@@ -509,6 +524,7 @@ class _ModuleNotesBody extends ConsumerWidget {
                           .where((n) => n.sousModuleId == sousModule.id)
                           .toList(),
                       isAdmin: isAdmin,
+                      peutNoter: peutNoter,
                       onDeleteNote: onDeleteNote,
                       onRequestDeletion: onRequestDeletion,
                       onRejectDeletion: onRejectDeletion,
@@ -548,6 +564,7 @@ class _MatiereNotesBody extends ConsumerWidget {
     required this.apprenantsAsync,
     required this.notesAsync,
     required this.isAdmin,
+    required this.peutNoter,
     required this.onDeleteNote,
     required this.onRequestDeletion,
     required this.onRejectDeletion,
@@ -557,6 +574,9 @@ class _MatiereNotesBody extends ConsumerWidget {
   final AsyncValue<List<Apprenant>> apprenantsAsync;
   final AsyncValue<List<Note>> notesAsync;
   final bool isAdmin;
+
+  /// L'utilisateur peut-il saisir une note sur ce contrôle ?
+  final bool peutNoter;
   final ValueChanged<Note> onDeleteNote;
   final ValueChanged<Note> onRequestDeletion;
   final ValueChanged<Note> onRejectDeletion;
@@ -618,6 +638,7 @@ class _MatiereNotesBody extends ConsumerWidget {
                           .where((n) => n.matiereId == matiere.id)
                           .toList(),
                       isAdmin: isAdmin,
+                      peutNoter: peutNoter,
                       onDeleteNote: onDeleteNote,
                       onRequestDeletion: onRequestDeletion,
                       onRejectDeletion: onRejectDeletion,
@@ -669,6 +690,7 @@ class _NotesSection extends StatelessWidget {
     required this.apprenantsById,
     required this.notes,
     required this.isAdmin,
+    required this.peutNoter,
     required this.onDeleteNote,
     required this.onRequestDeletion,
     required this.onRejectDeletion,
@@ -683,6 +705,9 @@ class _NotesSection extends StatelessWidget {
   final Map<String, Apprenant> apprenantsById;
   final List<Note> notes;
   final bool isAdmin;
+
+  /// L'utilisateur peut-il saisir une note sur ce contrôle ?
+  final bool peutNoter;
   final ValueChanged<Note> onDeleteNote;
   final ValueChanged<Note> onRequestDeletion;
   final ValueChanged<Note> onRejectDeletion;
@@ -707,19 +732,20 @@ class _NotesSection extends StatelessWidget {
         Row(
           children: [
             Expanded(child: SectionHeader(title: title)),
-            FilledButton.icon(
-              onPressed: apprenantsSansNote.isEmpty
-                  ? null
-                  : () => showRegisterNoteDialog(
-                      context,
-                      controleId: controleId,
-                      matiere: matiere,
-                      sousModule: sousModule,
-                      apprenants: apprenantsSansNote,
-                    ),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text('Enregistrer une note'),
-            ),
+            if (peutNoter)
+              FilledButton.icon(
+                onPressed: apprenantsSansNote.isEmpty
+                    ? null
+                    : () => showRegisterNoteDialog(
+                        context,
+                        controleId: controleId,
+                        matiere: matiere,
+                        sousModule: sousModule,
+                        apprenants: apprenantsSansNote,
+                      ),
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Enregistrer une note'),
+              ),
           ],
         ),
         const SizedBox(height: 12),
@@ -745,6 +771,7 @@ class _NotesSection extends StatelessWidget {
                     );
                   },
                   isAdmin: isAdmin,
+                  peutNoter: peutNoter,
                   onConfirmDelete: () => onDeleteNote(note),
                   onRequestDeletion: () => onRequestDeletion(note),
                   onRejectDeletion: () => onRejectDeletion(note),
@@ -764,6 +791,7 @@ class _NoteTile extends StatelessWidget {
     required this.apprenant,
     required this.onEdit,
     required this.isAdmin,
+    required this.peutNoter,
     required this.onConfirmDelete,
     required this.onRequestDeletion,
     required this.onRejectDeletion,
@@ -773,6 +801,9 @@ class _NoteTile extends StatelessWidget {
   final Apprenant? apprenant;
   final VoidCallback onEdit;
   final bool isAdmin;
+
+  /// L'utilisateur peut-il saisir une note sur ce contrôle ?
+  final bool peutNoter;
   final VoidCallback onConfirmDelete;
   final VoidCallback onRequestDeletion;
   final VoidCallback onRejectDeletion;
@@ -840,11 +871,12 @@ class _NoteTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, size: 20),
-              onPressed: onEdit,
-              tooltip: 'Modifier',
-            ),
+            if (peutNoter)
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, size: 20),
+                onPressed: onEdit,
+                tooltip: 'Modifier',
+              ),
             if (isAdmin && pending)
               IconButton(
                 icon: const Icon(
