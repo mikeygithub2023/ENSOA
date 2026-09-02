@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sig_ensoa/core/roles.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'
+    show PostgresChangeEvent, RealtimeChannel;
+
 import 'package:sig_ensoa/core/supabase_client.dart';
 import 'package:sig_ensoa/core/chargement.dart';
 import '../models/audit_entry.dart';
@@ -179,10 +184,55 @@ AppNotification _notificationFromRow(Map<String, dynamic> row) =>
 /// globales, ciblant mon rôle, ou m'étant destinées personnellement — donc
 /// naturellement différentes d'un utilisateur connecté à l'autre.
 class NotificationsNotifier extends Notifier<List<AppNotification>> {
+  RealtimeChannel? _canal;
+  Timer? _minuterie;
+
   @override
   List<AppNotification> build() {
     Future.microtask(refresh);
+    _seTenirAuCourant();
+    ref.onDispose(() {
+      _minuterie?.cancel();
+      final canal = _canal;
+      if (canal != null) supabase.removeChannel(canal);
+    });
     return [];
+  }
+
+  /// Une notification qui n'arrive qu'au changement d'écran n'en est pas
+  /// une : un administrateur qui laisse sa session ouverte ne voyait jamais
+  /// venir une demande de suppression, jusqu'à ce qu'il clique lui-même sur
+  /// la rubrique — auquel cas il l'avait déjà trouvée.
+  ///
+  /// Deux voies, à dessein. Le flux temps réel de Supabase donne l'alerte
+  /// dans la seconde ; la minuterie rattrape ce qu'il aurait manqué — une
+  /// coupure de réseau, un socket refermé par un pare-feu. Elle interroge une
+  /// table de quelques dizaines de lignes toutes les quatre-vingt-dix
+  /// secondes : le coût est nul, et l'on ne dépend pas d'un seul mécanisme
+  /// pour une information qu'on ne peut pas se permettre de rater.
+  void _seTenirAuCourant() {
+    _canal = supabase
+        .channel('notifications-du-compte')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'socle',
+          table: 'notifications',
+          callback: (_) => _rafraichirSansBruit(),
+        )
+        .subscribe();
+
+    _minuterie = Timer.periodic(
+      const Duration(seconds: 90),
+      (_) => _rafraichirSansBruit(),
+    );
+  }
+
+  /// Le rafraîchissement de fond ne doit jamais faire tomber l'application :
+  /// hors ligne, il échoue simplement, et la prochaine tentative reprendra.
+  Future<void> _rafraichirSansBruit() async {
+    try {
+      await refresh();
+    } catch (_) {}
   }
 
   Future<void> refresh() async {
@@ -196,10 +246,7 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
   }
 
   Future<void> markRead(String id) async {
-    await socle
-        .from('notifications')
-        .update({'read': true})
-        .eq('id', id);
+    await socle.from('notifications').update({'read': true}).eq('id', id);
     state = [
       for (final n in state)
         if (n.id == id)
@@ -291,10 +338,7 @@ AuditEntry _auditEntryFromRow(Map<String, dynamic> row) => AuditEntry(
   // un déclencheur de la scolarité nomme la table et l'enregistrement.
   cible:
       (row['cible'] as String?) ??
-      [
-        ?row['table_name'] as String?,
-        ?row['record_id'] as String?,
-      ].join(' '),
+      [?row['table_name'] as String?, ?row['record_id'] as String?].join(' '),
   detail: row['detail'] as String?,
 );
 
