@@ -55,6 +55,16 @@ const elementsNav = <ElementNav>[
     section: SectionNav.commun,
   ),
 
+  // Juste après l'accueil : ce qui attend une réponse doit se voir dès
+  // l'ouverture, sans descendre la colonne. C'est la seule entrée qui porte
+  // un compteur.
+  ElementNav(
+    chemin: '/notifications',
+    libelle: 'Notifications',
+    icone: Icons.notifications_rounded,
+    section: SectionNav.commun,
+  ),
+
   // Un seul tableau de bord pour les deux domaines : celui qui relève des
   // deux bascule de l'un à l'autre à l'intérieur de l'écran.
   ElementNav(
@@ -185,13 +195,6 @@ const elementsNav = <ElementNav>[
     permissions: {Permission.voirTachesEquipe},
   ),
 
-  // --- Général ---
-  ElementNav(
-    chemin: '/notifications',
-    libelle: 'Notifications',
-    icone: Icons.notifications_rounded,
-    section: SectionNav.commun,
-  ),
   ElementNav(
     chemin: '/audit',
     libelle: "Journal d'audit",

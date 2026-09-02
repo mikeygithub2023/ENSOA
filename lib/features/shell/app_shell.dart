@@ -186,10 +186,7 @@ class _AppShellState extends ConsumerState<AppShell>
 
     return profilAsync.when(
       loading: () => const EcranDemarrage(),
-      error: (e, _) => _Impasse(
-        titre: 'Profil illisible',
-        texte: '$e',
-      ),
+      error: (e, _) => _Impasse(titre: 'Profil illisible', texte: '$e'),
       data: (profil) {
         if (profil == null) {
           return const _Impasse(
@@ -215,11 +212,12 @@ class _AppShellState extends ConsumerState<AppShell>
           );
         }
 
-        // Notifications et journal d'audit ont leur place réservée en bas de
-        // la barre, comme dans l'application d'origine.
-        final entrees = elementsPour(profil)
-            .where((e) => e.chemin != '/notifications' && e.chemin != '/audit')
-            .toList();
+        // Le journal d'audit garde sa place réservée en bas de la barre. Les
+        // notifications, elles, remontent en deuxième position : ce qui
+        // attend une réponse doit se voir dès l'ouverture.
+        final entrees = elementsPour(
+          profil,
+        ).where((e) => e.chemin != '/audit').toList();
         final large = MediaQuery.of(context).size.width > 900;
         final poste = posteDepuisRoles(
           profil.roleScolarite,
@@ -347,6 +345,14 @@ class _BarreState extends ConsumerState<_Barre> {
 
   @override
   Widget build(BuildContext context) {
+    // Le compteur des notifications non lues. Il se met à jour tout seul :
+    // la barre suit la liste, et la liste se recharge à chaque passage sur
+    // l'écran des notifications.
+    final nonLues = ref
+        .watch(notificationsProvider)
+        .where((n) => !n.lue)
+        .length;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -372,19 +378,15 @@ class _BarreState extends ConsumerState<_Barre> {
                       actif: e.chemin == '/'
                           ? widget.location == '/'
                           : widget.location.startsWith(e.chemin),
+                      // Seules les notifications portent un compteur : le
+                      // reste de la barre n'a rien qui attende une réponse.
+                      badge: e.chemin == '/notifications' ? nonLues : 0,
                       onTap: () => context.go(e.chemin),
                     ),
                     const SizedBox(height: 10),
                   ],
-                  const SizedBox(height: 8),
-                  _Icone(
-                    icone: Icons.notifications_rounded,
-                    libelle: 'Notifications',
-                    actif: widget.location.startsWith('/notifications'),
-                    onTap: () => context.go('/notifications'),
-                  ),
                   if (widget.voitAudit) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     _Icone(
                       icone: Icons.fact_check_rounded,
                       libelle: "Journal d'audit",
@@ -437,6 +439,7 @@ class _Icone extends StatelessWidget {
     required this.libelle,
     required this.actif,
     required this.onTap,
+    this.badge = 0,
   });
 
   final IconData icone;
@@ -445,36 +448,75 @@ class _Icone extends StatelessWidget {
   final bool actif;
   final VoidCallback onTap;
 
+  /// Combien attendent une réponse. Zéro : rien ne s'affiche.
+  final int badge;
+
   @override
   Widget build(BuildContext context) {
     // L'infobulle est la seule addition : la barre ne porte que des icônes, et
     // elle en porte désormais celles de deux modules.
     return Tooltip(
-      message: libelle,
+      message: badge > 0 ? '$libelle ($badge non lue(s))' : libelle,
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: onTap,
-        child: Container(
-          width: 44,
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: actif ? AppColors.navy : Colors.transparent,
-            shape: BoxShape.circle,
-          ),
-          child: iconeArme
-              ? ColorFiltered(
-                  colorFilter: ColorFilter.mode(
-                    actif ? Colors.white : AppColors.inkMuted,
-                    BlendMode.srcIn,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: actif ? AppColors.navy : Colors.transparent,
+                shape: BoxShape.circle,
+              ),
+              child: iconeArme
+                  ? ColorFiltered(
+                      colorFilter: ColorFilter.mode(
+                        actif ? Colors.white : AppColors.inkMuted,
+                        BlendMode.srcIn,
+                      ),
+                      child: const IconeArme(size: 30),
+                    )
+                  : Icon(
+                      icone,
+                      color: actif ? Colors.white : AppColors.inkMuted,
+                      size: 22,
+                    ),
+            ),
+            // La pastille déborde du cercle, en haut à droite, pour rester
+            // lisible sur une icône de 44 pixels. Au-delà de neuf, le chiffre
+            // exact importe moins que le fait qu'il y en ait beaucoup.
+            if (badge > 0)
+              Positioned(
+                top: -2,
+                right: -2,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 2,
                   ),
-                  child: const IconeArme(size: 30),
-                )
-              : Icon(
-            icone,
-            color: actif ? Colors.white : AppColors.inkMuted,
-            size: 22,
-          ),
+                  constraints: const BoxConstraints(minWidth: 18),
+                  decoration: BoxDecoration(
+                    color: AppColors.danger,
+                    shape: BoxShape.rectangle,
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(color: AppColors.pillBg, width: 2),
+                  ),
+                  child: Text(
+                    badge > 9 ? '9+' : '$badge',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
