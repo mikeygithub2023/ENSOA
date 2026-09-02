@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/formulaire.dart';
 import 'package:flutter/material.dart';
 
 import '../../shared/widgets/widgets.dart';
@@ -94,7 +95,7 @@ class _AjusterStockDialogState extends State<AjusterStockDialog> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!validerFormulaire(context, _formKey)) return;
     setState(() => _envoi = true);
     final qte = int.parse(_qteCtrl.text);
     try {

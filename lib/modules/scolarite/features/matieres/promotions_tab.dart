@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/formulaire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -304,7 +305,7 @@ Future<void> _formulaire(
           ),
           FilledButton(
             onPressed: () async {
-              if (!(formKey.currentState?.validate() ?? false)) return;
+              if (!validerFormulaire(context, formKey)) return;
               final annee = int.tryParse(anneeController.text.trim());
               final depot = ref.read(promotionsRepositoryProvider);
               try {

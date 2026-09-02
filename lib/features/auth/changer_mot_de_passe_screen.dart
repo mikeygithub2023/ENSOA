@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/formulaire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -33,7 +34,7 @@ class _ChangerMotDePasseScreenState
   }
 
   Future<void> _valider() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!validerFormulaire(context, _formKey)) return;
     setState(() {
       _enCours = true;
       _erreur = null;

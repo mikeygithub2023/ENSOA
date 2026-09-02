@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/formulaire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -144,7 +145,7 @@ class _MouvementFormDialogState extends ConsumerState<MouvementFormDialog> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!validerFormulaire(context, _formKey)) return;
     final vehicule = widget.vehicule;
     if (vehicule.etat != EtatVehicule.disponible) {
       ScaffoldMessenger.of(context).showSnackBar(

@@ -323,10 +323,7 @@ class ApprenantsRepository {
         .from('apprenants')
         .update({'deletion_requested_at': null, 'deletion_requested_by': null})
         .eq('id', apprenantId);
-    await socle
-        .from('notifications')
-        .delete()
-        .eq('apprenant_id', apprenantId);
+    await socle.from('notifications').delete().eq('apprenant_id', apprenantId);
   }
 
   /// Enregistre chaque brouillon indépendamment : une ligne en échec (ex.
@@ -411,10 +408,19 @@ class ApprenantsRepository {
       // ces deux orthographes rendait deux lignes, et `maybeSingle` levait
       // une erreur au lieu de choisir. L'enregistrement de l'élève échouait
       // alors tout entier, pour un doublon dont personne n'était responsable.
+      // `%` et `_` sont des jokers pour `ilike` : un diplôme nommé
+      // « BAC_TECHNIQUE » irait chercher n'importe quel caractère à la place
+      // du souligné, et pourrait retrouver une autre ligne — ou n'en
+      // retrouver aucune et créer un doublon. On les échappe.
+      final motif = name
+          .replaceAll('\\', r'\\')
+          .replaceAll('%', r'\%')
+          .replaceAll('_', r'\_');
+
       final existant = await scolarite
           .from('diplomes')
           .select('id')
-          .ilike('nom', name)
+          .ilike('nom', motif)
           .limit(1)
           .maybeSingle();
       if (existant != null) {

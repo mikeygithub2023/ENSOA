@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/formulaire.dart';
 import 'package:flutter/material.dart';
 
 import '../../shared/widgets/widgets.dart';
@@ -105,7 +106,7 @@ class _NouvelArticleDialogState extends State<NouvelArticleDialog> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!validerFormulaire(context, _formKey)) return;
     setState(() => _envoi = true);
     try {
       await widget.onCreer(

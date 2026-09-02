@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/formulaire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -209,7 +210,7 @@ class _NouvelleRepartitionDialogState
           onPressed: _envoi
               ? null
               : () async {
-                  if (!_formKey.currentState!.validate()) return;
+                  if (!validerFormulaire(context, _formKey)) return;
                   setState(() => _envoi = true);
                   // `mounted` porte sur l'état de l'écran, pas sur le contexte
                   // du dialogue : celui-ci peut être fermé alors que l'écran

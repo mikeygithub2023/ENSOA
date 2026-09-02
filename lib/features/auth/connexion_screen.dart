@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/formulaire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
@@ -35,7 +36,7 @@ class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!validerFormulaire(context, _formKey)) return;
     setState(() {
       _loading = true;
       _errorMessage = null;

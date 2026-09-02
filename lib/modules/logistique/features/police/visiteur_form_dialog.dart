@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/formulaire.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -379,7 +380,7 @@ class _VisiteurFormDialogState extends ConsumerState<VisiteurFormDialog> {
   );
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!validerFormulaire(context, _formKey)) return;
     setState(() => _envoi = true);
     final user = ref.read(sessionProvider)!.user;
     try {

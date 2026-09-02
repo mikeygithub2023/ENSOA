@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/formulaire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -201,7 +202,7 @@ class _CatalogueTab extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () async {
-              if (!(formKey.currentState?.validate() ?? false)) return;
+              if (!validerFormulaire(context, formKey)) return;
               await ref
                   .read(matieresRepositoryProvider)
                   .createMatiere(
@@ -267,7 +268,7 @@ class _CatalogueTab extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () async {
-              if (!(formKey.currentState?.validate() ?? false)) return;
+              if (!validerFormulaire(context, formKey)) return;
               await ref
                   .read(matieresRepositoryProvider)
                   .updateMatiere(
@@ -718,7 +719,7 @@ class _ClassesTab extends ConsumerWidget {
             ),
             FilledButton(
               onPressed: () async {
-                if (!(formKey.currentState?.validate() ?? false) ||
+                if (!validerFormulaire(context, formKey) ||
                     divisionId == null) {
                   return;
                 }
@@ -887,7 +888,7 @@ class _ClassesTab extends ConsumerWidget {
             ),
             FilledButton(
               onPressed: () async {
-                if (!(formKey.currentState?.validate() ?? false)) return;
+                if (!validerFormulaire(context, formKey)) return;
                 try {
                   await ref
                       .read(classesRepositoryProvider)
@@ -1182,7 +1183,7 @@ class _AffectationsTab extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () async {
-              if (!(formKey.currentState?.validate() ?? false)) return;
+              if (!validerFormulaire(context, formKey)) return;
               await ref
                   .read(matieresRepositoryProvider)
                   .updateModuleCoefficient(
@@ -1313,7 +1314,7 @@ class _AffectationsTab extends ConsumerWidget {
               ),
               FilledButton(
                 onPressed: () async {
-                  if (!(formKey.currentState?.validate() ?? false) ||
+                  if (!validerFormulaire(context, formKey) ||
                       divisionId == null ||
                       classeId == null) {
                     return;

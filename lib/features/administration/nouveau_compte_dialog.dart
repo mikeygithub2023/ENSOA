@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/formulaire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -72,7 +73,7 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
   }
 
   Future<void> _valider() async {
-    if (!_formKey.currentState!.validate() || _poste == null) return;
+    if (!validerFormulaire(context, _formKey) || _poste == null) return;
     setState(() {
       _enCours = true;
       _erreur = null;

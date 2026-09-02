@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/formulaire.dart';
 import 'dart:io' show Platform;
 import 'dart:typed_data';
 
@@ -392,7 +393,7 @@ class _RegisterApprenantDialogState
   }
 
   void _goNext() {
-    if (!(_formKey.currentState?.validate() ?? true)) return;
+    if (!validerFormulaire(context, _formKey)) return;
     if (_currentStep < _steps.length - 1) {
       setState(() => _currentStep++);
     } else {

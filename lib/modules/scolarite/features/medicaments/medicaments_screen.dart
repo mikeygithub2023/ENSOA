@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/formulaire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -303,7 +304,7 @@ class _MedicamentsScreenState extends ConsumerState<MedicamentsScreen> {
             ),
             FilledButton(
               onPressed: () async {
-                if (!(formKey.currentState?.validate() ?? false)) return;
+                if (!validerFormulaire(context, formKey)) return;
                 try {
                   await ref
                       .read(medicamentsRepositoryProvider)
@@ -628,7 +629,7 @@ class _MedicamentTile extends ConsumerWidget {
             ),
             FilledButton(
               onPressed: () async {
-                if (!(formKey.currentState?.validate() ?? false)) return;
+                if (!validerFormulaire(context, formKey)) return;
                 try {
                   await ref
                       .read(medicamentsRepositoryProvider)
@@ -718,7 +719,7 @@ class _MedicamentTile extends ConsumerWidget {
           ),
           FilledButton(
             onPressed: () async {
-              if (!(formKey.currentState?.validate() ?? false)) return;
+              if (!validerFormulaire(context, formKey)) return;
               try {
                 await ref
                     .read(medicamentsRepositoryProvider)
