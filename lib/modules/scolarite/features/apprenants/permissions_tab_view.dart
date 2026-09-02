@@ -232,6 +232,23 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
                             _selectedIds.remove(permission.id);
                           }
                         }),
+                        // Sous « toutes phases », la classe vient du
+                        // référentiel plutôt que de la portée affichée. Si
+                        // ni l'une ni l'autre ne la donne, le bouton reste
+                        // fermé : mieux vaut cela qu'un écran qui se ferme
+                        // sur une erreur.
+                        onModifier: () {
+                          final laClasse =
+                              classesById[permission.classeId] ?? classe;
+                          if (laClasse == null) return;
+                          showRegisterPermissionDialog(
+                            context,
+                            division: widget.division,
+                            classe: laClasse,
+                            apprenants: apprenantsAsync.value ?? const [],
+                            existante: permission,
+                          );
+                        },
                         onDelete: () =>
                             _confirmDelete(context, ref, permission),
                       );
@@ -311,6 +328,7 @@ class _PermissionTile extends StatelessWidget {
   const _PermissionTile({
     required this.permission,
     required this.apprenant,
+    required this.onModifier,
     required this.onDelete,
     required this.selected,
     required this.onSelectedChanged,
@@ -322,6 +340,7 @@ class _PermissionTile extends StatelessWidget {
   final String? classeNom;
   final bool selected;
   final ValueChanged<bool?> onSelectedChanged;
+  final VoidCallback onModifier;
   final VoidCallback onDelete;
 
   @override
@@ -381,6 +400,11 @@ class _PermissionTile extends StatelessWidget {
             const SizedBox(width: 16),
             StatusChip(label: statut.label, level: level),
             const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 20),
+              onPressed: onModifier,
+              tooltip: 'Modifier',
+            ),
             IconButton(
               icon: const Icon(
                 Icons.delete_outline,

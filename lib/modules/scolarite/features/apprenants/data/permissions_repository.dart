@@ -76,6 +76,30 @@ class PermissionsRepository {
     await scolarite.from('permissions').insert(draft.toInsertJson());
   }
 
+  /// Corriger une permission déjà enregistrée — une date mal saisie, une
+  /// localité oubliée. L'apprenant, lui, ne change pas : se tromper de
+  /// bénéficiaire se répare en supprimant la permission et en la reprenant,
+  /// car c'est une autre permission.
+  Future<void> updatePermission(
+    String permissionId,
+    PermissionDraft draft,
+  ) async {
+    final modifiees = await scolarite
+        .from('permissions')
+        .update(draft.toInsertJson())
+        .eq('id', permissionId)
+        .select('id');
+
+    // Sans ce `select`, une modification que la RLS refuse passerait pour un
+    // succès : PostgREST répond « aucune ligne touchée », sans erreur.
+    if (modifiees.isEmpty) {
+      throw Exception(
+        'Aucune permission n\'a été modifiée : votre rôle ne vous y autorise '
+        'pas, ou elle ne relève pas de votre commandement.',
+      );
+    }
+  }
+
   Future<void> deletePermission(String permissionId) async {
     await scolarite.from('permissions').delete().eq('id', permissionId);
   }

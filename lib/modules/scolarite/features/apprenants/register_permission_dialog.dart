@@ -7,14 +7,20 @@ import 'package:sig_ensoa/core/theme.dart' hide AlertLevel, AlertLevelColor;
 import '../../models/apprenant.dart';
 import '../../models/classe.dart';
 import '../../models/division.dart';
+import '../../models/permission.dart';
 import 'data/permissions_repository.dart';
 import 'providers/permissions_providers.dart';
 
+/// [existante] non nulle : on corrige une permission déjà accordée plutôt
+/// que d'en accorder une nouvelle. Le bénéficiaire ne se change pas — se
+/// tromper d'élève se répare en supprimant la permission et en la reprenant,
+/// car c'en est une autre.
 Future<void> showRegisterPermissionDialog(
   BuildContext context, {
   required Division division,
   required Classe classe,
   required List<Apprenant> apprenants,
+  Permission? existante,
 }) {
   return showDialog<void>(
     context: context,
@@ -25,6 +31,7 @@ Future<void> showRegisterPermissionDialog(
         division: division,
         classe: classe,
         apprenants: apprenants,
+        existante: existante,
       ),
     ),
   );
@@ -35,11 +42,13 @@ class _RegisterPermissionDialog extends ConsumerStatefulWidget {
     required this.division,
     required this.classe,
     required this.apprenants,
+    this.existante,
   });
 
   final Division division;
   final Classe classe;
   final List<Apprenant> apprenants;
+  final Permission? existante;
 
   @override
   ConsumerState<_RegisterPermissionDialog> createState() =>
@@ -58,6 +67,24 @@ class _RegisterPermissionDialogState
   bool _submitting = false;
   String? _error;
 
+  bool get _correction => widget.existante != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final existante = widget.existante;
+    if (existante == null) return;
+
+    _localiteCtrl.text = existante.localite ?? '';
+    _motifCtrl.text = existante.motif ?? '';
+    _contactCtrl.text = existante.personneContact ?? '';
+    _dateDepart = existante.dateDepart;
+    _dateRetour = existante.dateRetour;
+    _apprenant = widget.apprenants
+        .where((a) => a.id == existante.apprenantId)
+        .firstOrNull;
+  }
+
   @override
   void dispose() {
     _localiteCtrl.dispose();
@@ -66,8 +93,13 @@ class _RegisterPermissionDialogState
     super.dispose();
   }
 
+  /// En correction, le bénéficiaire est celui de la permission d'origine —
+  /// il n'a pas à être retrouvé dans la liste déroulante, qui peut être
+  /// vide selon la portée depuis laquelle on ouvre la boîte.
+  String? get _apprenantId => _apprenant?.id ?? widget.existante?.apprenantId;
+
   bool get _isValid =>
-      _apprenant != null && _dateDepart != null && _dateRetour != null;
+      _apprenantId != null && _dateDepart != null && _dateRetour != null;
 
   Future<void> _submit() async {
     if (!_isValid) return;
@@ -84,26 +116,36 @@ class _RegisterPermissionDialogState
     });
     final messenger = ScaffoldMessenger.of(context);
     try {
-      await ref
-          .read(permissionsRepositoryProvider)
-          .createPermission(
-            PermissionDraft(
-              apprenantId: _apprenant!.id,
-              divisionId: widget.division.id,
-              classeId: widget.classe.id,
-              dateDepart: _dateDepart!,
-              dateRetour: _dateRetour!,
-              localite: _emptyToNull(_localiteCtrl.text),
-              motif: _emptyToNull(_motifCtrl.text),
-              personneContact: _emptyToNull(_contactCtrl.text),
-            ),
-          );
-      ref.invalidate(permissionsByClasseProvider(widget.classe.id));
+      // En correction, on garde le rattachement d'origine : la permission
+      // reste dans la classe et la division où elle a été accordée, même si
+      // l'écran est ouvert sur une autre portée.
+      final classeId = widget.existante?.classeId ?? widget.classe.id;
+
+      final draft = PermissionDraft(
+        apprenantId: _apprenantId!,
+        divisionId: widget.existante?.divisionId ?? widget.division.id,
+        classeId: classeId,
+        dateDepart: _dateDepart!,
+        dateRetour: _dateRetour!,
+        localite: _emptyToNull(_localiteCtrl.text),
+        motif: _emptyToNull(_motifCtrl.text),
+        personneContact: _emptyToNull(_contactCtrl.text),
+      );
+
+      final depot = ref.read(permissionsRepositoryProvider);
+      if (_correction) {
+        await depot.updatePermission(widget.existante!.id, draft);
+      } else {
+        await depot.createPermission(draft);
+      }
+      ref.invalidate(permissionsByClasseProvider(classeId));
       if (!mounted) return;
       Navigator.of(context).pop();
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Permission enregistrée.'),
+        SnackBar(
+          content: Text(
+            _correction ? 'Permission modifiée.' : 'Permission enregistrée.',
+          ),
           backgroundColor: AppColors.success,
         ),
       );
@@ -140,10 +182,12 @@ class _RegisterPermissionDialogState
             padding: const EdgeInsets.fromLTRB(24, 20, 12, 0),
             child: Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Enregistrer une permission',
-                    style: TextStyle(
+                    _correction
+                        ? 'Modifier la permission'
+                        : 'Enregistrer une permission',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: AppColors.ink,
@@ -205,7 +249,12 @@ class _RegisterPermissionDialogState
                       for (final a in widget.apprenants)
                         DropdownMenuItem(value: a, child: Text(a.nomComplet)),
                     ],
-                    onChanged: (value) => setState(() => _apprenant = value),
+                    // Le bénéficiaire ne se change pas en correction : une
+                    // permission accordée à quelqu'un d'autre est une autre
+                    // permission, qui se reprend depuis le début.
+                    onChanged: _correction
+                        ? null
+                        : (value) => setState(() => _apprenant = value),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -281,7 +330,7 @@ class _RegisterPermissionDialogState
                             color: Colors.white,
                           ),
                         )
-                      : const Text('Enregistrer'),
+                      : Text(_correction ? 'Modifier' : 'Enregistrer'),
                 ),
               ],
             ),
