@@ -107,6 +107,12 @@ RoleLogistique? roleLogistiqueDepuisDb(String? valeur) {
 /// directement : ajouter un rôle ne doit pas obliger à rouvrir chaque écran.
 enum Permission {
   // Scolarité
+
+  // Le tableau de bord réunit les chiffres de toute l'école — effectifs de
+  // chaque division, parc, stocks. Il n'est ouvert qu'à l'administrateur :
+  // pour les autres, il mêlait ce qu'ils commandent à ce qui ne les regarde
+  // pas, et ne voulait plus dire grand-chose. Chacun a son écran d'accueil,
+  // borné à son domaine.
   voirTableauBordScolarite,
   consulterApprenants,
   gererApprenants,
@@ -155,7 +161,6 @@ const _permissionsScolarite = <RoleScolarite, Set<Permission>>{
     Permission.voirJournalAudit,
   },
   RoleScolarite.chefDivision: {
-    Permission.voirTableauBordScolarite,
     Permission.consulterApprenants,
     Permission.gererApprenants,
     Permission.gererCours,
@@ -168,24 +173,20 @@ const _permissionsScolarite = <RoleScolarite, Set<Permission>>{
   // toutes. Une permission de plus ne changerait rien à cette limite, qui
   // porte sur des lignes et non sur des écrans.
   RoleScolarite.commandantPromotion: {
-    Permission.voirTableauBordScolarite,
     Permission.consulterApprenants,
     Permission.gererCours,
     Permission.gererMatieres,
   },
   RoleScolarite.commandantBrigade: {
-    Permission.voirTableauBordScolarite,
     Permission.consulterApprenants,
     Permission.gererCours,
     Permission.gererMatieres,
   },
   RoleScolarite.eleveStagiaire: {
-    Permission.voirTableauBordScolarite,
     Permission.suivreCours,
     Permission.voirSonEspaceEleve,
   },
   RoleScolarite.medecin: {
-    Permission.voirTableauBordScolarite,
     Permission.gererConsultations,
     Permission.gererVisitesMedicales,
     Permission.gererPharmacie,
@@ -195,7 +196,6 @@ const _permissionsScolarite = <RoleScolarite, Set<Permission>>{
 
 const _permissionsLogistique = <RoleLogistique, Set<Permission>>{
   RoleLogistique.chefSoutienTechnique: {
-    Permission.voirTableauBordLogistique,
     Permission.gererParc,
     Permission.gererMaintenance,
     Permission.gererCarburant,

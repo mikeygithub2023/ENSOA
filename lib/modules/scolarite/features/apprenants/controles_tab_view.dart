@@ -8,6 +8,7 @@ import '../../models/classe.dart';
 import '../../models/controle.dart';
 import '../../models/division.dart';
 import '../../models/matiere.dart';
+import 'package:sig_ensoa/modules/scolarite/compat.dart';
 import '../../shared/widgets/common.dart';
 import '../matieres/providers/matieres_providers.dart';
 import 'providers/controles_providers.dart';
@@ -220,6 +221,14 @@ class _ControleSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Le Commandant de Brigade ne gère que le sport. Modules, contrôles
+    // continus et examens lui sont ouverts en lecture, mais la base refuse
+    // qu'il en crée, en corrige ou en supprime : l'écran cesse donc de le
+    // lui proposer. Le sport a sa propre section, où il garde la main.
+    final peutGerer =
+        ref.watch(currentProfileProvider).value?.role !=
+        AppRole.commandantBrigade;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -231,18 +240,19 @@ class _ControleSection extends ConsumerWidget {
             // Le bouton reste actif même sans matière disponible : la
             // fenêtre explique alors ce qui manque. Désactivé, il laissait
             // l'utilisateur devant un bouton gris sans lui dire pourquoi.
-            FilledButton.icon(
-              onPressed: () => showRegisterControleDialog(
-                context,
-                division: division,
-                classe: classe,
-                type: type,
-                moduleMatieres: moduleMatieres,
-                aDesMatieresAffectees: aDesMatieresAffectees,
+            if (peutGerer)
+              FilledButton.icon(
+                onPressed: () => showRegisterControleDialog(
+                  context,
+                  division: division,
+                  classe: classe,
+                  type: type,
+                  moduleMatieres: moduleMatieres,
+                  aDesMatieresAffectees: aDesMatieresAffectees,
+                ),
+                icon: const Icon(Icons.add, size: 18),
+                label: Text('Enregistrer un ${type.noun(classe.type)}'),
               ),
-              icon: const Icon(Icons.add, size: 18),
-              label: Text('Enregistrer un ${type.noun(classe.type)}'),
-            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -257,8 +267,10 @@ class _ControleSection extends ConsumerWidget {
               for (final controle in controles) ...[
                 _ControleTile(
                   controle: controle,
-                  onVoirDetail: () =>
-                      context.push('/scolarite/apprenants/controles/${controle.id}'),
+                  peutGerer: peutGerer,
+                  onVoirDetail: () => context.push(
+                    '/scolarite/apprenants/controles/${controle.id}',
+                  ),
                   onEdit: () => showEditControleDialog(
                     context,
                     division: division,
@@ -282,12 +294,17 @@ class _ControleSection extends ConsumerWidget {
 class _ControleTile extends StatelessWidget {
   const _ControleTile({
     required this.controle,
+    required this.peutGerer,
     required this.onVoirDetail,
     required this.onEdit,
     required this.onDelete,
   });
 
   final Controle controle;
+
+  /// Faux pour le Commandant de Brigade : il lit ces contrôles sans y
+  /// toucher.
+  final bool peutGerer;
   final VoidCallback onVoirDetail;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
@@ -321,21 +338,23 @@ class _ControleTile extends StatelessWidget {
               onPressed: onVoirDetail,
               child: const Text('Détail'),
             ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, size: 20),
-              onPressed: onEdit,
-              tooltip: 'Modifier',
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.delete_outline,
-                size: 20,
-                color: AppColors.danger,
+            if (peutGerer) ...[
+              const SizedBox(width: 8),
+              IconButton(
+                icon: const Icon(Icons.edit_outlined, size: 20),
+                onPressed: onEdit,
+                tooltip: 'Modifier',
               ),
-              onPressed: onDelete,
-              tooltip: 'Supprimer',
-            ),
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: AppColors.danger,
+                ),
+                onPressed: onDelete,
+                tooltip: 'Supprimer',
+              ),
+            ],
           ],
         ),
       ),
