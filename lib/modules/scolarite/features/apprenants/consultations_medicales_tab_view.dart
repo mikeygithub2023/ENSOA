@@ -55,10 +55,14 @@ class ConsultationsMedicalesTabView extends ConsumerWidget {
     final role = ref.watch(currentProfileProvider).value?.role;
     final canTraiter = role == AppRole.admin || role == AppRole.medecin;
     // Enregistrer une consultation de routine, c'est délivrer l'AUTORISATION
-    // de consulter : cela relève du commandement (admin / commandant de division).
-    // Le médecin, lui, ne fait que traiter les consultations autorisées et
-    // enregistrer les urgences.
-    final canAutoriser = role == AppRole.admin || role == AppRole.chefDivision;
+    // de consulter : cela relève du commandement, à quelque niveau qu'il
+    // s'exerce — l'école, la division, la promotion. Le médecin, lui, ne fait
+    // que traiter les consultations autorisées et enregistrer les urgences.
+    final canAutoriser =
+        role == AppRole.admin ||
+        role == AppRole.chefDivision ||
+        role == AppRole.commandantPromotion ||
+        role == AppRole.commandantBrigade;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
