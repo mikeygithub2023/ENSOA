@@ -138,7 +138,18 @@ class _RegisterPermissionDialogState
       } else {
         await depot.createPermission(draft);
       }
+      // Trois listes montrent les permissions, selon la portée d'où l'on
+      // vient : la phase, la division entière, ou la fiche de l'élève. Seule
+      // la première était rafraîchie — sous « toutes phases », la
+      // modification passait en base sans que l'écran change, ce qui donnait
+      // à croire qu'elle avait échoué.
       ref.invalidate(permissionsByClasseProvider(classeId));
+      ref.invalidate(
+        permissionsByDivisionProvider(
+          widget.existante?.divisionId ?? widget.division.id,
+        ),
+      );
+      ref.invalidate(permissionsByApprenantProvider(_apprenantId!));
       if (!mounted) return;
       Navigator.of(context).pop();
       messenger.showSnackBar(

@@ -306,6 +306,7 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
           .deletePermission(permission.id);
       ref.invalidate(permissionsByClasseProvider(permission.classeId));
       ref.invalidate(permissionsByDivisionProvider(permission.divisionId));
+      ref.invalidate(permissionsByApprenantProvider(permission.apprenantId));
       setState(() => _selectedIds.remove(permission.id));
       messenger.showSnackBar(
         const SnackBar(
