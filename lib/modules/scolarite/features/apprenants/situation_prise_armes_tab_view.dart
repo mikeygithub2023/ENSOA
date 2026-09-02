@@ -480,12 +480,35 @@ class _CategorieCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 const Divider(height: 1),
                 const SizedBox(height: 8),
+                // Une puce par élève. Sans elle, deux noms l'un sous l'autre
+                // se lisent comme un seul nom sur deux lignes — d'autant plus
+                // qu'un nom long y passe de lui-même.
                 for (final apprenant in apprenants)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(
-                      libelle(apprenant),
-                      style: const TextStyle(fontSize: 13),
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Padding(
+                          padding: EdgeInsets.only(top: 6, right: 8),
+                          child: SizedBox(
+                            width: 5,
+                            height: 5,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: AppColors.inkMuted,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            libelle(apprenant),
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
               ],
