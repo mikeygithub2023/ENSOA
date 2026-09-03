@@ -23,6 +23,9 @@ class FlutterWindow : public Win32Window {
                          LPARAM const lparam) noexcept override;
 
  private:
+  // Retire la fenetre de tout ce que Windows capture. Voir le .cpp.
+  void ExclureDeLaCapture();
+
   // The project to run.
   flutter::DartProject project_;
 

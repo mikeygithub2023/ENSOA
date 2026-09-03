@@ -27,6 +27,8 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
+  ExclureDeLaCapture();
+
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();
   });
@@ -37,6 +39,36 @@ bool FlutterWindow::OnCreate() {
   flutter_controller_->ForceRedraw();
 
   return true;
+}
+
+// La fenetre refuse d'etre capturee.
+//
+// L'application affiche des dossiers d'eleves, des consultations medicales
+// et des inventaires d'armement : une capture d'ecran sort ces donnees sans
+// laisser de trace au journal d'audit, et circule ensuite sans controle.
+//
+// WDA_MONITOR laisse la fenetre visible sur le moniteur et la remplace par
+// du noir dans tout ce que Windows capture : Impr. ecran, Outil Capture
+// d'ecran, Xbox Game Bar, partage de bureau.
+//
+// WDA_EXCLUDEFROMCAPTURE, plus recent et plus elegant -- il retire la fenetre
+// de la capture au lieu de la noircir --, est INUTILISABLE ICI : il fait
+// echouer la presentation du swapchain de Flutter, et l'application se ferme
+// d'elle-meme dans la seconde. Rien ne le signale : elle compile, demarre,
+// et sort avec le code 0. Ne pas le remettre sans avoir relance l'executable
+// et compte jusqu'a dix.
+//
+// CE QU'IL NE FAIT PAS : empecher qu'on photographie l'ecran avec un autre
+// appareil. Aucun reglage logiciel ne le peut.
+//
+// Pour une version de diagnostic -- pour envoyer une capture decrivant une
+// anomalie --, commenter l'appel dans OnCreate et recompiler.
+void FlutterWindow::ExclureDeLaCapture() {
+  HWND fenetre = GetHandle();
+  if (fenetre == nullptr) {
+    return;
+  }
+  SetWindowDisplayAffinity(fenetre, WDA_MONITOR);
 }
 
 void FlutterWindow::OnDestroy() {
