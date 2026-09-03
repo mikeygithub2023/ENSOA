@@ -5,6 +5,8 @@ import '../../core/theme.dart';
 import '../../core/roles.dart';
 import '../../modules/logistique/features/dashboard/dashboard_activites.dart';
 import '../../modules/logistique/features/dashboard/dashboard_armurerie.dart';
+import '../../modules/logistique/features/dashboard/dashboard_carburant.dart';
+import '../../modules/logistique/features/dashboard/dashboard_garage.dart';
 import '../../modules/logistique/features/dashboard/dashboard_screen.dart'
     as logistique;
 import '../../modules/scolarite/features/dashboard/dashboard_screen.dart'
@@ -24,10 +26,10 @@ import '../auth/providers/auth_providers.dart';
 ///
 /// Et au sein du soutien technique, chaque poste a le sien. Le chef du
 /// service tient les trois — carburant, parc, armement ; l'armurier n'a que
-/// son armurerie ; l'Officier Adjoint, qui ne tient aucun service, a ses
-/// activités. Leur servir à tous le tableau du chef revenait à noyer les
-/// deux chiffres qui les concernaient au milieu de vingt qui ne les
-/// regardaient pas.
+/// son armurerie, le garage que son parc, le soutien pétrolier que ses
+/// soutes ; l'Officier Adjoint, qui ne tient aucun service, a ses activités.
+/// Leur servir à tous le tableau du chef revenait à noyer les deux chiffres
+/// qui les concernaient au milieu de vingt qui ne les regardaient pas.
 class TableauDeBordScreen extends ConsumerWidget {
   const TableauDeBordScreen({super.key});
 
@@ -64,6 +66,8 @@ class TableauDeBordScreen extends ConsumerWidget {
 /// Le tableau que ce poste doit lire.
 Widget _tableauDuPoste(RoleLogistique? role) => switch (role) {
   RoleLogistique.armurerie => const DashboardArmurerie(sansCadre: true),
+  RoleLogistique.garage => const DashboardGarage(sansCadre: true),
+  RoleLogistique.soutienPetrolier => const DashboardCarburant(sansCadre: true),
   RoleLogistique.officierAdjoint => const DashboardActivites(sansCadre: true),
   _ => const logistique.DashboardScreen(sansCadre: true),
 };
@@ -72,6 +76,8 @@ Widget _tableauDuPoste(RoleLogistique? role) => switch (role) {
 /// autant qu'il nomme ce qu'on lit vraiment.
 String _domaine(RoleLogistique? role) => switch (role) {
   RoleLogistique.armurerie => 'Armurerie',
+  RoleLogistique.garage => 'Garage',
+  RoleLogistique.soutienPetrolier => 'Soutien pétrolier',
   RoleLogistique.officierAdjoint => 'Activités',
   _ => 'Soutien technique',
 };
