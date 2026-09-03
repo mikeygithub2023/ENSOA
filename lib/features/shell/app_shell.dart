@@ -132,13 +132,21 @@ class _AppShellState extends ConsumerState<AppShell>
 
     switch (chemin) {
       case '/tableau-de-bord':
+        // Un poste ne lit que son domaine, mais l'écran choisit lequel
+        // après ce rafraîchissement : on les couvre tous. Une table qu'un
+        // poste n'a pas le droit de lire lui revient vide, sans erreur.
         ref.read(vehiculesProvider.notifier).refresh();
+        ref.read(reparationsProvider.notifier).refresh();
         ref.read(soutesProvider.notifier).refresh();
         ref.read(souteStocksProvider.notifier).refresh();
         ref.read(depotagesProvider.notifier).refresh();
         ref.read(distributionsProvider.notifier).refresh();
         ref.read(armesProvider.notifier).refresh();
         ref.read(dotationsProvider.notifier).refresh();
+        ref.read(munitionsProvider.notifier).refresh();
+        ref.read(equipementsProvider.notifier).refresh();
+        ref.read(activitesProvider.notifier).refresh();
+        ref.read(tachesProvider.notifier).refresh();
       case '/logistique/parc':
         ref.read(vehiculesProvider.notifier).refresh();
         ref.read(reparationsProvider.notifier).refresh();

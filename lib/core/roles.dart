@@ -196,8 +196,21 @@ const _permissionsScolarite = <RoleScolarite, Set<Permission>>{
   },
 };
 
+// Le tableau de bord n'est plus le même pour tous.
+//
+// Il avait été fermé à tout le monde sauf à l'administrateur, et pour une
+// bonne raison : il n'en existait qu'un, qui réunissait les chiffres de
+// toute l'école. Chaque poste du soutien technique a maintenant le sien,
+// borné à son service — l'armurier son armurerie, le garage son parc, le
+// soutien pétrolier ses soutes, l'Officier Adjoint ses activités. La raison
+// de la fermeture a disparu avec la page unique.
+//
+// La scolarité, elle, reste fermée : son tableau mêle toujours les
+// divisions, et un commandant borné à la sienne y verrait ce qu'il ne
+// commande pas.
 const _permissionsLogistique = <RoleLogistique, Set<Permission>>{
   RoleLogistique.chefSoutienTechnique: {
+    Permission.voirTableauBordLogistique,
     Permission.gererParc,
     Permission.gererMaintenance,
     Permission.gererCarburant,
@@ -208,22 +221,28 @@ const _permissionsLogistique = <RoleLogistique, Set<Permission>>{
     Permission.voirTachesEquipe,
   },
   RoleLogistique.soutienPetrolier: {
+    Permission.voirTableauBordLogistique,
     Permission.gererCarburant,
     Permission.validerDistribution,
     Permission.voirMesTaches,
   },
   RoleLogistique.garage: {
+    Permission.voirTableauBordLogistique,
     Permission.gererParc,
     Permission.gererMaintenance,
     Permission.voirMesTaches,
   },
   RoleLogistique.armurerie: {
+    Permission.voirTableauBordLogistique,
     Permission.gererArmement,
     Permission.validerDotationArme,
     Permission.voirMesTaches,
   },
   RoleLogistique.postePolice: {Permission.gererPostePolice},
-  RoleLogistique.officierAdjoint: {Permission.gererActivites},
+  RoleLogistique.officierAdjoint: {
+    Permission.voirTableauBordLogistique,
+    Permission.gererActivites,
+  },
   RoleLogistique.sante: {Permission.voirMesTaches},
   // L'administrateur voit tout le soutien technique et les activités de
   // l'officier adjoint : ses rubriques figurent dans le menu comme celles
