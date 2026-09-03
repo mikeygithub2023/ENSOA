@@ -37,20 +37,18 @@ class AccueilScreen extends ConsumerWidget {
             const SizedBox(height: 14),
             const _BlocScolarite(),
           ],
-          // L'Officier Adjoint relève du soutien technique sans en tenir
-          // aucun service : il monte les activités de l'école et vise les
-          // tâches que les services déclarent faites. Les compteurs du parc
-          // et des soutes ne lui apprennent rien — il a les siens.
-          if (profil.roleLogistique == RoleLogistique.officierAdjoint) ...[
+          // Chaque poste du soutien technique a ses propres compteurs.
+          //
+          // Un seul aperçu servait aux quatre : véhicules, litres en soute,
+          // armes, dotations. Trois tuiles sur quatre étaient hors sujet
+          // pour chacun d'eux, et l'armurier apprenait l'état du parc
+          // plutôt que celui de ses munitions. Le chef du service garde la
+          // vue d'ensemble : c'est la sienne.
+          if (profil.releveDuSoutienTechnique) ...[
             const SizedBox(height: 28),
-            const _TitreSection('Activités'),
+            _TitreSection(_sectionDuPoste(profil.roleLogistique)),
             const SizedBox(height: 14),
-            const _BlocActivites(),
-          ] else if (profil.releveDuSoutienTechnique) ...[
-            const SizedBox(height: 28),
-            const _TitreSection('Soutien technique'),
-            const SizedBox(height: 14),
-            const _BlocLogistique(),
+            _blocDuPoste(profil.roleLogistique),
           ],
           const SizedBox(height: 12),
         ],
@@ -58,6 +56,24 @@ class AccueilScreen extends ConsumerWidget {
     );
   }
 }
+
+/// Les compteurs que ce poste doit lire.
+Widget _blocDuPoste(RoleLogistique? role) => switch (role) {
+  RoleLogistique.armurerie => const _BlocArmurerie(),
+  RoleLogistique.garage => const _BlocGarage(),
+  RoleLogistique.soutienPetrolier => const _BlocCarburant(),
+  RoleLogistique.officierAdjoint => const _BlocActivites(),
+  _ => const _BlocLogistique(),
+};
+
+/// Et le titre qui les annonce.
+String _sectionDuPoste(RoleLogistique? role) => switch (role) {
+  RoleLogistique.armurerie => 'Armurerie',
+  RoleLogistique.garage => 'Garage',
+  RoleLogistique.soutienPetrolier => 'Soutien pétrolier',
+  RoleLogistique.officierAdjoint => 'Activités',
+  _ => 'Soutien technique',
+};
 
 /// Bandeau sombre : la date, et ce que le poste ouvre. C'est la seule pièce
 /// de contraste de l'écran — le reste vit sur la carte blanche.
@@ -342,16 +358,19 @@ class _BlocLogistique extends ConsumerWidget {
       ),
     );
   }
+}
 
-  static String _milliers(int valeur) {
-    final texte = valeur.toString();
-    final tampon = StringBuffer();
-    for (var i = 0; i < texte.length; i++) {
-      if (i > 0 && (texte.length - i) % 3 == 0) tampon.write(' ');
-      tampon.write(texte[i]);
-    }
-    return tampon.toString();
+/// Un nombre lisible : les milliers séparés par une espace. Elle était
+/// enfermée dans le bloc du soutien technique ; les trois blocs de
+/// service en ont besoin aussi.
+String _milliers(int valeur) {
+  final texte = valeur.toString();
+  final tampon = StringBuffer();
+  for (var i = 0; i < texte.length; i++) {
+    if (i > 0 && (texte.length - i) % 3 == 0) tampon.write(' ');
+    tampon.write(texte[i]);
   }
+  return tampon.toString();
 }
 
 /// Tuile de chiffre : pastille d'icône teintée, valeur en gros, libellé.
@@ -547,8 +566,11 @@ class _Amorce extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.tips_and_updates_outlined,
-              color: AppColors.blueDeep, size: 18),
+          const Icon(
+            Icons.tips_and_updates_outlined,
+            color: AppColors.blueDeep,
+            size: 18,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -557,10 +579,202 @@ class _Amorce extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          TextButton(
-            onPressed: () => context.go(chemin),
-            child: Text(action),
+          TextButton(onPressed: () => context.go(chemin), child: Text(action)),
+        ],
+      ),
+    );
+  }
+}
+
+/// L'accueil de l'armurier : ses armes, pas le parc ni les soutes.
+class _BlocArmurerie extends ConsumerWidget {
+  const _BlocArmurerie();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final apercu = ref.watch(apercuArmurerieProvider);
+
+    return apercu.when(
+      loading: () => const _TuilesEnAttente(nombre: 4),
+      error: (e, _) => _Incident(message: '$e'),
+      data: (a) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _GrilleDeTuiles(
+            tuiles: [
+              _Tuile(
+                icone: Icons.security_rounded,
+                valeur: '${a.armes}',
+                titre: 'Armes inventoriées',
+                legende: 'Toutes catégories',
+                couleur: AppColors.blueBright,
+              ),
+              _Tuile(
+                icone: Icons.assignment_ind_rounded,
+                valeur: '${a.enDotation}',
+                titre: 'Armes en dotation',
+                legende: 'Sorties non rendues',
+                couleur: a.enDotation > 0
+                    ? AppColors.warning
+                    : AppColors.success,
+              ),
+              _Tuile(
+                icone: Icons.inventory_2_rounded,
+                valeur: _milliers(a.cartouches),
+                titre: 'Cartouches en stock',
+                legende: 'Tous calibres confondus',
+                couleur: AppColors.blue,
+              ),
+              _Tuile(
+                icone: Icons.rule_rounded,
+                valeur: '${a.inspectionsEchues}',
+                titre: 'Inspections échues',
+                legende: 'Armes à contrôler',
+                couleur: a.inspectionsEchues > 0
+                    ? AppColors.danger
+                    : AppColors.success,
+              ),
+            ],
           ),
+          if (a.vide) ...[
+            const SizedBox(height: 12),
+            const _Amorce(
+              texte:
+                  "L'armurerie n'a encore rien en base. Commencez par les "
+                  "types d'armes, puis l'inventaire.",
+              chemin: '/logistique/armement',
+              action: "Ouvrir l'armement",
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// L'accueil du garage : son parc, pas les soutes ni l'armement.
+class _BlocGarage extends ConsumerWidget {
+  const _BlocGarage();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final apercu = ref.watch(apercuGarageProvider);
+
+    return apercu.when(
+      loading: () => const _TuilesEnAttente(nombre: 4),
+      error: (e, _) => _Incident(message: '$e'),
+      data: (a) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _GrilleDeTuiles(
+            tuiles: [
+              _Tuile(
+                icone: Icons.directions_car_filled_rounded,
+                valeur: '${a.disponibles}/${a.vehicules}',
+                titre: 'Véhicules disponibles',
+                legende: 'Sur le parc total',
+              ),
+              _Tuile(
+                icone: Icons.build_rounded,
+                valeur: '${a.enReparation}',
+                titre: 'En réparation',
+                legende: 'Immobilisés à l\'atelier',
+                couleur: a.enReparation > 0
+                    ? AppColors.warning
+                    : AppColors.success,
+              ),
+              _Tuile(
+                icone: Icons.oil_barrel_rounded,
+                valeur: '${a.vidangesAPrevoir}',
+                titre: 'Vidanges à prévoir',
+                legende: 'Kilométrage atteint',
+                couleur: a.vidangesAPrevoir > 0
+                    ? AppColors.warning
+                    : AppColors.success,
+              ),
+              _Tuile(
+                icone: Icons.garage_rounded,
+                valeur: '${a.vehicules}',
+                titre: 'Parc total',
+                legende: 'Véhicules enregistrés',
+                couleur: AppColors.blueBright,
+              ),
+            ],
+          ),
+          if (a.vide) ...[
+            const SizedBox(height: 12),
+            const _Amorce(
+              texte:
+                  "Le garage n'a encore aucun véhicule. Commencez par les "
+                  "référentiels, puis le parc.",
+              chemin: '/logistique/parc',
+              action: 'Ouvrir le parc',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// L'accueil du soutien pétrolier : ses soutes, pas le parc ni l'armement.
+class _BlocCarburant extends ConsumerWidget {
+  const _BlocCarburant();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final apercu = ref.watch(apercuCarburantProvider);
+
+    return apercu.when(
+      loading: () => const _TuilesEnAttente(nombre: 4),
+      error: (e, _) => _Incident(message: '$e'),
+      data: (a) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _GrilleDeTuiles(
+            tuiles: [
+              _Tuile(
+                icone: Icons.local_gas_station_rounded,
+                valeur: _milliers(a.litres),
+                titre: 'Litres en soute',
+                legende: 'Gasoil et super cumulés',
+                couleur: AppColors.blue,
+              ),
+              _Tuile(
+                icone: Icons.warehouse_rounded,
+                valeur: '${a.soutes}',
+                titre: 'Soutes en service',
+                legende: 'Toutes répartitions',
+                couleur: AppColors.blueBright,
+              ),
+              _Tuile(
+                icone: Icons.warning_amber_rounded,
+                valeur: '${a.soutesEnAlerte}',
+                titre: 'Sous le seuil',
+                legende: 'Répartitions à réapprovisionner',
+                couleur: a.soutesEnAlerte > 0
+                    ? AppColors.danger
+                    : AppColors.success,
+              ),
+              _Tuile(
+                icone: Icons.upload_rounded,
+                valeur: _milliers(a.sortiesDuJour),
+                titre: 'Litres distribués',
+                legende: "Depuis minuit",
+                couleur: AppColors.ivoryOrange,
+              ),
+            ],
+          ),
+          if (a.vide) ...[
+            const SizedBox(height: 12),
+            const _Amorce(
+              texte:
+                  "Le soutien pétrolier n'a encore rien en base. Commencez "
+                  "par les soutes et leurs répartitions.",
+              chemin: '/logistique/carburant',
+              action: 'Ouvrir le carburant',
+            ),
+          ],
         ],
       ),
     );

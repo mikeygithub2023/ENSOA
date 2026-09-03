@@ -75,14 +75,13 @@ final apercuLogistiqueProvider = FutureProvider<ApercuLogistique>((ref) async {
   var litres = 0;
   for (final ligne in stocks) {
     litres +=
-        ((ligne['qte_gasoil'] as int?) ?? 0) + ((ligne['qte_super'] as int?) ?? 0);
+        ((ligne['qte_gasoil'] as int?) ?? 0) +
+        ((ligne['qte_super'] as int?) ?? 0);
   }
 
   return ApercuLogistique(
     vehicules: parc.length,
-    vehiculesDisponibles: parc
-        .where((v) => v['etat'] == 'disponible')
-        .length,
+    vehiculesDisponibles: parc.where((v) => v['etat'] == 'disponible').length,
     litresEnSoute: litres,
     armes: armes,
     // Comptée après un filtre, la valeur arrive dans la réponse plutôt qu'en
@@ -132,5 +131,157 @@ final apercuActivitesProvider = FutureProvider<ApercuActivites>((ref) async {
     terminees: compter(activites, {'terminee'}),
     aValider: compter(taches, {'terminee'}),
     tachesEnCours: compter(taches, {'a_faire'}),
+  );
+});
+
+/// Ce que chaque service du soutien technique a sous les yeux.
+///
+/// Un seul aperçu servait aux quatre postes : véhicules, litres en soute,
+/// armes, dotations. Trois tuiles sur quatre étaient hors sujet pour chacun
+/// d'eux, et l'armurier apprenait l'état du parc plutôt que celui de ses
+/// munitions. Le chef du service, lui, garde la vue d'ensemble : c'est la
+/// sienne.
+class ApercuArmurerie {
+  const ApercuArmurerie({
+    required this.armes,
+    required this.enDotation,
+    required this.cartouches,
+    required this.inspectionsEchues,
+  });
+
+  final int armes;
+  final int enDotation;
+  final int cartouches;
+  final int inspectionsEchues;
+
+  bool get vide => armes == 0 && cartouches == 0;
+}
+
+final apercuArmurerieProvider = FutureProvider<ApercuArmurerie>((ref) async {
+  final armes = await logistique.from('arme').select('etat');
+  final munitions = await logistique
+      .from('stock_munition')
+      .select('quantite_disponible');
+  final enDotation = await logistique
+      .from('dotation_arme')
+      .select('id')
+      .isFilter('date_retour_effective', null)
+      .count();
+  // Une inspection échue se lit sur la date : la comparaison est faite par le
+  // serveur, qui a l'heure de référence.
+  final echues = await logistique
+      .from('arme')
+      .select('id')
+      .lt('prochaine_inspection', DateTime.now().toIso8601String())
+      .count();
+
+  var cartouches = 0;
+  for (final m in munitions) {
+    cartouches += (m['quantite_disponible'] as int?) ?? 0;
+  }
+
+  return ApercuArmurerie(
+    armes: armes.length,
+    enDotation: enDotation.count,
+    cartouches: cartouches,
+    inspectionsEchues: echues.count,
+  );
+});
+
+class ApercuGarage {
+  const ApercuGarage({
+    required this.vehicules,
+    required this.disponibles,
+    required this.enReparation,
+    required this.vidangesAPrevoir,
+  });
+
+  final int vehicules;
+  final int disponibles;
+  final int enReparation;
+  final int vidangesAPrevoir;
+
+  bool get vide => vehicules == 0;
+}
+
+final apercuGarageProvider = FutureProvider<ApercuGarage>((ref) async {
+  final parc = await logistique
+      .from('vehicule')
+      .select('etat, kilometrage, kilometrage_vidange_prochaine');
+
+  var disponibles = 0;
+  var enReparation = 0;
+  var vidanges = 0;
+  for (final v in parc) {
+    switch (v['etat']) {
+      case 'disponible':
+        disponibles++;
+      case 'en_reparation':
+        enReparation++;
+    }
+    final km = (v['kilometrage'] as int?) ?? 0;
+    final prochaine = (v['kilometrage_vidange_prochaine'] as int?) ?? 0;
+    if (prochaine > 0 && km >= prochaine) vidanges++;
+  }
+
+  return ApercuGarage(
+    vehicules: parc.length,
+    disponibles: disponibles,
+    enReparation: enReparation,
+    vidangesAPrevoir: vidanges,
+  );
+});
+
+class ApercuCarburant {
+  const ApercuCarburant({
+    required this.litres,
+    required this.soutes,
+    required this.soutesEnAlerte,
+    required this.sortiesDuJour,
+  });
+
+  final int litres;
+  final int soutes;
+  final int soutesEnAlerte;
+  final int sortiesDuJour;
+
+  bool get vide => litres == 0 && soutes == 0;
+}
+
+final apercuCarburantProvider = FutureProvider<ApercuCarburant>((ref) async {
+  final stocks = await logistique
+      .from('soute_type_stock')
+      .select('soute_id, qte_gasoil, qte_super, seuil_critique');
+
+  // La journée commence à minuit, heure de la tablette : c'est celle que
+  // l'utilisateur lit sur sa montre.
+  final maintenant = DateTime.now();
+  final minuit = DateTime(maintenant.year, maintenant.month, maintenant.day);
+  final sorties = await logistique
+      .from('distribution')
+      .select('qte_percue')
+      .gte('date', minuit.toIso8601String());
+
+  var litres = 0;
+  var enAlerte = 0;
+  final soutes = <String>{};
+  for (final s in stocks) {
+    final quantite =
+        ((s['qte_gasoil'] as int?) ?? 0) + ((s['qte_super'] as int?) ?? 0);
+    litres += quantite;
+    soutes.add(s['soute_id'].toString());
+    if (quantite <= ((s['seuil_critique'] as int?) ?? 0)) enAlerte++;
+  }
+
+  var sortiesDuJour = 0;
+  for (final d in sorties) {
+    sortiesDuJour += (d['qte_percue'] as int?) ?? 0;
+  }
+
+  return ApercuCarburant(
+    litres: litres,
+    soutes: soutes.length,
+    soutesEnAlerte: enAlerte,
+    sortiesDuJour: sortiesDuJour,
   );
 });
