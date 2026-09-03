@@ -12,6 +12,7 @@ import '../../data/repositories/fuel_providers.dart';
 import '../../shared/widgets/dashboard_widgets.dart';
 import '../../shared/widgets/skeleton.dart';
 import '../../shared/widgets/widgets.dart';
+import 'alertes_card.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key, this.sansCadre = false});
@@ -73,24 +74,24 @@ class DashboardScreen extends ConsumerWidget {
         .where((j) => !j.entree)
         .fold<int>(0, (s, j) => s + j.quantite);
 
-    final alertes = <_Alerte>[
+    final alertes = <Alerte>[
       for (final s in soutesAlerte)
-        _Alerte(
+        Alerte(
           '${s.soute.libelle} — stock critique',
           () => context.go('/logistique/carburant'),
         ),
       for (final v in vehiculesVidange)
-        _Alerte(
+        Alerte(
           '${v.marque} ${v.modele} — vidange à prévoir',
           () => context.go('/logistique/parc'),
         ),
       for (final d in dotationsRetard)
-        _Alerte(
+        Alerte(
           'Retour d\'arme en retard — ${d.beneficiaireId}',
           () => context.go('/logistique/armement'),
         ),
       for (final a in armesRetard)
-        _Alerte(
+        Alerte(
           '${a.modele} — inspection en retard',
           () => context.go('/logistique/armement'),
         ),
@@ -108,55 +109,7 @@ class DashboardScreen extends ConsumerWidget {
             entrees: entreesJour,
             sorties: sortiesJour,
           );
-          final darkCard = DarkFeatureCard(
-            title: 'Alertes prioritaires',
-            child: alertes.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      'Aucune alerte en cours — situation nominale.',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                  )
-                : Column(
-                    children: [
-                      for (final a in alertes.take(5))
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: InkWell(
-                            onTap: a.onTap,
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 8,
-                                  height: 8,
-                                  decoration: const BoxDecoration(
-                                    color: AppColors.blueBright,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    a.label,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.chevron_right_rounded,
-                                  color: Colors.white38,
-                                  size: 18,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-          );
+          final darkCard = AlertesCard(alertes: alertes);
           if (!wide) {
             return Column(
               children: [blob, const SizedBox(height: 16), darkCard],
@@ -272,10 +225,4 @@ class DashboardScreen extends ConsumerWidget {
           )
         : ScreenScaffold(title: 'Tableau de bord', children: contenu);
   }
-}
-
-class _Alerte {
-  final String label;
-  final VoidCallback onTap;
-  const _Alerte(this.label, this.onTap);
 }

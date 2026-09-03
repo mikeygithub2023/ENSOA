@@ -161,13 +161,19 @@ class SoutesStockCard extends StatelessWidget {
     required this.title,
     required this.total,
     required this.soutes,
+    this.unite = 'L',
   });
 
   final String title;
   final int total;
 
-  /// Le libellé de chaque soute et ce qu'elle contient, en litres.
+  /// Le libellé de chaque ligne et ce qu'elle contient, dans [unite].
   final List<(String, int)> soutes;
+
+  /// L'unité du contenu — des litres pour une soute de carburant, des
+  /// cartouches pour un casier de munitions. Le dessin est le même ; il
+  /// n'y avait que ce mot à ne pas figer.
+  final String unite;
 
   /// Ce que cette carte occupera pour [nombreDeSoutes] lignes.
   ///
@@ -210,7 +216,7 @@ class SoutesStockCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${formatMilliers(total)} L',
+                  '${formatMilliers(total)} $unite',
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w800,
@@ -250,7 +256,7 @@ class SoutesStockCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            '${formatMilliers(litres)} L',
+                            '${formatMilliers(litres)} $unite',
                             style: const TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,

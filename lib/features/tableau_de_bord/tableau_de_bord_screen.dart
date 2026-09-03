@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/theme.dart';
+import '../../core/roles.dart';
+import '../../modules/logistique/features/dashboard/dashboard_activites.dart';
+import '../../modules/logistique/features/dashboard/dashboard_armurerie.dart';
 import '../../modules/logistique/features/dashboard/dashboard_screen.dart'
     as logistique;
 import '../../modules/scolarite/features/dashboard/dashboard_screen.dart'
@@ -16,8 +19,15 @@ import '../auth/providers/auth_providers.dart';
 /// porte le défilement unique, et l'on descend de la scolarité au soutien
 /// technique d'un seul mouvement.
 ///
-/// Chacun ne voit que ce dont il relève : un instructeur n'a que la scolarité,
-/// un armurier que le soutien technique, l'administrateur les deux.
+/// Chacun ne voit que ce dont il relève : un commandant n'a que la
+/// scolarité, un armurier que son armurerie, l'administrateur tout.
+///
+/// Et au sein du soutien technique, chaque poste a le sien. Le chef du
+/// service tient les trois — carburant, parc, armement ; l'armurier n'a que
+/// son armurerie ; l'Officier Adjoint, qui ne tient aucun service, a ses
+/// activités. Leur servir à tous le tableau du chef revenait à noyer les
+/// deux chiffres qui les concernaient au milieu de vingt qui ne les
+/// regardaient pas.
 class TableauDeBordScreen extends ConsumerWidget {
   const TableauDeBordScreen({super.key});
 
@@ -41,8 +51,8 @@ class TableauDeBordScreen extends ConsumerWidget {
           ],
           if (deuxDomaines) const SizedBox(height: 32),
           if (profil.releveDuSoutienTechnique) ...[
-            if (deuxDomaines) const _TitreDomaine('Soutien technique'),
-            const logistique.DashboardScreen(sansCadre: true),
+            if (deuxDomaines) _TitreDomaine(_domaine(profil.roleLogistique)),
+            _tableauDuPoste(profil.roleLogistique),
           ],
           const SizedBox(height: 24),
         ],
@@ -50,6 +60,21 @@ class TableauDeBordScreen extends ConsumerWidget {
     );
   }
 }
+
+/// Le tableau que ce poste doit lire.
+Widget _tableauDuPoste(RoleLogistique? role) => switch (role) {
+  RoleLogistique.armurerie => const DashboardArmurerie(sansCadre: true),
+  RoleLogistique.officierAdjoint => const DashboardActivites(sansCadre: true),
+  _ => const logistique.DashboardScreen(sansCadre: true),
+};
+
+/// Le titre de domaine ne s'affiche que pour celui qui relève des deux ;
+/// autant qu'il nomme ce qu'on lit vraiment.
+String _domaine(RoleLogistique? role) => switch (role) {
+  RoleLogistique.armurerie => 'Armurerie',
+  RoleLogistique.officierAdjoint => 'Activités',
+  _ => 'Soutien technique',
+};
 
 class _TitreDomaine extends StatelessWidget {
   const _TitreDomaine(this.texte);
