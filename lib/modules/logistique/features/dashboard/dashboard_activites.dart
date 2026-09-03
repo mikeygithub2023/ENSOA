@@ -72,11 +72,23 @@ class DashboardActivites extends ConsumerWidget {
 
     final alertes = <Alerte>[
       for (final t in aValider)
-        Alerte('À viser : ${t.description}', versActivites),
+        Alerte(
+          'À viser : ${t.description}',
+          versActivites,
+          icone: Icons.how_to_reg_rounded,
+        ),
       for (final t in enRetard)
-        Alerte('En retard — ${t.description}', versActivites),
+        Alerte(
+          'En retard — ${t.description}',
+          versActivites,
+          icone: Icons.schedule_rounded,
+        ),
       for (final a in aVenir.take(3))
-        Alerte('${jour.format(a.dateActivite)} — ${a.titre}', versActivites),
+        Alerte(
+          '${jour.format(a.dateActivite)} — ${a.titre}',
+          versActivites,
+          icone: Icons.event_rounded,
+        ),
     ];
 
     final contenu = <Widget>[

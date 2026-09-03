@@ -15,8 +15,9 @@ String? defaultGradeForClasse(String classeNom) {
   final cle = classeNom.toUpperCase().replaceAll(' ', '');
 
   return switch (cle) {
-    'FCB' || 'CA1' || 'ESOA1' =>
-      "Elève sous-officier d'active de première année",
+    'FCB' ||
+    'CA1' ||
+    'ESOA1' => "Elève sous-officier d'active de première année",
     'CA2' || 'ESOA2' => "Elève sous-officier d'active de deuxième année",
     'ESOS1' => "Elève sous-officier spécialiste de première année",
     'ESOS2' => "Elève sous-officier spécialiste de deuxième année",

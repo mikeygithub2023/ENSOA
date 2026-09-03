@@ -35,3 +35,23 @@ class IconeArme extends StatelessWidget {
     );
   }
 }
+
+/// La même icône, à la couleur demandée.
+///
+/// Le dessin est une image, non une police : il ne suit pas `color` comme le
+/// ferait une `Icon`. Le filtre le remplace donc à plat, ce qui convient à
+/// une silhouette pleine.
+class IconeArmeTeintee extends StatelessWidget {
+  const IconeArmeTeintee({super.key, required this.couleur, this.size = 22});
+
+  final Color couleur;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColorFiltered(
+      colorFilter: ColorFilter.mode(couleur, BlendMode.srcIn),
+      child: IconeArme(size: size),
+    );
+  }
+}

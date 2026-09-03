@@ -108,8 +108,9 @@ class _VisitesMedicalesScreenState
                     visite: visite,
                     classe: classesById[visite.classeId],
                     effectif: effectifs[visite.id] ?? 0,
-                    onOpen: () =>
-                        context.push('/scolarite/visites-medicales/${visite.id}'),
+                    onOpen: () => context.push(
+                      '/scolarite/visites-medicales/${visite.id}',
+                    ),
                     onDelete: () => _confirmDelete(context, visite),
                   );
                 },

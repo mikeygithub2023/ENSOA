@@ -118,7 +118,10 @@ class _RetourVehiculeDialogState extends ConsumerState<RetourVehiculeDialog> {
             titre: 'Véhicule de retour au camp',
             message:
                 '${widget.vehicule.immatriculation} (${widget.vehicule.marque} ${widget.vehicule.modele}) est rentré au camp — $km km.',
-            roles: const [RoleLogistique.chefSoutienTechnique, RoleLogistique.garage],
+            roles: const [
+              RoleLogistique.chefSoutienTechnique,
+              RoleLogistique.garage,
+            ],
           );
       if (mounted) {
         showSuccessSnackBar(context, 'Retour enregistré avec succès.');

@@ -85,7 +85,8 @@ class _ActivitesTabContentState extends ConsumerState<ActivitesTabContent> {
                   .length;
               return Card(
                 child: ListTile(
-                  onTap: () => context.go('/logistique/activites/detail', extra: a),
+                  onTap: () =>
+                      context.go('/logistique/activites/detail', extra: a),
                   leading: CircleAvatar(
                     backgroundColor: AppColors.blueMist,
                     child: Icon(

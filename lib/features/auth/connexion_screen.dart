@@ -74,7 +74,8 @@ class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
       // de passe faux » — le faire dirait à un inconnu quels identifiants
       // existent.
       setState(
-        () => _errorMessage = erreur is AuthException && erreur.statusCode == '400'
+        () => _errorMessage =
+            erreur is AuthException && erreur.statusCode == '400'
             ? 'Identifiant ou mot de passe incorrect. Vérifiez la saisie '
                   '(le clavier a pu corriger le texte).'
             : messageErreur(erreur),

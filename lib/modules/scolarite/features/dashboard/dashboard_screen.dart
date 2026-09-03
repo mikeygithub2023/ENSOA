@@ -26,73 +26,79 @@ class DashboardScreen extends ConsumerWidget {
     final statsAsync = ref.watch(dashboardStatsProvider);
 
     final contenu = <Widget>[
-          if (!sansCadre) ...[
-            Text("Vue d'ensemble", style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 16),
-          ],
-          statsAsync.when(
-            // Les cartes occupent toute la largeur : à quatre par rangée sur
-            // le poste de travail, à deux sur la tablette en paysage, elles
-            // se partagent l'espace au lieu de laisser une bande vide à
-            // droite. La largeur minimale de 240 décide seulement du nombre
-            // qui tient sur une ligne.
-            data: (stats) => LayoutBuilder(
-              builder: (context, contraintes) {
-                final cartes = <(String, String, String, IconData)>[
-                  (
-                    'Effectif total',
-                    '${stats.total}',
-                    'Élèves & stagiaires',
-                    Icons.groups_outlined,
-                  ),
-                  for (final entry in stats.parDivision)
-                    (
-                      entry.division.nom,
-                      '${entry.count}',
-                      'Effectif',
-                      Icons.school_outlined,
+      if (!sansCadre) ...[
+        Text("Vue d'ensemble", style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 16),
+      ],
+      statsAsync.when(
+        // Les cartes occupent toute la largeur : à quatre par rangée sur
+        // le poste de travail, à deux sur la tablette en paysage, elles
+        // se partagent l'espace au lieu de laisser une bande vide à
+        // droite. La largeur minimale de 240 décide seulement du nombre
+        // qui tient sur une ligne.
+        data: (stats) => LayoutBuilder(
+          builder: (context, contraintes) {
+            final cartes = <(String, String, String, IconData)>[
+              (
+                'Effectif total',
+                '${stats.total}',
+                'Élèves & stagiaires',
+                Icons.groups_outlined,
+              ),
+              // La toque revenait sur chaque division comme sur le
+              // total : rien ne distinguait la somme de ses parts.
+              // Une division est une branche de l'école, et c'est un
+              // effectif qu'on y lit.
+              for (final entry in stats.parDivision)
+                (
+                  entry.division.nom,
+                  '${entry.count}',
+                  'Effectif',
+                  Icons.account_tree_outlined,
+                ),
+            ];
+
+            const espace = 16.0;
+            final large = contraintes.maxWidth;
+            var parRangee = ((large + espace) / (240 + espace)).floor();
+            if (parRangee < 1) parRangee = 1;
+            if (parRangee > cartes.length) parRangee = cartes.length;
+            final largeur = (large - espace * (parRangee - 1)) / parRangee;
+
+            return Wrap(
+              spacing: espace,
+              runSpacing: espace,
+              children: [
+                for (final (titre, valeur, sousTitre, icone) in cartes)
+                  SizedBox(
+                    width: largeur,
+                    child: KpiCard(
+                      titre: titre,
+                      valeur: valeur,
+                      sousTitre: sousTitre,
+                      icone: icone,
                     ),
-                ];
-
-                const espace = 16.0;
-                final large = contraintes.maxWidth;
-                var parRangee = ((large + espace) / (240 + espace)).floor();
-                if (parRangee < 1) parRangee = 1;
-                if (parRangee > cartes.length) parRangee = cartes.length;
-                final largeur =
-                    (large - espace * (parRangee - 1)) / parRangee;
-
-                return Wrap(
-                  spacing: espace,
-                  runSpacing: espace,
-                  children: [
-                    for (final (titre, valeur, sousTitre, icone) in cartes)
-                      SizedBox(
-                        width: largeur,
-                        child: KpiCard(
-                          titre: titre,
-                          valeur: valeur,
-                          sousTitre: sousTitre,
-                          icone: icone,
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => EmptyState(
-              message: 'Erreur de chargement : ${messageErreur(error)}',
-              icon: Icons.error_outline,
-            ),
-          ),
+                  ),
+              ],
+            );
+          },
+        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => EmptyState(
+          message: 'Erreur de chargement : ${messageErreur(error)}',
+          icon: Icons.error_outline,
+        ),
+      ),
     ];
 
     // Sans cadre, on rend la suite de blocs telle quelle : c'est la page
     // unifiée qui porte le défilement, pour que scolarité et soutien
     // technique se lisent d'un seul mouvement.
     return sansCadre
-        ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: contenu)
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: contenu,
+          )
         : SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -265,8 +265,7 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
                           final laClasse =
                               classesById[permission.classeId] ?? classe;
                           final laDivision =
-                              _division ??
-                              divisionsById[permission.divisionId];
+                              _division ?? divisionsById[permission.divisionId];
                           if (laClasse == null || laDivision == null) return;
                           showRegisterPermissionDialog(
                             context,

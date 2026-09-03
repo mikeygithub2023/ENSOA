@@ -164,7 +164,10 @@ class VehiculesNotifier extends Notifier<List<Vehicule>> {
             titre: 'Vidange à prévoir',
             message:
                 '${v.immatriculation} (${v.marque} ${v.modele}) a atteint son seuil de vidange — $kilometrage km.',
-            roles: const [RoleLogistique.chefSoutienTechnique, RoleLogistique.garage],
+            roles: const [
+              RoleLogistique.chefSoutienTechnique,
+              RoleLogistique.garage,
+            ],
           );
     }
   }

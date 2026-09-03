@@ -28,5 +28,6 @@ class AppUser {
     this.doitChangerPin = false,
   });
 
-  bool can(Permission permission) => permissionsDe(logistique: role).contains(permission);
+  bool can(Permission permission) =>
+      permissionsDe(logistique: role).contains(permission);
 }

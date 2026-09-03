@@ -3,12 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:sig_ensoa/core/theme.dart';
 import '../../shared/widgets/dashboard_widgets.dart';
 
-/// Une ligne d'alerte : ce qu'il faut lire, et où cela mène.
+/// Une ligne d'alerte : ce qu'il faut lire, où cela mène, et de quoi il
+/// s'agit.
+///
+/// Toutes portaient la même pastille bleue. Sur cinq lignes empilées, rien
+/// ne distinguait un retour d'arme d'une soute vide avant d'avoir lu la
+/// phrase : l'œil devait tout relire pour trouver ce qui pressait.
+/// [icone] est facultative — sans elle, la pastille reprend sa place.
 class Alerte {
-  const Alerte(this.label, this.onTap);
+  const Alerte(this.label, this.onTap, {this.icone, this.iconeWidget});
 
   final String label;
   final VoidCallback onTap;
+  final IconData? icone;
+
+  /// Pour ce que Material ne dessine pas — une arme, par exemple.
+  final Widget? iconeWidget;
 }
 
 /// La carte sombre des alertes prioritaires.
@@ -49,12 +59,25 @@ class AlertesCard extends StatelessWidget {
                       onTap: a.onTap,
                       child: Row(
                         children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.blueBright,
-                              shape: BoxShape.circle,
+                          SizedBox(
+                            width: 18,
+                            child: Center(
+                              child:
+                                  a.iconeWidget ??
+                                  (a.icone != null
+                                      ? Icon(
+                                          a.icone,
+                                          size: 16,
+                                          color: AppColors.blueBright,
+                                        )
+                                      : Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: const BoxDecoration(
+                                            color: AppColors.blueBright,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        )),
                             ),
                           ),
                           const SizedBox(width: 10),

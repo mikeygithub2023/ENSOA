@@ -71,7 +71,8 @@ class _AdministrationScreenState extends ConsumerState<AdministrationScreen> {
           ],
           selected: {_rubrique},
           showSelectedIcon: false,
-          onSelectionChanged: (choix) => setState(() => _rubrique = choix.first),
+          onSelectionChanged: (choix) =>
+              setState(() => _rubrique = choix.first),
         ),
         const SizedBox(height: 16),
         Expanded(
@@ -185,10 +186,7 @@ class _ComptesState extends ConsumerState<_Comptes> {
                 compte: compte,
                 cestMoi: compte.id == moi?.id,
                 sousMonAutorite: sousMonAutorite.contains(
-                  posteDepuisRoles(
-                    compte.roleScolarite,
-                    compte.roleLogistique,
-                  ),
+                  posteDepuisRoles(compte.roleScolarite, compte.roleLogistique),
                 ),
               ),
               const SizedBox(height: 12),
@@ -201,10 +199,7 @@ class _ComptesState extends ConsumerState<_Comptes> {
 
   bool _correspond(Profil compte) {
     if (_recherche.trim().isEmpty) return true;
-    final poste = posteDepuisRoles(
-      compte.roleScolarite,
-      compte.roleLogistique,
-    );
+    final poste = posteDepuisRoles(compte.roleScolarite, compte.roleLogistique);
     final champs = [
       compte.nomComplet,
       compte.matricule ?? '',
@@ -255,8 +250,9 @@ class _CarteState extends ConsumerState<_Carte> {
     return Card(
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: (compte.actif ? AppColors.success : AppColors.inkMuted)
-              .withValues(alpha: 0.12),
+          backgroundColor:
+              (compte.actif ? AppColors.success : AppColors.inkMuted)
+                  .withValues(alpha: 0.12),
           child: Icon(
             Icons.person_outline,
             color: compte.actif ? AppColors.success : AppColors.inkMuted,

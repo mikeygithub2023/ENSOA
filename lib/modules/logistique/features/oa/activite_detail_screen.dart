@@ -231,11 +231,8 @@ class ActiviteDetailScreen extends ConsumerWidget {
                             ),
                             IconButton(
                               tooltip: 'Supprimer',
-                              onPressed: () => _confirmerSuppression(
-                                context,
-                                ref,
-                                t,
-                              ),
+                              onPressed: () =>
+                                  _confirmerSuppression(context, ref, t),
                               icon: const Icon(
                                 Icons.delete_outline,
                                 color: AppColors.danger,

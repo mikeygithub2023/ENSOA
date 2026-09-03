@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:sig_ensoa/core/theme.dart';
 import 'package:sig_ensoa/core/chargement.dart';
 import 'package:sig_ensoa/core/format.dart';
+import 'package:sig_ensoa/shared/widgets/icone_arme.dart';
 import '../../data/models/vehicule.dart';
 import '../../data/repositories/armament_providers.dart';
 import '../../data/repositories/fleet_providers.dart';
@@ -79,21 +80,28 @@ class DashboardScreen extends ConsumerWidget {
         Alerte(
           '${s.soute.libelle} — stock critique',
           () => context.go('/logistique/carburant'),
+          icone: Icons.warehouse_rounded,
         ),
       for (final v in vehiculesVidange)
         Alerte(
           '${v.marque} ${v.modele} — vidange à prévoir',
           () => context.go('/logistique/parc'),
+          icone: Icons.oil_barrel_rounded,
         ),
       for (final d in dotationsRetard)
         Alerte(
           'Retour d\'arme en retard — ${d.beneficiaireId}',
           () => context.go('/logistique/armement'),
+          icone: Icons.assignment_late_rounded,
         ),
       for (final a in armesRetard)
         Alerte(
           '${a.modele} — inspection en retard',
           () => context.go('/logistique/armement'),
+          iconeWidget: const IconeArmeTeintee(
+            couleur: AppColors.blueBright,
+            size: 18,
+          ),
         ),
     ];
 
@@ -181,7 +189,7 @@ class DashboardScreen extends ConsumerWidget {
               ),
               const Divider(height: 1),
               DotProgressRow(
-                icon: Icons.build_rounded,
+                icon: Icons.car_repair_rounded,
                 iconColor: AppColors.warning,
                 title: 'Maintenance',
                 subtitle: 'Véhicules sans vidange en attente',
@@ -201,7 +209,10 @@ class DashboardScreen extends ConsumerWidget {
               ),
               const Divider(height: 1),
               DotProgressRow(
-                icon: Icons.rule_rounded,
+                iconWidget: const IconeArmeTeintee(
+                  couleur: AppColors.success,
+                  size: 22,
+                ),
                 iconColor: AppColors.success,
                 title: 'Inspections armes',
                 subtitle: 'Armes à jour de contrôle',

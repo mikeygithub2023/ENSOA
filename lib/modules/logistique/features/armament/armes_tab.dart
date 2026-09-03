@@ -75,7 +75,8 @@ class _ArmesTabContentState extends ConsumerState<ArmesTabContent> {
               // sur celle qui prend sa place.
               key: ValueKey(a.id),
               child: ListTile(
-                onTap: () => context.go('/logistique/armement/detail', extra: a),
+                onTap: () =>
+                    context.go('/logistique/armement/detail', extra: a),
                 leading: CircleAvatar(
                   backgroundColor: _levelColor(a).withValues(alpha: 0.12),
                   child: ColorFiltered(

@@ -40,7 +40,9 @@ class _DepotageFormDialogState extends ConsumerState<DepotageFormDialog> {
     _qteCtrl.text = '${d.quantiteRecue}';
     // La ligne de dépotage ne retient que le stock visé ; la soute et la
     // répartition se relisent dessus pour repeupler les deux listes.
-    final stock = ref.read(souteStocksProvider).where((s) => s.id == d.souteStockId);
+    final stock = ref
+        .read(souteStocksProvider)
+        .where((s) => s.id == d.souteStockId);
     if (stock.isNotEmpty) {
       _souteId = stock.first.souteId;
       _repartitionId = stock.first.repartitionId;
@@ -187,7 +189,9 @@ class _DepotageFormDialogState extends ConsumerState<DepotageFormDialog> {
       if (mounted) {
         showSuccessSnackBar(
           context,
-          _correction ? 'Dépotage modifié.' : 'Dépotage enregistré avec succès.',
+          _correction
+              ? 'Dépotage modifié.'
+              : 'Dépotage enregistré avec succès.',
         );
         Navigator.of(context).pop();
       }

@@ -84,11 +84,19 @@ class DashboardCarburant extends ConsumerWidget {
 
     final alertes = <Alerte>[
       for (final s in soutesAlerte)
-        Alerte('${s.soute.libelle} — stock critique', versCarburant),
+        Alerte(
+          '${s.soute.libelle} — stock critique',
+          versCarburant,
+          icone: Icons.warehouse_rounded,
+        ),
       // Les tâches confiées par l'Officier Adjoint sont du travail du service
       // au même titre qu'un dépotage : elles se lisent au même endroit.
       for (final t in mesTaches.where((t) => t.statut == StatutTache.aFaire))
-        Alerte('Tâche confiée — ${t.description}', versActivites),
+        Alerte(
+          'Tâche confiée — ${t.description}',
+          versActivites,
+          icone: Icons.assignment_turned_in_rounded,
+        ),
     ];
 
     final contenu = <Widget>[
@@ -135,7 +143,7 @@ class DashboardCarburant extends ConsumerWidget {
           child: Column(
             children: [
               DotProgressRow(
-                icon: Icons.local_gas_station_rounded,
+                icon: Icons.warehouse_rounded,
                 iconColor: AppColors.blue,
                 title: 'Soutes',
                 subtitle: 'Au-dessus du seuil critique',
@@ -145,7 +153,7 @@ class DashboardCarburant extends ConsumerWidget {
               ),
               const Divider(height: 1),
               DotProgressRow(
-                icon: Icons.download_rounded,
+                icon: Icons.local_shipping_rounded,
                 iconColor: AppColors.success,
                 title: 'Dépotages du jour',
                 subtitle: '${formatMilliers(entreesJour)} L reçus',
@@ -155,7 +163,7 @@ class DashboardCarburant extends ConsumerWidget {
               ),
               const Divider(height: 1),
               DotProgressRow(
-                icon: Icons.upload_rounded,
+                icon: Icons.local_gas_station_rounded,
                 iconColor: AppColors.ivoryOrange,
                 title: 'Distributions du jour',
                 subtitle: '${formatMilliers(sortiesJour)} L délivrés',

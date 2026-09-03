@@ -121,7 +121,8 @@ class ServicesNotifier extends Notifier<List<Service>> {
         .order('libelle', ascending: true);
     state = lignes
         .map(
-          (r) => Service(id: r['id'].toString(), libelle: r['libelle'] as String),
+          (r) =>
+              Service(id: r['id'].toString(), libelle: r['libelle'] as String),
         )
         .toList();
     ref.read(chargementProvider.notifier).marquerCharge('services');

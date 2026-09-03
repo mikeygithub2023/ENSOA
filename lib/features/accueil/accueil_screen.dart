@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/roles.dart';
 import '../../core/theme.dart';
+import '../../shared/widgets/icone_arme.dart';
 import '../../models/profil.dart';
 import '../auth/providers/auth_providers.dart';
 import 'providers/apercu_providers.dart';
@@ -59,6 +60,8 @@ class AccueilScreen extends ConsumerWidget {
 
 /// Les compteurs que ce poste doit lire.
 Widget _blocDuPoste(RoleLogistique? role) => switch (role) {
+  RoleLogistique.sante => const _BlocSante(),
+  RoleLogistique.postePolice => const _BlocPolice(),
   RoleLogistique.armurerie => const _BlocArmurerie(),
   RoleLogistique.garage => const _BlocGarage(),
   RoleLogistique.soutienPetrolier => const _BlocCarburant(),
@@ -68,6 +71,8 @@ Widget _blocDuPoste(RoleLogistique? role) => switch (role) {
 
 /// Et le titre qui les annonce.
 String _sectionDuPoste(RoleLogistique? role) => switch (role) {
+  RoleLogistique.sante => 'Service de santé',
+  RoleLogistique.postePolice => 'Poste de police',
   RoleLogistique.armurerie => 'Armurerie',
   RoleLogistique.garage => 'Garage',
   RoleLogistique.soutienPetrolier => 'Soutien pétrolier',
@@ -327,7 +332,10 @@ class _BlocLogistique extends ConsumerWidget {
                 couleur: AppColors.blue,
               ),
               _Tuile(
-                icone: Icons.security_rounded,
+                iconeWidget: const IconeArmeTeintee(
+                  couleur: AppColors.blueBright,
+                  size: 22,
+                ),
                 valeur: '${a.armes}',
                 titre: 'Armes inventoriées',
                 legende: "Toutes catégories",
@@ -376,14 +384,23 @@ String _milliers(int valeur) {
 /// Tuile de chiffre : pastille d'icône teintée, valeur en gros, libellé.
 class _Tuile extends StatelessWidget {
   const _Tuile({
-    required this.icone,
+    this.icone,
+    this.iconeWidget,
     required this.valeur,
     required this.titre,
     required this.legende,
     this.couleur = AppColors.blueDeep,
-  });
+  }) : assert(
+         icone != null || iconeWidget != null,
+         'une tuile porte un dessin',
+       );
 
-  final IconData icone;
+  final IconData? icone;
+
+  /// Pour ce que Material ne dessine pas — une arme, par exemple. Une tuile
+  /// qui annonce un inventaire d'armes sous un bouclier générique demande à
+  /// être lue pour être comprise ; c'est ce qu'un pictogramme doit éviter.
+  final Widget? iconeWidget;
   final String valeur;
   final String titre;
   final String legende;
@@ -413,7 +430,7 @@ class _Tuile extends StatelessWidget {
               color: couleur.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icone, color: couleur, size: 20),
+            child: iconeWidget ?? Icon(icone, color: couleur, size: 20),
           ),
           // L'espace qui reste se met là, entre le pictogramme et le chiffre,
           // plutôt qu'en bas de la tuile. Les chiffres s'alignent alors d'une
@@ -603,7 +620,10 @@ class _BlocArmurerie extends ConsumerWidget {
           _GrilleDeTuiles(
             tuiles: [
               _Tuile(
-                icone: Icons.security_rounded,
+                iconeWidget: const IconeArmeTeintee(
+                  couleur: AppColors.blueBright,
+                  size: 22,
+                ),
                 valeur: '${a.armes}',
                 titre: 'Armes inventoriées',
                 legende: 'Toutes catégories',
@@ -626,7 +646,7 @@ class _BlocArmurerie extends ConsumerWidget {
                 couleur: AppColors.blue,
               ),
               _Tuile(
-                icone: Icons.rule_rounded,
+                icone: Icons.event_busy_rounded,
                 valeur: '${a.inspectionsEchues}',
                 titre: 'Inspections échues',
                 legende: 'Armes à contrôler',
@@ -675,7 +695,7 @@ class _BlocGarage extends ConsumerWidget {
                 legende: 'Sur le parc total',
               ),
               _Tuile(
-                icone: Icons.build_rounded,
+                icone: Icons.car_repair_rounded,
                 valeur: '${a.enReparation}',
                 titre: 'En réparation',
                 legende: 'Immobilisés à l\'atelier',
@@ -734,7 +754,7 @@ class _BlocCarburant extends ConsumerWidget {
           _GrilleDeTuiles(
             tuiles: [
               _Tuile(
-                icone: Icons.local_gas_station_rounded,
+                icone: Icons.oil_barrel_rounded,
                 valeur: _milliers(a.litres),
                 titre: 'Litres en soute',
                 legende: 'Gasoil et super cumulés',
@@ -757,7 +777,7 @@ class _BlocCarburant extends ConsumerWidget {
                     : AppColors.success,
               ),
               _Tuile(
-                icone: Icons.upload_rounded,
+                icone: Icons.local_gas_station_rounded,
                 valeur: _milliers(a.sortiesDuJour),
                 titre: 'Litres distribués',
                 legende: "Depuis minuit",
@@ -773,6 +793,135 @@ class _BlocCarburant extends ConsumerWidget {
                   "par les soutes et leurs répartitions.",
               chemin: '/logistique/carburant',
               action: 'Ouvrir le carburant',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// L'accueil du Service de santé : ses consultants, sa pharmacie.
+class _BlocSante extends ConsumerWidget {
+  const _BlocSante();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final apercu = ref.watch(apercuSanteProvider);
+
+    return apercu.when(
+      loading: () => const _TuilesEnAttente(nombre: 4),
+      error: (e, _) => _Incident(message: '$e'),
+      data: (a) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _GrilleDeTuiles(
+            tuiles: [
+              _Tuile(
+                icone: Icons.medical_services_rounded,
+                valeur: '${a.consultationsOuvertes}',
+                titre: 'Consultations ouvertes',
+                legende: 'En attente ou en cours',
+              ),
+              _Tuile(
+                icone: Icons.emergency_rounded,
+                valeur: '${a.urgences}',
+                titre: 'Urgences',
+                legende: 'Non encore traitées',
+                couleur: a.urgences > 0 ? AppColors.danger : AppColors.success,
+              ),
+              _Tuile(
+                icone: Icons.medication_rounded,
+                valeur: '${a.medicamentsSousSeuil}',
+                titre: 'Médicaments sous seuil',
+                legende: 'À réapprovisionner',
+                couleur: a.medicamentsSousSeuil > 0
+                    ? AppColors.warning
+                    : AppColors.success,
+              ),
+              _Tuile(
+                icone: Icons.event_available_rounded,
+                valeur: '${a.visitesAVenir}',
+                titre: 'Visites à venir',
+                legende: "À compter d'aujourd'hui",
+                couleur: AppColors.blue,
+              ),
+            ],
+          ),
+          if (a.vide) ...[
+            const SizedBox(height: 12),
+            const _Amorce(
+              texte:
+                  'Rien en attente au service de santé. La pharmacie et les '
+                  'visites se tiennent depuis leurs rubriques.',
+              chemin: '/scolarite/consultations',
+              action: 'Ouvrir les consultations',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// L'accueil du Poste de police : ce qui entre et ce qui sort.
+class _BlocPolice extends ConsumerWidget {
+  const _BlocPolice();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final apercu = ref.watch(apercuPoliceProvider);
+
+    return apercu.when(
+      loading: () => const _TuilesEnAttente(nombre: 4),
+      error: (e, _) => _Incident(message: '$e'),
+      data: (a) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _GrilleDeTuiles(
+            tuiles: [
+              _Tuile(
+                icone: Icons.badge_rounded,
+                valeur: '${a.visiteursPresents}',
+                titre: 'Visiteurs présents',
+                legende: 'Entrés, pas encore ressortis',
+                couleur: a.visiteursPresents > 0
+                    ? AppColors.warning
+                    : AppColors.success,
+              ),
+              _Tuile(
+                icone: Icons.login_rounded,
+                valeur: '${a.visiteursDuJour}',
+                titre: 'Entrées du jour',
+                legende: 'Depuis minuit',
+                couleur: AppColors.blue,
+              ),
+              _Tuile(
+                icone: Icons.no_crash_rounded,
+                valeur: '${a.vehiculesSortis}',
+                titre: 'Véhicules sortis',
+                legende: 'Pas encore rentrés',
+                couleur: a.vehiculesSortis > 0
+                    ? AppColors.warning
+                    : AppColors.success,
+              ),
+              _Tuile(
+                icone: Icons.swap_horiz_rounded,
+                valeur: '${a.mouvementsDuJour}',
+                titre: 'Mouvements du jour',
+                legende: 'Sorties enregistrées',
+                couleur: AppColors.blueBright,
+              ),
+            ],
+          ),
+          if (a.vide) ...[
+            const SizedBox(height: 12),
+            const _Amorce(
+              texte:
+                  "Aucun passage enregistré. Le registre s'ouvre depuis la "
+                  'rubrique Poste de Police.',
+              chemin: '/logistique/poste-police',
+              action: 'Ouvrir le poste',
             ),
           ],
         ],

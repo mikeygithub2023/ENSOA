@@ -41,7 +41,5 @@ final ordonnanceLignesByConsultationProvider = FutureProvider.autoDispose
 /// « Toutes ».
 final consultationsMedicalesToutesProvider =
     FutureProvider.autoDispose<List<ConsultationMedicale>>((ref) {
-      return ref
-          .watch(consultationsMedicalesRepositoryProvider)
-          .fetchToutes();
+      return ref.watch(consultationsMedicalesRepositoryProvider).fetchToutes();
     });

@@ -295,8 +295,7 @@ pw.Document buildBulletinsPdf(
           for (final bloc in blocsCalcules) ...[
             // Le bandeau de phase n'apparaît que sur un bulletin de
             // promotion : sur celui d'une phase seule, il répéterait l'en-tête.
-            if (surPromotion)
-              _bandeauPhase(bloc.classe, bloc.moyenne),
+            if (surPromotion) _bandeauPhase(bloc.classe, bloc.moyenne),
             for (final section in bloc.sections)
               if (section.lignes.isNotEmpty) ...[
                 section.type == ControleType.module ||

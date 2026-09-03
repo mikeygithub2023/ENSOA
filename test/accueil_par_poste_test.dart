@@ -14,6 +14,7 @@ import 'package:sig_ensoa/features/accueil/accueil_screen.dart';
 import 'package:sig_ensoa/features/accueil/providers/apercu_providers.dart';
 import 'package:sig_ensoa/features/auth/providers/auth_providers.dart';
 import 'package:sig_ensoa/models/profil.dart';
+import 'package:sig_ensoa/shared/widgets/icone_arme.dart';
 
 Profil _profil(RoleLogistique role) => Profil(
   id: 'p1',
@@ -67,6 +68,22 @@ Future<void> _ouvrir(WidgetTester tester, RoleLogistique role) async {
             sortiesDuJour: 0,
           ),
         ),
+        apercuSanteProvider.overrideWith(
+          (ref) async => const ApercuSante(
+            consultationsOuvertes: 1,
+            urgences: 0,
+            medicamentsSousSeuil: 0,
+            visitesAVenir: 0,
+          ),
+        ),
+        apercuPoliceProvider.overrideWith(
+          (ref) async => const ApercuPolice(
+            visiteursPresents: 0,
+            visiteursDuJour: 0,
+            vehiculesSortis: 0,
+            mouvementsDuJour: 0,
+          ),
+        ),
       ],
       child: const MaterialApp(home: Scaffold(body: AccueilScreen())),
     ),
@@ -84,6 +101,10 @@ void main() {
 
     // Le titre de section est rendu en capitales.
     expect(find.text('ARMURERIE'), findsOneWidget);
+    // L'inventaire d'armes porte le fusil du dépôt, non un bouclier :
+    // Material n'en dessine aucune, et un pictogramme qu'il faut lire
+    // pour comprendre ne sert à rien.
+    expect(find.byType(IconeArmeTeintee), findsOneWidget);
     expect(find.text('Cartouches en stock'), findsOneWidget);
     expect(find.text('Inspections échues'), findsOneWidget);
 
@@ -118,5 +139,31 @@ void main() {
     expect(find.text('Véhicules disponibles'), findsOneWidget);
     expect(find.text('Litres en soute'), findsOneWidget);
     expect(find.text('Armes inventoriées'), findsOneWidget);
+  });
+  testWidgets('le service de santé voit ses consultants, pas le parc', (
+    tester,
+  ) async {
+    await _ouvrir(tester, RoleLogistique.sante);
+
+    expect(find.text('SERVICE DE SANTÉ'), findsOneWidget);
+    expect(find.text('Consultations ouvertes'), findsOneWidget);
+    expect(find.text('Médicaments sous seuil'), findsOneWidget);
+
+    expect(find.text('Véhicules disponibles'), findsNothing);
+    expect(find.text('Litres en soute'), findsNothing);
+    expect(find.text('Armes inventoriées'), findsNothing);
+  });
+
+  testWidgets('le poste de police voit ses passages, pas les soutes', (
+    tester,
+  ) async {
+    await _ouvrir(tester, RoleLogistique.postePolice);
+
+    expect(find.text('POSTE DE POLICE'), findsOneWidget);
+    expect(find.text('Visiteurs présents'), findsOneWidget);
+    expect(find.text('Véhicules sortis'), findsOneWidget);
+
+    expect(find.text('Litres en soute'), findsNothing);
+    expect(find.text('Armes inventoriées'), findsNothing);
   });
 }

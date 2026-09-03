@@ -285,3 +285,131 @@ final apercuCarburantProvider = FutureProvider<ApercuCarburant>((ref) async {
     sortiesDuJour: sortiesDuJour,
   );
 });
+
+/// Ce que le Service de santé a sous les yeux.
+///
+/// Il voyait les compteurs du soutien technique — véhicules, litres en soute,
+/// armes. Aucun des quatre ne le concerne : il reçoit des consultants, tient
+/// une pharmacie et convoque des visites.
+class ApercuSante {
+  const ApercuSante({
+    required this.consultationsOuvertes,
+    required this.urgences,
+    required this.medicamentsSousSeuil,
+    required this.visitesAVenir,
+  });
+
+  /// En attente ou en cours : ce qui n'est pas encore réglé.
+  final int consultationsOuvertes;
+
+  final int urgences;
+  final int medicamentsSousSeuil;
+  final int visitesAVenir;
+
+  bool get vide =>
+      consultationsOuvertes == 0 &&
+      medicamentsSousSeuil == 0 &&
+      visitesAVenir == 0 &&
+      urgences == 0;
+}
+
+final apercuSanteProvider = FutureProvider<ApercuSante>((ref) async {
+  final consultations = await scolarite
+      .from('consultations_medicales')
+      .select('statut, type');
+  final medicaments = await scolarite
+      .from('medicaments')
+      .select('stock, seuil_alerte');
+  // Une visite passée ne demande plus rien : seules celles à venir comptent.
+  final maintenant = DateTime.now();
+  final minuit = DateTime(maintenant.year, maintenant.month, maintenant.day);
+  final visites = await scolarite
+      .from('visites_medicales')
+      .select('id')
+      .gte('date_visite', minuit.toIso8601String())
+      .count();
+
+  var ouvertes = 0;
+  var urgences = 0;
+  for (final c in consultations) {
+    if (c['statut'] != 'terminee') ouvertes++;
+    if (c['type'] == 'urgence' && c['statut'] != 'terminee') urgences++;
+  }
+
+  var sousSeuil = 0;
+  for (final m in medicaments) {
+    final stock = (m['stock'] as int?) ?? 0;
+    final seuil = (m['seuil_alerte'] as int?) ?? 0;
+    if (stock <= seuil) sousSeuil++;
+  }
+
+  return ApercuSante(
+    consultationsOuvertes: ouvertes,
+    urgences: urgences,
+    medicamentsSousSeuil: sousSeuil,
+    visitesAVenir: visites.count,
+  );
+});
+
+/// Ce que le Poste de police a sous les yeux.
+///
+/// Des quatre compteurs du soutien technique, seul l'état du parc l'effleurait
+/// — et encore, il ne le gère pas : il contrôle ce qui entre et ce qui sort.
+class ApercuPolice {
+  const ApercuPolice({
+    required this.visiteursPresents,
+    required this.visiteursDuJour,
+    required this.vehiculesSortis,
+    required this.mouvementsDuJour,
+  });
+
+  /// Entrés et pas encore ressortis : ceux qui sont dans l'enceinte.
+  final int visiteursPresents;
+
+  final int visiteursDuJour;
+
+  /// Sortis et pas encore rentrés.
+  final int vehiculesSortis;
+
+  final int mouvementsDuJour;
+
+  bool get vide =>
+      visiteursDuJour == 0 &&
+      mouvementsDuJour == 0 &&
+      visiteursPresents == 0 &&
+      vehiculesSortis == 0;
+}
+
+final apercuPoliceProvider = FutureProvider<ApercuPolice>((ref) async {
+  final maintenant = DateTime.now();
+  final minuit = DateTime(maintenant.year, maintenant.month, maintenant.day);
+  final debut = minuit.toIso8601String();
+
+  final visiteurs = await logistique
+      .from('passage_visiteur')
+      .select('date_arrivee, date_sortie');
+  final vehicules = await logistique
+      .from('passage_vehicule')
+      .select('date_sortie, date_retour');
+
+  var presents = 0;
+  var duJour = 0;
+  for (final v in visiteurs) {
+    if (v['date_sortie'] == null) presents++;
+    if ((v['date_arrivee'] as String?)?.compareTo(debut) != -1) duJour++;
+  }
+
+  var sortis = 0;
+  var mouvements = 0;
+  for (final v in vehicules) {
+    if (v['date_retour'] == null) sortis++;
+    if ((v['date_sortie'] as String?)?.compareTo(debut) != -1) mouvements++;
+  }
+
+  return ApercuPolice(
+    visiteursPresents: presents,
+    visiteursDuJour: duJour,
+    vehiculesSortis: sortis,
+    mouvementsDuJour: mouvements,
+  );
+});

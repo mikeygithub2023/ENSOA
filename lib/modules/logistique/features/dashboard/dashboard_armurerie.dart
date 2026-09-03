@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:sig_ensoa/core/chargement.dart';
 import 'package:sig_ensoa/core/theme.dart';
+import 'package:sig_ensoa/shared/widgets/icone_arme.dart';
 import '../../data/models/armement.dart';
 import '../../data/repositories/armament_providers.dart';
 import '../../shared/widgets/dashboard_widgets.dart';
@@ -80,13 +81,29 @@ class DashboardArmurerie extends ConsumerWidget {
           'Retour en retard — '
           '${d.beneficiaireNom.isEmpty ? d.beneficiaireId : d.beneficiaireNom}',
           versArmement,
+          icone: Icons.assignment_late_rounded,
         ),
       for (final a in armesRetard)
-        Alerte('${a.modele} — inspection en retard', versArmement),
+        Alerte(
+          '${a.modele} — inspection en retard',
+          versArmement,
+          iconeWidget: const IconeArmeTeintee(
+            couleur: AppColors.blueBright,
+            size: 18,
+          ),
+        ),
       for (final m in munitionsAlerte)
-        Alerte('Munitions ${m.calibre} — stock critique', versArmement),
+        Alerte(
+          'Munitions ${m.calibre} — stock critique',
+          versArmement,
+          icone: Icons.inventory_2_rounded,
+        ),
       for (final e in equipementsAlerte)
-        Alerte('${e.libelle} — stock critique', versArmement),
+        Alerte(
+          '${e.libelle} — stock critique',
+          versArmement,
+          icone: Icons.health_and_safety_rounded,
+        ),
     ];
 
     final contenu = <Widget>[
@@ -144,7 +161,10 @@ class DashboardArmurerie extends ConsumerWidget {
               ),
               const Divider(height: 1),
               DotProgressRow(
-                icon: Icons.rule_rounded,
+                iconWidget: const IconeArmeTeintee(
+                  couleur: AppColors.success,
+                  size: 22,
+                ),
                 iconColor: AppColors.success,
                 title: 'Inspections',
                 subtitle: 'Armes à jour de contrôle',
@@ -164,7 +184,7 @@ class DashboardArmurerie extends ConsumerWidget {
               ),
               const Divider(height: 1),
               DotProgressRow(
-                icon: Icons.shield_rounded,
+                icon: Icons.health_and_safety_rounded,
                 iconColor: AppColors.warning,
                 title: 'Équipements de protection',
                 subtitle: 'Références au-dessus du seuil critique',

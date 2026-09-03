@@ -121,8 +121,6 @@ class ComptesRepository {
 extension on String {
   /// `chefSoutienTechnique` → `chef_soutien_technique`, la forme attendue par
   /// la fonction serveur et par la base.
-  String toSnake() => replaceAllMapped(
-    RegExp(r'[A-Z]'),
-    (m) => '_${m[0]!.toLowerCase()}',
-  );
+  String toSnake() =>
+      replaceAllMapped(RegExp(r'[A-Z]'), (m) => '_${m[0]!.toLowerCase()}');
 }

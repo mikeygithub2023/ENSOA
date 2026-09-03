@@ -68,13 +68,25 @@ class DashboardGarage extends ConsumerWidget {
 
     final alertes = <Alerte>[
       for (final r in ouvertes)
-        Alerte('En réparation — ${r.pannesConstatees}', versParc),
+        Alerte(
+          'En réparation — ${r.pannesConstatees}',
+          versParc,
+          icone: Icons.car_repair_rounded,
+        ),
       for (final v in vidangeRequise)
-        Alerte('${v.marque} ${v.modele} — vidange à prévoir', versParc),
+        Alerte(
+          '${v.marque} ${v.modele} — vidange à prévoir',
+          versParc,
+          icone: Icons.oil_barrel_rounded,
+        ),
       // Les tâches confiées par l'Officier Adjoint sont du travail du garage
       // au même titre qu'une panne : elles se lisent au même endroit.
       for (final t in mesTaches.where((t) => t.statut == StatutTache.aFaire))
-        Alerte('Tâche confiée — ${t.description}', versActivites),
+        Alerte(
+          'Tâche confiée — ${t.description}',
+          versActivites,
+          icone: Icons.assignment_turned_in_rounded,
+        ),
     ];
 
     final contenu = <Widget>[
@@ -142,7 +154,7 @@ class DashboardGarage extends ConsumerWidget {
               ),
               const Divider(height: 1),
               DotProgressRow(
-                icon: Icons.build_rounded,
+                icon: Icons.car_repair_rounded,
                 iconColor: AppColors.navy,
                 title: 'Réparations',
                 subtitle: 'Interventions clôturées',
@@ -152,7 +164,7 @@ class DashboardGarage extends ConsumerWidget {
               ),
               const Divider(height: 1),
               DotProgressRow(
-                icon: Icons.report_gmailerrorred_rounded,
+                icon: Icons.car_crash_rounded,
                 iconColor: AppColors.danger,
                 title: 'Parc immobilisé',
                 subtitle: 'Véhicules hors service',
