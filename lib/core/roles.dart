@@ -268,11 +268,33 @@ const _permissionsLogistique = <RoleLogistique, Set<Permission>>{
   },
 };
 
+/// Tout ce que l'ERP sait faire, moins ce qui n'a de sens que pour un autre.
+///
+/// L'administrateur commande l'école : il lui faut la main sur chaque
+/// rubrique, sans exception. Écrit comme un complément plutôt que comme une
+/// liste, pour une raison vérifiée : la liste qu'il fallait tenir à jour
+/// l'avait laissé sans accès aux consultations ni aux visites médicales,
+/// sans que rien ne le signale. Une permission ajoutée demain lui reviendra
+/// d'office.
+///
+/// Les deux exceptions ne sont pas des rubriques de l'ERP mais des vues
+/// personnelles : « Mon espace » montre le dossier d'un élève — il n'en est
+/// pas un —, et « Mes tâches » celles qu'un service a reçues de l'Officier
+/// Adjoint — il n'en reçoit aucune, et voit déjà toutes celles de l'équipe.
+/// Les lui ouvrir n'ajouterait que deux écrans vides.
+final Set<Permission> _toutPouvoir = Permission.values.toSet()
+  ..removeAll({Permission.voirSonEspaceEleve, Permission.voirMesTaches});
+
 /// Les permissions d'un profil : l'union de ses deux rôles.
 Set<Permission> permissionsDe({
   RoleScolarite? scolarite,
   RoleLogistique? logistique,
 }) => {
+  // L'administrateur passe avant les tables : les siennes ne sont plus
+  // qu'un rappel de ce qu'il peut, non la source de son autorité.
+  if (scolarite == RoleScolarite.admin ||
+      logistique == RoleLogistique.administrateur)
+    ..._toutPouvoir,
   if (scolarite != null) ..._permissionsScolarite[scolarite]!,
   if (logistique != null) ..._permissionsLogistique[logistique]!,
 };
