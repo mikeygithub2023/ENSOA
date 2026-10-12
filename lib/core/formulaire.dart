@@ -34,7 +34,11 @@ bool validerFormulaire(BuildContext context, GlobalKey<FormState> cle) {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+            const Icon(
+              Icons.error_outline_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
             const SizedBox(width: 12),
             Expanded(child: Text(message)),
           ],

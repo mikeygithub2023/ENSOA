@@ -57,6 +57,12 @@ const POSTES_CREABLES: Record<string, string[]> = {
     "poste_police",
     "officier_adjoint",
     "profil_personnalise",
+    // Le chef du soutien technique arme ses trois services lui-meme, mais
+    // sans exclusivite : l'ecole est restee sans armurier parce que lui
+    // seul pouvait en nommer un.
+    "soutien_petrolier",
+    "garage",
+    "armurerie",
   ],
   chef_soutien_technique: ["soutien_petrolier", "garage", "armurerie"],
 };

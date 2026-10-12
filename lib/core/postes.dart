@@ -107,6 +107,14 @@ const postesCreables = <Poste, Set<Poste>>{
     Poste.postePolice,
     Poste.officierAdjoint,
     Poste.profilPersonnalise,
+
+    // Les trois services du soutien technique. Le chef du service les arme
+    // lui-même — il sait qui tient le dépôt de carburant —, mais la
+    // délégation ne lui en donne pas l'exclusivité : l'école a passé des
+    // semaines sans armurier parce que seul le chef pouvait en nommer un.
+    Poste.soutienPetrolier,
+    Poste.garage,
+    Poste.armurerie,
   },
   Poste.chefSoutienTechnique: {
     Poste.soutienPetrolier,

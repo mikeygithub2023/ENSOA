@@ -59,19 +59,29 @@ void main() {
     // cela, l'école ne pourrait pas se donner un second commandant.
     expect(sousSonAutorite, contains(Poste.administrateur));
 
-    // Les postes de service relèvent du chef du soutien technique ; ils lui
-    // restent fermés à dessein, et c'est la seule exception.
-    final deleguesAuChefST = postesCreables[Poste.chefSoutienTechnique] ?? {};
-    final jamaisCreables = Poste.values
+    // Aucun poste ne lui est fermé, pas même ceux que le chef du soutien
+    // technique arme habituellement. La délégation à ce dernier n'est pas une
+    // exclusivité : l'école est restée des semaines sans armurier parce que
+    // lui seul pouvait en nommer un.
+    //
+    // Le compte d'un élève fait exception : il s'ouvre depuis « Espaces
+    // élèves », par un autre chemin et à partir de sa fiche d'apprenant.
+    final horsDeSaMain = Poste.values
         .toSet()
         .difference(sousSonAutorite)
-        .difference(deleguesAuChefST)
         .difference({Poste.eleveStagiaire});
 
     expect(
-      jamaisCreables,
+      horsDeSaMain,
       isEmpty,
-      reason: 'postes que personne ne peut ouvrir : $jamaisCreables',
+      reason: "postes qu'il ne peut pas ouvrir : $horsDeSaMain",
+    );
+
+    // La délégation au chef du soutien technique subsiste : il arme ses trois
+    // services sans passer par l'administrateur.
+    expect(
+      postesCreables[Poste.chefSoutienTechnique],
+      containsAll({Poste.soutienPetrolier, Poste.garage, Poste.armurerie}),
     );
   });
 }

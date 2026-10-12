@@ -11,7 +11,6 @@ class Env {
       'sb_publishable_LCO8wMw7w7PFx56E1iH_LA_260paEgC';
 
   static const String appName = 'SIG ENSOA';
-  static const String appFullName =
-      "Système de Gestion Intégrée de L'ENSOA";
+  static const String appFullName = "Système de Gestion Intégrée de L'ENSOA";
   static const String appVersion = 'v1.0';
 }

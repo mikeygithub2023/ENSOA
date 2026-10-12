@@ -132,12 +132,13 @@ final routeurProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ChangerMotDePasseScreen(),
       ),
       ShellRoute(
-        builder: (context, state, child) => AppShell(
-          location: state.matchedLocation,
-          child: child,
-        ),
+        builder: (context, state, child) =>
+            AppShell(location: state.matchedLocation, child: child),
         routes: [
-          GoRoute(path: '/', builder: (context, state) => const AccueilScreen()),
+          GoRoute(
+            path: '/',
+            builder: (context, state) => const AccueilScreen(),
+          ),
 
           // Les fiches de la scolarité, désignées par identifiant. L'ordre
           // compte : `controles/:id` doit passer avant `:id`, sinon ce
