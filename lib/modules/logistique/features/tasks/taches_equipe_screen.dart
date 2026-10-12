@@ -107,7 +107,7 @@ class TachesEquipeScreen extends ConsumerWidget {
                 ),
                 title: Text(t.description),
                 subtitle: Text(
-                  '${activiteTitre(t.activiteId)} · ${t.acteur.label}'
+                  '${activiteTitre(t.activiteId)} · ${t.destinataire}'
                   '${t.dateLimite != null ? ' · Échéance ${df.format(t.dateLimite!)}' : ''}'
                   '${t.enRetard ? ' · EN RETARD' : ''}',
                 ),

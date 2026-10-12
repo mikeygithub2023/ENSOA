@@ -16,6 +16,8 @@ List<String> _chemins(RoleLogistique role) =>
     elementsPour(_profil(role)).map((e) => e.chemin).toList();
 
 void main() {
+  _profilPersonnalise();
+
   group('le tableau de bord', () {
     test("s'ouvre à l'administrateur", () {
       expect(
@@ -38,5 +40,24 @@ void main() {
         expect(_chemins(role), contains('/tableau-de-bord'));
       });
     }
+  });
+}
+
+/// Un service créé par l'administrateur ne tient aucun domaine de l'ERP : il
+/// reçoit du travail, et c'est tout.
+void _profilPersonnalise() {
+  test('un profil personnalisé ne voit que ses tâches', () {
+    final chemins = _chemins(RoleLogistique.profilPersonnalise);
+
+    expect(chemins, contains('/logistique/mes-taches'));
+    expect(chemins, contains('/tableau-de-bord'));
+
+    // Ce qui ne le regarde pas : les domaines de l'ERP.
+    expect(chemins, isNot(contains('/logistique/parc')));
+    expect(chemins, isNot(contains('/logistique/carburant')));
+    expect(chemins, isNot(contains('/logistique/armement')));
+    expect(chemins, isNot(contains('/scolarite/apprenants')));
+    expect(chemins, isNot(contains('/administration')));
+    expect(chemins, isNot(contains('/audit')));
   });
 }

@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 
 import '../../core/roles.dart';
 import '../../core/theme.dart';
+import '../../modules/logistique/data/models/oa.dart';
+import '../../modules/logistique/data/repositories/oa_providers.dart';
 import '../../shared/widgets/icone_arme.dart';
 import '../../models/profil.dart';
 import '../auth/providers/auth_providers.dart';
@@ -66,6 +68,11 @@ Widget _blocDuPoste(RoleLogistique? role) => switch (role) {
   RoleLogistique.garage => const _BlocGarage(),
   RoleLogistique.soutienPetrolier => const _BlocCarburant(),
   RoleLogistique.officierAdjoint => const _BlocActivites(),
+  // Un service créé ne tient aucun domaine de l'ERP : ce qu'il a à lire,
+  // ce sont ses tâches, et son tableau de bord les présente déjà rangées
+  // par activité. Lui servir les compteurs du soutien technique
+  // reproduirait l'erreur corrigée pour l'armurier.
+  RoleLogistique.profilPersonnalise => const _BlocMesTaches(),
   _ => const _BlocLogistique(),
 };
 
@@ -77,6 +84,7 @@ String _sectionDuPoste(RoleLogistique? role) => switch (role) {
   RoleLogistique.garage => 'Garage',
   RoleLogistique.soutienPetrolier => 'Soutien pétrolier',
   RoleLogistique.officierAdjoint => 'Activités',
+  RoleLogistique.profilPersonnalise => 'Mes tâches',
   _ => 'Soutien technique',
 };
 
@@ -926,6 +934,57 @@ class _BlocPolice extends ConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// L'accueil d'un service créé : ses tâches, et rien d'autre.
+class _BlocMesTaches extends ConsumerWidget {
+  const _BlocMesTaches();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final taches = ref
+        .watch(mesTachesProvider)
+        .where((t) => t.statut != StatutTache.annulee)
+        .toList();
+    final aFaire = taches.where((t) => t.statut == StatutTache.aFaire).toList();
+
+    return _GrilleDeTuiles(
+      tuiles: [
+        _Tuile(
+          icone: Icons.assignment_rounded,
+          valeur: '${aFaire.length}',
+          titre: 'Tâches à faire',
+          legende: 'Confiées, pas encore rendues',
+          couleur: aFaire.isEmpty ? AppColors.success : AppColors.blueDeep,
+        ),
+        _Tuile(
+          icone: Icons.schedule_rounded,
+          valeur: '${aFaire.where((t) => t.enRetard).length}',
+          titre: 'En retard',
+          legende: 'Au-delà de la date limite',
+          couleur: aFaire.any((t) => t.enRetard)
+              ? AppColors.danger
+              : AppColors.success,
+        ),
+        _Tuile(
+          icone: Icons.hourglass_bottom_rounded,
+          valeur:
+              '${taches.where((t) => t.statut == StatutTache.terminee).length}',
+          titre: 'En attente de visa',
+          legende: "Rendues à l'Officier Adjoint",
+          couleur: AppColors.warning,
+        ),
+        _Tuile(
+          icone: Icons.verified_rounded,
+          valeur:
+              '${taches.where((t) => t.statut == StatutTache.validee).length}',
+          titre: 'Validées',
+          legende: 'Travail clôturé',
+          couleur: AppColors.success,
+        ),
+      ],
     );
   }
 }

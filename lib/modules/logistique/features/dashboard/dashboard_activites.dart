@@ -61,7 +61,7 @@ class DashboardActivites extends ConsumerWidget {
     final parActeur = <String, int>{};
     for (final t in suivies) {
       if (t.statut == StatutTache.validee) continue;
-      parActeur[t.acteur.label] = (parActeur[t.acteur.label] ?? 0) + 1;
+      parActeur[t.destinataire] = (parActeur[t.destinataire] ?? 0) + 1;
     }
     final services = parActeur.entries.map((e) => (e.key, e.value)).toList()
       ..sort((a, b) => b.$2.compareTo(a.$2));

@@ -8,11 +8,12 @@ import '../../models/profil.dart';
 import '../../modules/logistique/features/admin/assistant_ia.dart';
 import '../../modules/scolarite/features/admin/espaces_eleves_screen.dart';
 import '../auth/providers/auth_providers.dart';
+import 'services_screen.dart';
 import 'modifier_compte_dialog.dart';
 import 'nouveau_compte_dialog.dart';
 import 'providers/comptes_providers.dart';
 
-enum _Rubrique { comptes, espacesEleves, assistant }
+enum _Rubrique { comptes, services, espacesEleves, assistant }
 
 /// L'administration : les comptes du personnel, et les espaces des élèves.
 ///
@@ -44,7 +45,9 @@ class _AdministrationScreenState extends ConsumerState<AdministrationScreen> {
         (moi.peut(Permission.administrerScolarite) ||
             moi.peut(Permission.administrerPlateforme));
 
-    if (!espaces && !assistant) return const _Comptes();
+    final services = moi != null && moi.peut(Permission.administrerPlateforme);
+
+    if (!espaces && !assistant && !services) return const _Comptes();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,6 +59,14 @@ class _AdministrationScreenState extends ConsumerState<AdministrationScreen> {
               label: Text('Comptes du personnel'),
               icon: Icon(Icons.badge_rounded, size: 18),
             ),
+            // Les services que l'école crée elle-même : seul l'administrateur
+            // les ouvre, et c'est lui qui nomme les comptes qui s'y rattachent.
+            if (services)
+              const ButtonSegment(
+                value: _Rubrique.services,
+                label: Text('Services'),
+                icon: Icon(Icons.workspaces_rounded, size: 18),
+              ),
             if (espaces)
               const ButtonSegment(
                 value: _Rubrique.espacesEleves,
@@ -78,6 +89,7 @@ class _AdministrationScreenState extends ConsumerState<AdministrationScreen> {
         Expanded(
           child: switch (_rubrique) {
             _Rubrique.comptes => const _Comptes(),
+            _Rubrique.services => const ServicesScreen(),
             _Rubrique.espacesEleves => const EspacesElevesScreen(),
             _Rubrique.assistant => const AssistantIa(),
           },

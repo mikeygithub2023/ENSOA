@@ -6,7 +6,17 @@ import 'package:sig_ensoa/modules/logistique/compat.dart';
 import '../../data/models/oa.dart';
 import '../../data/repositories/misc_providers.dart';
 import '../../data/repositories/oa_providers.dart';
+import 'package:sig_ensoa/features/administration/providers/profils_personnalises_providers.dart';
 import '../../shared/widgets/widgets.dart';
+
+/// Le destinataire d'une tâche, tel que la liste déroulante le manipule.
+///
+/// Deux familles cohabitent : les quatre services écrits dans le code et
+/// les profils que l'administrateur crée en base. Une clé de texte les
+/// réunit dans une seule liste — « acteur:garage », « profil:identifiant » —, ce
+/// qui évite deux listes côte à côte où l'on choisirait les deux.
+String _cleActeur(ActeurTache a) => 'acteur:${a.name}';
+String _cleProfil(String id) => 'profil:$id';
 
 /// Assigne une tâche, ou corrige une tâche déjà assignée — la même boîte
 /// pour les deux : les champs sont les mêmes, seul le verbe change.
@@ -27,7 +37,9 @@ class _TacheFormDialogState extends ConsumerState<TacheFormDialog> {
   late final _descriptionCtrl = TextEditingController(
     text: widget.tache?.description ?? '',
   );
-  late ActeurTache _acteur = widget.tache?.acteur ?? ActeurTache.st;
+  late String _destinataire = widget.tache?.profilPersonnaliseId != null
+      ? _cleProfil(widget.tache!.profilPersonnaliseId!)
+      : _cleActeur(widget.tache?.acteur ?? ActeurTache.st);
   late DateTime? _dateLimite = widget.tache?.dateLimite;
   bool _envoi = false;
 
@@ -64,15 +76,27 @@ class _TacheFormDialogState extends ConsumerState<TacheFormDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              DropdownButtonFormField<ActeurTache>(
+              DropdownButtonFormField<String>(
                 isExpanded: true,
-                initialValue: _acteur,
+                initialValue: _destinataire,
                 decoration: const InputDecoration(labelText: 'Acteur'),
                 items: [
                   for (final a in ActeurTache.values)
-                    DropdownMenuItem(value: a, child: Text(a.label)),
+                    DropdownMenuItem(
+                      value: _cleActeur(a),
+                      child: Text(a.label),
+                    ),
+                  // Les services créés par l'administrateur. Ceux qui ont
+                  // été retirés ne paraissent plus : on ne confie pas de
+                  // travail à un service dissous.
+                  for (final p in ref.watch(profilsPersonnalisesActifsProvider))
+                    DropdownMenuItem(
+                      value: _cleProfil(p.id),
+                      child: Text(p.libelle),
+                    ),
                 ],
-                onChanged: (v) => setState(() => _acteur = v ?? ActeurTache.st),
+                onChanged: (v) =>
+                    setState(() => _destinataire = v ?? _destinataire),
               ),
               const SizedBox(height: 12),
               TextFormField(
@@ -126,13 +150,26 @@ class _TacheFormDialogState extends ConsumerState<TacheFormDialog> {
     if (!validerFormulaire(context, _formKey)) return;
     setState(() => _envoi = true);
     final user = ref.read(sessionProvider)!.user;
+
+    final versProfil = _destinataire.startsWith('profil:');
+    final profilId = versProfil ? _destinataire.substring(7) : null;
+    final acteur = versProfil
+        ? null
+        : ActeurTache.values.firstWhere((a) => _cleActeur(a) == _destinataire);
+    final nomDestinataire = versProfil
+        ? ref
+              .read(profilsPersonnalisesActifsProvider)
+              .firstWhere((p) => p.id == profilId)
+              .libelle
+        : acteur!.label;
     try {
       if (_correction) {
         await ref
             .read(tachesProvider.notifier)
             .modifier(
               id: widget.tache!.id,
-              acteur: _acteur,
+              acteur: acteur,
+              profilPersonnaliseId: profilId,
               description: _descriptionCtrl.text.trim(),
               dateLimite: _dateLimite,
             );
@@ -141,7 +178,8 @@ class _TacheFormDialogState extends ConsumerState<TacheFormDialog> {
             .read(tachesProvider.notifier)
             .assigner(
               activiteId: widget.activite.id,
-              acteur: _acteur,
+              acteur: acteur,
+              profilPersonnaliseId: profilId,
               description: _descriptionCtrl.text.trim(),
               dateLimite: _dateLimite,
               titreActivite: widget.activite.titre,
@@ -153,7 +191,7 @@ class _TacheFormDialogState extends ConsumerState<TacheFormDialog> {
             auteurId: user.id,
             action: _correction ? 'TACHE_MODIFIEE' : 'TACHE_ASSIGNEE',
             cible: widget.activite.titre,
-            detail: '${_acteur.label} — ${_descriptionCtrl.text.trim()}',
+            detail: '$nomDestinataire — ${_descriptionCtrl.text.trim()}',
           );
       if (mounted) {
         showSuccessSnackBar(

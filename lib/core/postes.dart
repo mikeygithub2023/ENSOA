@@ -30,6 +30,11 @@ enum Poste {
   armurerie,
   postePolice,
   officierAdjoint,
+
+  /// Un service créé en base plutôt qu'écrit ici. Le poste est unique ; le
+  /// service qu'il désigne se choisit à l'ouverture du compte, dans le
+  /// catalogue que tient l'administrateur.
+  profilPersonnalise,
 }
 
 /// Les rôles que pose chaque poste. Un `null` d'un côté veut dire que le
@@ -47,6 +52,7 @@ const rolesDuPoste = <Poste, (RoleScolarite?, RoleLogistique?)>{
   Poste.armurerie: (null, RoleLogistique.armurerie),
   Poste.postePolice: (null, RoleLogistique.postePolice),
   Poste.officierAdjoint: (null, RoleLogistique.officierAdjoint),
+  Poste.profilPersonnalise: (null, RoleLogistique.profilPersonnalise),
 };
 
 extension PosteLibelle on Poste {
@@ -63,6 +69,7 @@ extension PosteLibelle on Poste {
     Poste.armurerie => 'Armurerie',
     Poste.postePolice => 'Poste de Police',
     Poste.officierAdjoint => 'Officier Adjoint',
+    Poste.profilPersonnalise => 'Profil personnalisé',
   };
 
   RoleScolarite? get roleScolarite => rolesDuPoste[this]!.$1;
@@ -99,6 +106,7 @@ const postesCreables = <Poste, Set<Poste>>{
     Poste.chefSoutienTechnique,
     Poste.postePolice,
     Poste.officierAdjoint,
+    Poste.profilPersonnalise,
   },
   Poste.chefSoutienTechnique: {
     Poste.soutienPetrolier,

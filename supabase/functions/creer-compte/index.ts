@@ -24,6 +24,10 @@ const socle = () => adminClient.schema("socle");
 /// pour l'école, un seul administrateur pour les deux modules.
 const ROLES_DU_POSTE: Record<string, [string | null, string | null]> = {
   administrateur: ["admin", "administrateur"],
+  // Tous les services créés par l'administrateur portent ce même rôle ; la
+  // ligne `profil_personnalise_id` dit lequel. Une valeur de rôle par
+  // service aurait demandé une migration à chaque création.
+  profil_personnalise: [null, "profil_personnalise"],
   chef_division: ["chef_division", null],
   commandant_promotion: ["commandant_promotion", null],
   commandant_brigade: ["commandant_brigade", null],
@@ -52,6 +56,7 @@ const POSTES_CREABLES: Record<string, string[]> = {
     "chef_soutien_technique",
     "poste_police",
     "officier_adjoint",
+    "profil_personnalise",
   ],
   chef_soutien_technique: ["soutien_petrolier", "garage", "armurerie"],
 };
@@ -122,7 +127,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { matricule, nom, prenom, grade, poste, motDePasse, titre, divisionId, promotionId, celluleId } = body as {
+    const { matricule, nom, prenom, grade, poste, motDePasse, titre, divisionId, promotionId, celluleId, profilPersonnaliseId } = body as {
       matricule: string;
       nom: string;
       prenom: string;
@@ -133,6 +138,7 @@ Deno.serve(async (req) => {
       divisionId: string | null;
       promotionId: string | null;
       celluleId: number | null;
+      profilPersonnaliseId: string | null;
     };
 
     if (!matricule || !nom || !poste || !motDePasse) {
@@ -154,6 +160,30 @@ Deno.serve(async (req) => {
 
     const roles = ROLES_DU_POSTE[poste];
     if (!roles) return reponse({ error: `Poste inconnu : ${poste}.` }, 400);
+
+    // Un compte « profil personnalisé » sans service désigné serait membre
+    // d'une famille sans en être d'aucun service : il ne verrait jamais une
+    // seule tâche, et rien à l'écran ne dirait pourquoi. La base porte la
+    // même contrainte ; on refuse ici pour donner un message lisible.
+    if (poste === "profil_personnalise" && !profilPersonnaliseId) {
+      return reponse({ error: "Ce poste demande un service : choisissez-le." }, 400);
+    }
+    if (poste !== "profil_personnalise" && profilPersonnaliseId) {
+      return reponse({ error: "Ce poste ne se rattache à aucun service." }, 400);
+    }
+
+    // Le service doit exister et être encore ouvert : on n'affecte personne
+    // à un service dissous.
+    if (profilPersonnaliseId) {
+      const { data: service } = await socle()
+        .from("profil_personnalise")
+        .select("id, actif")
+        .eq("id", profilPersonnaliseId)
+        .maybeSingle();
+      if (!service || service.actif !== true) {
+        return reponse({ error: "Service inconnu ou retiré." }, 400);
+      }
+    }
 
     const email = emailDepuisMatricule(matricule);
 
@@ -193,6 +223,7 @@ Deno.serve(async (req) => {
             ? promotionId
             : null,
         cellule_id: celluleId,
+        profil_personnalise_id: profilPersonnaliseId,
         actif: true,
         // Le mot de passe posé ici est connu de celui qui ouvre le compte :
         // il devra être remplacé à la première connexion, sans quoi deux

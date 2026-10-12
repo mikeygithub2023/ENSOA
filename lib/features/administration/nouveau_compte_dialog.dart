@@ -10,6 +10,7 @@ import '../../core/theme.dart';
 import '../../modules/scolarite/models/division.dart';
 import '../../modules/scolarite/models/promotion.dart';
 import '../auth/providers/auth_providers.dart';
+import 'providers/profils_personnalises_providers.dart';
 import 'providers/comptes_providers.dart';
 
 /// Ouverture d'un compte. On choisit un poste ; les rôles suivent.
@@ -37,6 +38,10 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
   Poste? _poste;
   String? _divisionId;
   String? _promotionId;
+
+  /// Le service créé auquel rattacher ce compte. Obligatoire pour le poste
+  /// « profil personnalisé », inutile pour tous les autres.
+  String? _profilPersonnaliseId;
 
   /// Un commandant de brigade commande une promotion, pas une division : la
   /// RLS le borne aux phases de cette promotion et aux élèves qui y sont
@@ -88,6 +93,7 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
             prenom: _prenom.text.trim(),
             grade: _grade.text.trim().isEmpty ? null : _grade.text.trim(),
             poste: _poste!,
+            profilPersonnaliseId: _profilPersonnaliseId,
             motDePasse: _motDePasse.text,
             titre: _titre.text.trim().isEmpty ? null : _titre.text.trim(),
             divisionId: _divisionId,
@@ -206,6 +212,51 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                               : null,
                         ),
                       ),
+                ] else if (_poste == Poste.profilPersonnalise) ...[
+                  const SizedBox(height: 16),
+                  Builder(
+                    builder: (context) {
+                      final profils = ref.watch(
+                        profilsPersonnalisesActifsProvider,
+                      );
+                      if (profils.isEmpty) {
+                        // Mieux vaut le dire que proposer une liste vide :
+                        // l'administrateur saurait qu'il manque quelque
+                        // chose sans savoir quoi.
+                        return const Text(
+                          'Aucun service créé pour le moment. Créez-en un '
+                          'depuis « Services » avant d\'ouvrir ce compte.',
+                          style: TextStyle(
+                            color: AppColors.danger,
+                            fontSize: 12,
+                          ),
+                        );
+                      }
+                      return DropdownButtonFormField<String>(
+                        initialValue: _profilPersonnaliseId,
+                        isExpanded: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Service',
+                          helperText:
+                              'Il ne verra que les tâches confiées à ce '
+                              'service.',
+                          helperMaxLines: 2,
+                        ),
+                        items: [
+                          for (final p in profils)
+                            DropdownMenuItem(
+                              value: p.id,
+                              child: Text(p.libelle),
+                            ),
+                        ],
+                        onChanged: (v) =>
+                            setState(() => _profilPersonnaliseId = v),
+                        validator: (v) => v == null
+                            ? 'Choisissez le service de ce compte'
+                            : null,
+                      );
+                    },
+                  ),
                 ] else if (_divisionObligatoire) ...[
                   const SizedBox(height: 16),
                   divisions.when(

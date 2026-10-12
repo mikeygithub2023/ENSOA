@@ -92,7 +92,7 @@ class _ValidationsTabContentState extends ConsumerState<ValidationsTabContent> {
               ),
               title: Text(t.description),
               subtitle: Text(
-                '${activiteTitre(t.activiteId)} · ${t.acteur.label}'
+                '${activiteTitre(t.activiteId)} · ${t.destinataire}'
                 '${t.termineeLe != null ? ' · terminée le ${df.format(t.termineeLe!)}' : ''}'
                 '${t.commentaire != null ? '\n${t.commentaire}' : ''}',
               ),

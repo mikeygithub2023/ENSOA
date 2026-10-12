@@ -1,0 +1,21 @@
+-- ============================================================================
+-- Un rôle de plus : « profil personnalisé ».
+--
+-- L'école a des services que le code ne connaît pas et ne peut pas connaître
+-- d'avance — intendance, service des sports, section transmissions. On ne va
+-- pas recompiler l'application chaque fois qu'il en naît un : l'administrateur
+-- les crée lui-même, et l'Officier Adjoint leur confie des tâches comme aux
+-- quatre services d'origine.
+--
+-- POURQUOI UNE SEULE VALEUR POUR TOUS CES PROFILS. Le rôle dit à quelle
+-- famille on appartient ; la table `socle.profil_personnalise` dit lequel on
+-- est. Une valeur d'énumération par profil créé aurait demandé une migration
+-- à chaque fois — c'est précisément ce qu'on veut éviter — et les quatre-vingts
+-- règles d'accès qui nomment les rôles seraient devenues impossibles à tenir.
+--
+-- Cette migration ne contient que l'ajout de la valeur. PostgreSQL refuse
+-- qu'une valeur d'énumération soit ajoutée puis utilisée dans la même
+-- transaction ; tout le reste est dans la migration suivante.
+-- ============================================================================
+
+alter type socle.user_role add value if not exists 'profil_personnalise';

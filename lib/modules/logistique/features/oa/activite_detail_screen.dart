@@ -204,7 +204,7 @@ class ActiviteDetailScreen extends ConsumerWidget {
                         ),
                         title: Text(t.description),
                         subtitle: Text(
-                          '${t.acteur.label}'
+                          '${t.destinataire}'
                           '${t.dateLimite != null ? ' · Échéance ${df.format(t.dateLimite!)}' : ''}'
                           '${t.enRetard ? ' · EN RETARD' : ''}'
                           '${t.commentaire != null ? '\n${t.commentaire}' : ''}',

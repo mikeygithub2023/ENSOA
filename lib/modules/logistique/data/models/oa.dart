@@ -112,7 +112,18 @@ class Activite {
 class TacheActivite {
   final String id;
   final String activiteId;
-  final ActeurTache acteur;
+
+  /// Le service d'origine à qui la tâche est confiée — null quand elle va
+  /// à un profil créé en base. Exactement l'un des deux est renseigné ; la
+  /// base le vérifie, car une tâche sans destinataire ne paraîtrait sur
+  /// l'écran de personne.
+  final ActeurTache? acteur;
+
+  final String? profilPersonnaliseId;
+
+  /// Le nom du service, lu en même temps que la tâche. Sans lui, l'écran
+  /// afficherait un identifiant.
+  final String? profilPersonnaliseLibelle;
   final String description;
   final DateTime? dateLimite;
   final StatutTache statut;
@@ -124,7 +135,9 @@ class TacheActivite {
   const TacheActivite({
     required this.id,
     required this.activiteId,
-    required this.acteur,
+    this.acteur,
+    this.profilPersonnaliseId,
+    this.profilPersonnaliseLibelle,
     required this.description,
     this.dateLimite,
     this.statut = StatutTache.aFaire,
@@ -133,6 +146,10 @@ class TacheActivite {
     this.valideeLe,
     this.commentaire,
   });
+
+  /// Comment on nomme son destinataire à l'écran.
+  String get destinataire =>
+      acteur?.label ?? profilPersonnaliseLibelle ?? 'Service retiré';
 
   bool get enRetard =>
       statut == StatutTache.aFaire &&

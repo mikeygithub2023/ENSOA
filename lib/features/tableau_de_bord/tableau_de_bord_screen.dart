@@ -7,6 +7,7 @@ import '../../modules/logistique/features/dashboard/dashboard_activites.dart';
 import '../../modules/logistique/features/dashboard/dashboard_armurerie.dart';
 import '../../modules/logistique/features/dashboard/dashboard_carburant.dart';
 import '../../modules/logistique/features/dashboard/dashboard_garage.dart';
+import '../../modules/logistique/features/dashboard/dashboard_profil.dart';
 import '../../modules/logistique/features/dashboard/dashboard_screen.dart'
     as logistique;
 import '../../modules/scolarite/features/dashboard/dashboard_screen.dart'
@@ -69,6 +70,9 @@ Widget _tableauDuPoste(RoleLogistique? role) => switch (role) {
   RoleLogistique.garage => const DashboardGarage(sansCadre: true),
   RoleLogistique.soutienPetrolier => const DashboardCarburant(sansCadre: true),
   RoleLogistique.officierAdjoint => const DashboardActivites(sansCadre: true),
+  RoleLogistique.profilPersonnalise => const DashboardProfilPersonnalise(
+    sansCadre: true,
+  ),
   _ => const logistique.DashboardScreen(sansCadre: true),
 };
 
@@ -79,6 +83,9 @@ String _domaine(RoleLogistique? role) => switch (role) {
   RoleLogistique.garage => 'Garage',
   RoleLogistique.soutienPetrolier => 'Soutien pétrolier',
   RoleLogistique.officierAdjoint => 'Activités',
+  // Le vrai nom du service se lit en base ; le titre de domaine se
+  // contente de dire de quoi il s'agit.
+  RoleLogistique.profilPersonnalise => 'Mes tâches',
   _ => 'Soutien technique',
 };
 

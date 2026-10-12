@@ -4,6 +4,7 @@ import 'package:sig_ensoa/core/roles.dart';
 import 'package:sig_ensoa/modules/logistique/compat.dart';
 import 'package:sig_ensoa/core/supabase_client.dart';
 import 'package:sig_ensoa/core/chargement.dart';
+import 'package:sig_ensoa/features/auth/providers/auth_providers.dart';
 import '../models/notification_item.dart';
 import '../models/oa.dart';
 import 'misc_providers.dart';
@@ -122,7 +123,9 @@ StatutTache _statutTacheFromDb(String v) {
 TacheActivite _tacheFromRow(Map<String, dynamic> row) => TacheActivite(
   id: row['id'].toString(),
   activiteId: row['activite_id'].toString(),
-  acteur: _acteurFromDb(row['acteur'] as String),
+  acteur: row['acteur'] == null ? null : _acteurFromDb(row['acteur'] as String),
+  profilPersonnaliseId: row['profil_personnalise_id']?.toString(),
+  profilPersonnaliseLibelle: row['_libelle_profil'] as String?,
   description: row['description'] as String,
   dateLimite: row['date_limite'] != null
       ? DateTime.parse(row['date_limite'] as String)
@@ -150,33 +153,85 @@ class TachesNotifier extends Notifier<List<TacheActivite>> {
         .from('tache_activite')
         .select()
         .order('date_limite');
-    state = (rows as List)
-        .map((r) => _tacheFromRow(r as Map<String, dynamic>))
-        .toList();
+    final lignes = (rows as List).cast<Map<String, dynamic>>();
+
+    // Le nom du service créé se lit dans `socle`, la tâche dans
+    // `logistique` : deux schémas, donc deux requêtes. Les faire joindre
+    // par PostgREST demanderait qu'il traverse les schémas, ce qui dépend
+    // de sa configuration et casserait sans prévenir. Le catalogue tient en
+    // quelques lignes ; une requête de plus ne coûte rien.
+    final aResoudre = lignes
+        .where((l) => l['profil_personnalise_id'] != null)
+        .isNotEmpty;
+    if (aResoudre) {
+      final profils = await socle
+          .from('profil_personnalise')
+          .select('id, libelle');
+      final parId = {
+        for (final p in (profils as List).cast<Map<String, dynamic>>())
+          p['id'].toString(): p['libelle'] as String,
+      };
+      for (final l in lignes) {
+        final id = l['profil_personnalise_id']?.toString();
+        if (id != null) l['_libelle_profil'] = parId[id];
+      }
+    }
+
+    state = lignes.map(_tacheFromRow).toList();
     ref.read(chargementProvider.notifier).marquerCharge('taches');
   }
 
+  /// Confie une tâche, soit à l'un des quatre services d'origine, soit à un
+  /// profil créé en base. Exactement l'un des deux : la base le vérifie, et
+  /// l'écran n'offre jamais les deux à la fois.
   Future<void> assigner({
     required String activiteId,
-    required ActeurTache acteur,
+    ActeurTache? acteur,
+    String? profilPersonnaliseId,
     required String description,
     DateTime? dateLimite,
     required String titreActivite,
   }) async {
+    assert(
+      (acteur == null) != (profilPersonnaliseId == null),
+      'une tâche a un destinataire, et un seul',
+    );
     await logistique.from('tache_activite').insert({
       'activite_id': int.parse(activiteId),
-      'acteur': acteur.name,
+      'acteur': acteur?.name,
+      'profil_personnalise_id': profilPersonnaliseId,
       'description': description,
       'date_limite': dateLimite?.toIso8601String(),
     });
-    await ref
-        .read(notificationsProvider.notifier)
-        .creer(
-          categorie: NotificationCategory.activite,
-          titre: 'Nouvelle tâche assignée',
-          message: '$titreActivite — $description',
-          roleCible: acteur.role,
-        );
+
+    // Une notification par rôle ne sait pas distinguer deux profils créés :
+    // ils portent le même. On vise donc les comptes de ce profil, nommément.
+    if (profilPersonnaliseId == null) {
+      await ref
+          .read(notificationsProvider.notifier)
+          .creer(
+            categorie: NotificationCategory.activite,
+            titre: 'Nouvelle tâche assignée',
+            message: '$titreActivite — $description',
+            roleCible: acteur!.role,
+          );
+    } else {
+      final comptes = await socle
+          .from('profiles')
+          .select('id')
+          .eq('profil_personnalise_id', profilPersonnaliseId)
+          .eq('actif', true);
+      for (final c in (comptes as List).cast<Map<String, dynamic>>()) {
+        await ref
+            .read(notificationsProvider.notifier)
+            .creer(
+              categorie: NotificationCategory.activite,
+              titre: 'Nouvelle tâche assignée',
+              message: '$titreActivite — $description',
+              destinataireId: c['id'].toString(),
+            );
+      }
+    }
     await refresh();
   }
 
@@ -184,14 +239,20 @@ class TachesNotifier extends Notifier<List<TacheActivite>> {
   /// l'officier adjoint, comme l'assignation : la RLS le vérifie.
   Future<void> modifier({
     required String id,
-    required ActeurTache acteur,
+    ActeurTache? acteur,
+    String? profilPersonnaliseId,
     required String description,
     DateTime? dateLimite,
   }) async {
+    assert(
+      (acteur == null) != (profilPersonnaliseId == null),
+      'une tâche a un destinataire, et un seul',
+    );
     await logistique
         .from('tache_activite')
         .update({
-          'acteur': acteur.name,
+          'acteur': acteur?.name,
+          'profil_personnalise_id': profilPersonnaliseId,
           'description': description,
           'date_limite': dateLimite?.toIso8601String(),
         })
@@ -223,7 +284,7 @@ class TachesNotifier extends Notifier<List<TacheActivite>> {
         .creer(
           categorie: NotificationCategory.activite,
           titre: 'Tâche terminée — à valider',
-          message: '${tache.description} (${tache.acteur.label})',
+          message: '${tache.description} (${tache.destinataire})',
           roleCible: RoleLogistique.officierAdjoint,
         );
     await refresh();
@@ -244,7 +305,10 @@ class TachesNotifier extends Notifier<List<TacheActivite>> {
           categorie: NotificationCategory.activite,
           titre: 'Tâche validée',
           message: tache.description,
-          roleCible: tache.acteur.role,
+          // Une tâche confiée à un profil créé revient à ses comptes
+          // nommément : tous les profils créés partagent le même rôle, et
+          // viser le rôle préviendrait les services voisins.
+          roleCible: tache.acteur?.role,
         );
     await refresh();
   }
@@ -264,6 +328,19 @@ final tachesEnAttenteValidationProvider = Provider<List<TacheActivite>>(
 /// Tâches assignées à l'acteur correspondant au rôle actuellement connecté —
 /// null (donc liste vide) si ce rôle n'a pas d'acteur (ex. soutien pétrolier).
 final mesTachesProvider = Provider<List<TacheActivite>>((ref) {
+  // Un profil créé reconnaît les siennes à son identifiant, non à son rôle :
+  // tous les profils créés portent le même rôle.
+  final monProfil = ref
+      .watch(profilCourantProvider)
+      .value
+      ?.profilPersonnaliseId;
+  if (monProfil != null) {
+    return ref
+        .watch(tachesProvider)
+        .where((t) => t.profilPersonnaliseId == monProfil)
+        .toList();
+  }
+
   final role = ref.watch(sessionProvider)?.user.role;
   if (role == null) return [];
   final acteur = acteurPourRole(role);

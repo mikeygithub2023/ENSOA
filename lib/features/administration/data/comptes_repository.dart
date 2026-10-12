@@ -29,6 +29,10 @@ class ComptesRepository {
     String? divisionId,
     String? promotionId,
     int? celluleId,
+
+    /// Le service créé auquel ce compte appartient, quand le poste est
+    /// « profil personnalisé ». La fonction serveur le refuse s'il manque.
+    String? profilPersonnaliseId,
   }) async {
     final reponse = await supabase.functions.invoke(
       'creer-compte',
@@ -46,6 +50,7 @@ class ComptesRepository {
         // vide.
         'promotionId': promotionId,
         'celluleId': celluleId,
+        'profilPersonnaliseId': profilPersonnaliseId,
       },
     );
     _verifier(reponse.status, reponse.data);

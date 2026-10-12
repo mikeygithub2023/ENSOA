@@ -12,6 +12,7 @@ class Profil {
     this.titre,
     this.roleScolarite,
     this.roleLogistique,
+    this.profilPersonnaliseId,
     this.divisionId,
     this.celluleId,
     this.promotionId,
@@ -39,6 +40,10 @@ class Profil {
   final RoleScolarite? roleScolarite;
   final RoleLogistique? roleLogistique;
 
+  /// Le service créé en base auquel ce compte appartient, quand son rôle
+  /// est [RoleLogistique.profilPersonnalise]. Null pour tous les autres.
+  final String? profilPersonnaliseId;
+
   /// La division d'enseignement (scolarité) et la cellule du service
   /// (soutien technique). Un agent peut relever des deux.
   final String? divisionId;
@@ -59,8 +64,9 @@ class Profil {
 
   /// L'identité telle qu'on désigne un militaire : le grade, puis le nom. Le
   /// personnel civil n'ayant pas de grade, on retombe sur le seul nom.
-  String get identiteComplete =>
-      (grade == null || grade!.trim().isEmpty) ? nomComplet : '${grade!.trim()} $nomComplet';
+  String get identiteComplete => (grade == null || grade!.trim().isEmpty)
+      ? nomComplet
+      : '${grade!.trim()} $nomComplet';
 
   /// Les permissions cumulées des deux rôles.
   Set<Permission> get permissions =>
@@ -89,10 +95,12 @@ class Profil {
     titre: json['titre'] as String?,
     roleScolarite: roleScolariteDepuisDb(json['role'] as String?),
     roleLogistique: roleLogistiqueDepuisDb(json['role_logistique'] as String?),
+    profilPersonnaliseId: json['profil_personnalise_id']?.toString(),
     divisionId: json['division_id'] as String?,
     celluleId: json['cellule_id'] as int?,
     promotionId: json['promotion_id'] as String?,
     actif: (json['actif'] as bool?) ?? true,
-    doitChangerMotDePasse: (json['doit_changer_mot_de_passe'] as bool?) ?? false,
+    doitChangerMotDePasse:
+        (json['doit_changer_mot_de_passe'] as bool?) ?? false,
   );
 }

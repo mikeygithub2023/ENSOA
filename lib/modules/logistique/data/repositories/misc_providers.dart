@@ -390,6 +390,8 @@ String _roleToDb(RoleLogistique role) {
       return 'sante';
     case RoleLogistique.administrateur:
       return 'administrateur';
+    case RoleLogistique.profilPersonnalise:
+      return 'profil_personnalise';
   }
 }
 

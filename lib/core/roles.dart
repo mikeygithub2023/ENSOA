@@ -61,6 +61,13 @@ enum RoleLogistique {
   officierAdjoint,
   sante,
   administrateur,
+
+  /// Les services que l'école crée elle-même — intendance, sports,
+  /// transmissions. Une seule valeur pour tous : le rôle dit la famille,
+  /// la table `socle.profil_personnalise` dit lequel. Une valeur par profil
+  /// aurait demandé de recompiler l'application à chaque service nouveau,
+  /// ce qui est exactement ce qu'on veut éviter.
+  profilPersonnalise,
 }
 
 const _valeursLogistique = {
@@ -72,6 +79,7 @@ const _valeursLogistique = {
   RoleLogistique.officierAdjoint: 'officier_adjoint',
   RoleLogistique.sante: 'sante',
   RoleLogistique.administrateur: 'administrateur',
+  RoleLogistique.profilPersonnalise: 'profil_personnalise',
 };
 
 extension RoleLogistiqueDb on RoleLogistique {
@@ -86,6 +94,9 @@ extension RoleLogistiqueDb on RoleLogistique {
     RoleLogistique.officierAdjoint => 'Officier Adjoint',
     RoleLogistique.sante => 'Service Santé',
     RoleLogistique.administrateur => 'Administrateur plateforme',
+    // Le vrai nom du service se lit en base ; celui-ci ne paraît que là où
+    // l'on n'a pas encore chargé le catalogue.
+    RoleLogistique.profilPersonnalise => 'Profil personnalisé',
   };
 }
 
@@ -244,6 +255,13 @@ const _permissionsLogistique = <RoleLogistique, Set<Permission>>{
     Permission.gererActivites,
   },
   RoleLogistique.sante: {Permission.voirMesTaches},
+
+  // Un profil personnalisé existe pour recevoir du travail, non pour ouvrir
+  // l'ERP : ses tâches, et le tableau qui les présente. Rien d'autre.
+  RoleLogistique.profilPersonnalise: {
+    Permission.voirMesTaches,
+    Permission.voirTableauBordLogistique,
+  },
   // L'administrateur voit tout le soutien technique et les activités de
   // l'officier adjoint : ses rubriques figurent dans le menu comme celles
   // d'un chef de service.
