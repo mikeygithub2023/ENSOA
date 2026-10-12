@@ -124,9 +124,16 @@ create policy "tache update profil" on logistique.tache_activite
 -- nommait que l'Officier Adjoint ; elle reste telle quelle.
 
 -- --- Il lit l'activité dont relève sa tâche ---------------------------------
--- Sans cela, son tableau de bord afficherait des tâches rattachées à un
--- identifiant d'activité qu'il ne peut pas résoudre : « faire le plein »
--- sans savoir pour quelle cérémonie ni pour quelle date.
+-- Son tableau de bord range ses tâches sous l'activité qui les a demandées :
+-- « faire le plein » ne dit rien sans la cérémonie et sa date.
+--
+-- VÉRIFIÉ APRÈS COUP, ET À CORRIGER UN JOUR : cette politique ne restreint
+-- rien aujourd'hui. La politique « activite select » d'origine ouvre la table
+-- à tout compte connecté, et les politiques permissives s'additionnent — un
+-- profil créé lit donc les vingt-neuf activités de l'école, pas seulement les
+-- siennes. Celle-ci garde néanmoins son sens : le jour où la lecture des
+-- activités sera resserrée, elle lui conservera les siennes sans qu'on ait à
+-- y repenser.
 drop policy if exists "activite select profil" on logistique.activite;
 create policy "activite select profil" on logistique.activite
   for select to authenticated using (
