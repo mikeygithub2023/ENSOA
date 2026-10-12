@@ -56,6 +56,24 @@ class ComptesRepository {
     _verifier(reponse.status, reponse.data);
   }
 
+  /// Pose un mot de passe provisoire sur le compte de quelqu'un d'autre.
+  ///
+  /// Passe par une fonction serveur : changer le mot de passe d'autrui
+  /// demande la clé `service_role`, qui ne doit jamais quitter le serveur.
+  /// Le compte est marqué « à changer » — celui qui pose le mot de passe le
+  /// connaît, et tant qu'il n'est pas remplacé, deux personnes peuvent
+  /// entrer sous la même identité.
+  Future<void> reinitialiserMotDePasse({
+    required String id,
+    required String motDePasse,
+  }) async {
+    final reponse = await supabase.functions.invoke(
+      'reinitialiser-mot-de-passe',
+      body: {'id': id, 'motDePasse': motDePasse},
+    );
+    _verifier(reponse.status, reponse.data);
+  }
+
   Future<void> supprimer(String id) async {
     final reponse = await supabase.functions.invoke(
       'supprimer-compte',

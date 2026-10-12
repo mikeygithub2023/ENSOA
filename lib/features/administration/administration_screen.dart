@@ -314,6 +314,14 @@ class _CarteState extends ConsumerState<_Carte> {
                 icon: const Icon(Icons.edit_outlined),
               ),
               if (revocable) ...[
+                // Débloquer quelqu'un qui a perdu son mot de passe. Pas
+                // pour soi : son propre mot de passe se change en le
+                // connaissant, dans l'écran prévu pour cela.
+                IconButton(
+                  tooltip: 'Réinitialiser le mot de passe',
+                  onPressed: _enCours ? null : _reinitialiser,
+                  icon: const Icon(Icons.lock_reset_rounded),
+                ),
                 IconButton(
                   tooltip: compte.actif ? 'Désactiver' : 'Réactiver',
                   onPressed: _enCours ? null : _basculerActivation,
@@ -374,6 +382,81 @@ class _CarteState extends ConsumerState<_Carte> {
     await _agir(
       () => ref.read(comptesRepositoryProvider).supprimer(widget.compte.id),
     );
+  }
+
+  /// Pose un mot de passe provisoire sur un compte qui n'est pas le sien.
+  ///
+  /// Jusqu'ici il fallait ouvrir la console Supabase pour débloquer un agent
+  /// qui avait perdu le sien : qui tient les comptes doit pouvoir les
+  /// rouvrir depuis l'application.
+  ///
+  /// Le mot de passe est saisi plutôt que tiré au hasard — l'administrateur
+  /// doit le dire à l'intéressé, et un mot de passe illisible se recopie
+  /// mal. Il devra être remplacé à la première connexion.
+  Future<void> _reinitialiser() async {
+    final ctrl = TextEditingController();
+    final cle = GlobalKey<FormState>();
+    final nouveau = await showDialog<String>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(
+          'Mot de passe de ${widget.compte.matricule ?? 'ce compte'}',
+        ),
+        content: SizedBox(
+          width: 400,
+          child: Form(
+            key: cle,
+            child: TextFormField(
+              controller: ctrl,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Mot de passe provisoire',
+                helperText:
+                    "Dites-le à l'intéressé : il devra le remplacer à sa "
+                    'première connexion.',
+                helperMaxLines: 2,
+              ),
+              validator: (v) => (v == null || v.trim().length < 8)
+                  ? 'Au moins 8 caractères'
+                  : null,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (cle.currentState?.validate() ?? false) {
+                Navigator.of(context).pop(ctrl.text.trim());
+              }
+            },
+            child: const Text('Réinitialiser'),
+          ),
+        ],
+      ),
+    );
+    ctrl.dispose();
+    if (nouveau == null || !mounted) return;
+
+    final messager = ScaffoldMessenger.of(context);
+    await _agir(
+      () => ref
+          .read(comptesRepositoryProvider)
+          .reinitialiserMotDePasse(id: widget.compte.id, motDePasse: nouveau),
+    );
+    if (mounted) {
+      messager.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Mot de passe réinitialisé. Il devra être changé à la première '
+            'connexion.',
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _agir(Future<void> Function() action) async {

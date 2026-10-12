@@ -13,6 +13,7 @@ final profilsPersonnalisesProvider =
       final rows = await socle
           .from('profil_personnalise')
           .select()
+          .isFilter('supprime_le', null)
           .order('libelle');
       return (rows as List)
           .map((r) => ProfilPersonnalise.fromJson(r as Map<String, dynamic>))
@@ -72,6 +73,23 @@ class ProfilsPersonnalisesRepository {
         .eq('id', id)
         .select('id');
     if (lignes.isEmpty) throw Exception('Changement refusé par le serveur.');
+  }
+
+  /// Supprime un service. Sa ligne survit — les tâches qu'il a reçues
+  /// gardent son nom, et les effacer trouerait l'historique des activités —
+  /// mais il disparaît de la liste, de la répartition et de l'ouverture de
+  /// compte.
+  ///
+  /// La base refuse si des comptes actifs y sont encore rattachés : ils
+  /// deviendraient membres d'un service invisible, sans rien voir et sans
+  /// que rien ne dise pourquoi.
+  Future<void> supprimer(String id) async {
+    final lignes = await socle
+        .from('profil_personnalise')
+        .update({'supprime_le': DateTime.now().toIso8601String()})
+        .eq('id', id)
+        .select('id');
+    if (lignes.isEmpty) throw Exception('Suppression refusée par le serveur.');
   }
 }
 

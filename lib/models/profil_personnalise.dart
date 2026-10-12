@@ -11,6 +11,7 @@ class ProfilPersonnalise {
     required this.libelle,
     this.description,
     this.actif = true,
+    this.supprime = false,
   });
 
   final String id;
@@ -22,11 +23,16 @@ class ProfilPersonnalise {
   /// trouerait l'historique des activités.
   final bool actif;
 
+  /// Supprimé : il ne paraît plus nulle part, mais sa ligne survit pour que
+  /// les tâches qu'il a reçues gardent son nom.
+  final bool supprime;
+
   factory ProfilPersonnalise.fromJson(Map<String, dynamic> json) =>
       ProfilPersonnalise(
         id: json['id'].toString(),
         libelle: json['libelle'] as String,
         description: json['description'] as String?,
         actif: (json['actif'] as bool?) ?? true,
+        supprime: json['supprime_le'] != null,
       );
 }

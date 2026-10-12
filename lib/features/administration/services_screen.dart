@@ -97,6 +97,14 @@ class _LigneService extends ConsumerWidget {
                   _ouvrirFormulaire(context, ref, service: service),
             ),
             IconButton(
+              tooltip: 'Supprimer',
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.danger,
+              ),
+              onPressed: () => _supprimer(context, ref, service),
+            ),
+            IconButton(
               tooltip: service.actif ? 'Retirer' : 'Remettre en service',
               icon: Icon(
                 service.actif
@@ -136,6 +144,60 @@ Future<void> _basculer(
               : '${service.libelle} remis en service.',
         ),
       ),
+    );
+  } catch (e) {
+    if (context.mounted) showErrorSnackBar(context, e);
+  }
+}
+
+/// Supprimer un service, sans effacer ce qu'il a fait.
+///
+/// Sa ligne survit en base : les tâches qu'il a reçues gardent son nom, et
+/// les effacer trouerait l'historique des activités. Il disparaît en
+/// revanche de cette liste, de la répartition des tâches et de l'ouverture
+/// d'un compte.
+///
+/// La différence avec « retirer » vaut d'être dite à l'écran : retirer met
+/// en pause et se défait, supprimer ne se défait pas.
+Future<void> _supprimer(
+  BuildContext context,
+  WidgetRef ref,
+  ProfilPersonnalise service,
+) async {
+  final messager = ScaffoldMessenger.of(context);
+  final confirme = await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: Text('Supprimer ${service.libelle} ?'),
+      content: const Text(
+        'Le service disparaîtra de la liste, de la répartition des tâches '
+        "et de l'ouverture des comptes. Les tâches qu'il a déjà reçues "
+        'restent lisibles sous son nom.\n\n'
+        'Cette suppression ne se défait pas. Pour une mise en pause, '
+        'utilisez plutôt « Retirer ».',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Annuler'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Supprimer'),
+        ),
+      ],
+    ),
+  );
+  if (confirme != true) return;
+
+  try {
+    await ref
+        .read(profilsPersonnalisesRepositoryProvider)
+        .supprimer(service.id);
+    ref.invalidate(profilsPersonnalisesProvider);
+    messager.showSnackBar(
+      SnackBar(content: Text('${service.libelle} supprimé.')),
     );
   } catch (e) {
     if (context.mounted) showErrorSnackBar(context, e);

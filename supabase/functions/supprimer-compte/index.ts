@@ -17,6 +17,7 @@ const socle = () => adminClient.schema("socle");
 
 const ROLES_DU_POSTE: Record<string, [string | null, string | null]> = {
   administrateur: ["admin", "administrateur"],
+  profil_personnalise: [null, "profil_personnalise"],
   chef_division: ["chef_division", null],
   commandant_promotion: ["commandant_promotion", null],
   commandant_brigade: ["commandant_brigade", null],
@@ -33,6 +34,7 @@ const ROLES_DU_POSTE: Record<string, [string | null, string | null]> = {
 const POSTES_CREABLES: Record<string, string[]> = {
   administrateur: [
     "administrateur",
+    "profil_personnalise",
     "chef_division",
     "commandant_promotion",
     "commandant_brigade",
