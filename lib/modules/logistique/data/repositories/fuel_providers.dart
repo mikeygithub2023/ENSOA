@@ -628,3 +628,116 @@ final journalCarburantProvider = Provider<List<JournalCarburantEntry>>((ref) {
   entries.sort((a, b) => b.date.compareTo(a.date));
   return entries;
 });
+
+// ---------------------------------------------------------------------------
+// Dépotage interne — la ventilation du carburant à l'intérieur d'une soute.
+// ---------------------------------------------------------------------------
+
+/// Le journal des transferts internes, du plus récent au plus ancien.
+///
+/// Les libellés de soute et de répartition sont résolus ici plutôt que par une
+/// jointure PostgREST : la table vit dans `logistique`, les répartitions
+/// aussi, mais l'embarquement traverserait deux clés étrangères vers la même
+/// table et se lit mal. Les catalogues tiennent en quelques lignes.
+class DepotagesInternesNotifier extends Notifier<List<DepotageInterne>> {
+  @override
+  List<DepotageInterne> build() {
+    Future.microtask(refresh);
+    return [];
+  }
+
+  Future<void> refresh() async {
+    final rows = await logistique
+        .from('depotage_interne')
+        .select()
+        .order('date', ascending: false);
+
+    final soutes = {for (final s in ref.read(soutesProvider)) s.id: s.libelle};
+    final repartitions = {
+      for (final r in ref.read(repartitionsProvider)) r.id: r.libelle,
+    };
+    final lignes = {
+      for (final s in ref.read(souteStocksProvider)) s.id: s.repartitionId,
+    };
+
+    String nomDe(Object? stockId) {
+      final repartitionId = lignes[stockId?.toString()];
+      return repartitions[repartitionId] ?? '—';
+    }
+
+    state = (rows as List).cast<Map<String, dynamic>>().map((r) {
+      final souteId = r['soute_id'].toString();
+      return DepotageInterne(
+        id: r['id'].toString(),
+        date: DateTime.parse(r['date'] as String),
+        souteId: souteId,
+        souteLibelle: soutes[souteId] ?? 'Soute retirée',
+        sourceLibelle: nomDe(r['source_stock_id']),
+        destinationLibelle: nomDe(r['destination_stock_id']),
+        typeCarburant: r['type_carburant'] as String,
+        quantite: r['quantite'] as int,
+        utilisateurId: r['utilisateur_id'].toString(),
+        motif: r['motif'] as String?,
+      );
+    }).toList();
+
+    ref.read(chargementProvider.notifier).marquerCharge('depotages_internes');
+  }
+
+  /// Transfère du carburant des « Activités Ordinaires » vers une autre
+  /// répartition de la même soute.
+  ///
+  /// Tout se passe dans la base, en une seule opération : le contrôle de
+  /// solde, le déplacement et l'écriture au journal. Le faire ici, en deux
+  /// mises à jour, laisserait du carburant disparaître si la seconde échouait
+  /// — et le contrôle de solde serait contournable, puisque cette application
+  /// est un binaire que son porteur contrôle.
+  Future<void> depoter({
+    required String souteId,
+    required String repartitionCibleId,
+    required String typeCarburant,
+    required int quantite,
+    String? motif,
+  }) async {
+    await logistique.rpc(
+      'depoter_en_interne',
+      params: {
+        'p_soute_id': int.parse(souteId),
+        'p_repartition_cible': int.parse(repartitionCibleId),
+        'p_type_carburant': typeCarburant,
+        'p_quantite': quantite,
+        'p_motif': motif,
+      },
+    );
+    await ref.read(souteStocksProvider.notifier).refresh();
+    await refresh();
+  }
+}
+
+final depotagesInternesProvider =
+    NotifierProvider<DepotagesInternesNotifier, List<DepotageInterne>>(
+      DepotagesInternesNotifier.new,
+    );
+
+/// Ce que contient la répartition d'accueil d'une soute, par carburant.
+///
+/// Sert à borner la saisie : proposer de ventiler plus que le disponible,
+/// c'est faire saisir une quantité que la base refusera.
+({int gasoil, int superCarburant}) disponibleEnAccueil(
+  WidgetRef ref,
+  String souteId,
+) {
+  final accueil = ref
+      .read(repartitionsProvider)
+      .where((r) => r.libelle == SouteStocksNotifier.activitesOrdinaires);
+  if (accueil.isEmpty) return (gasoil: 0, superCarburant: 0);
+
+  final ligne = ref
+      .read(souteStocksProvider)
+      .where(
+        (s) => s.souteId == souteId && s.repartitionId == accueil.first.id,
+      );
+  if (ligne.isEmpty) return (gasoil: 0, superCarburant: 0);
+
+  return (gasoil: ligne.first.qteGasoil, superCarburant: ligne.first.qteSuper);
+}

@@ -6,6 +6,7 @@ import 'package:sig_ensoa/modules/logistique/compat.dart';
 import 'package:sig_ensoa/core/theme.dart';
 import '../../data/repositories/fuel_providers.dart';
 import 'depotage_form_dialog.dart';
+import 'depotage_interne_form_dialog.dart';
 import 'depotages_tab.dart';
 import 'distribution_form_dialog.dart';
 import 'distributions_tab.dart';
@@ -27,7 +28,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() {});
@@ -54,9 +55,15 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
       case 1:
         ref.read(depotagesProvider.notifier).refresh();
       case 2:
+        // La ventilation lit les trois : les transferts, les niveaux
+        // qu'ils déplacent, et les répartitions qu'ils servent.
+        ref.read(souteStocksProvider.notifier).refresh();
+        ref.read(repartitionsProvider.notifier).refresh();
+        ref.read(depotagesInternesProvider.notifier).refresh();
+      case 3:
         ref.read(repartitionsProvider.notifier).refresh();
         ref.read(souteStocksProvider.notifier).refresh();
-      case 3:
+      case 4:
         ref.read(distributionsProvider.notifier).refresh();
     }
   }
@@ -70,6 +77,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
     final estChef =
         role == RoleLogistique.chefSoutienTechnique ||
         role == RoleLogistique.administrateur;
+    final estSoutier = role == RoleLogistique.soutienPetrolier;
 
     return Stack(
       children: [
@@ -96,6 +104,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
               tabs: const [
                 Tab(text: 'Soute'),
                 Tab(text: 'Dépotage'),
+                Tab(text: 'Ventilation'),
                 Tab(text: 'Répartitions'),
                 Tab(text: 'Distributions'),
               ],
@@ -107,6 +116,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
                 children: const [
                   SoutesTabContent(),
                   DepotagesTabContent(),
+                  DepotagesInternesTabContent(),
                   RepartitionsTabContent(),
                   DistributionsTabContent(),
                 ],
@@ -117,13 +127,13 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
         Positioned(
           right: 4,
           bottom: 12,
-          child: _fab(estChef) ?? const SizedBox.shrink(),
+          child: _fab(estChef, estSoutier) ?? const SizedBox.shrink(),
         ),
       ],
     );
   }
 
-  Widget? _fab(bool estChef) {
+  Widget? _fab(bool estChef, bool estSoutier) {
     switch (_tabController.index) {
       case 0:
         if (!estChef) return null;
@@ -146,6 +156,18 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
           label: const Text('Dépotage'),
         );
       case 2:
+        // La ventilation revient au soutien pétrolier autant qu'au chef :
+        // c'est lui qui tient la soute, et la base l'y autorise déjà.
+        if (!estChef && !estSoutier) return null;
+        return FloatingActionButton.extended(
+          onPressed: () => showDialog(
+            context: context,
+            builder: (_) => const DepotageInterneFormDialog(),
+          ),
+          icon: const Icon(Icons.call_split_rounded),
+          label: const Text('Ventiler'),
+        );
+      case 3:
         if (!estChef) return null;
         return FloatingActionButton.extended(
           onPressed: () => showDialog(
@@ -155,7 +177,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
           icon: const Icon(Icons.add),
           label: const Text('Nouvelle répartition'),
         );
-      case 3:
+      case 4:
         return FloatingActionButton.extended(
           onPressed: () => showDialog(
             context: context,

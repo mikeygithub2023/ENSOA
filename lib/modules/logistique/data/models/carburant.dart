@@ -113,3 +113,40 @@ class Distribution {
     this.motif,
   });
 }
+
+/// Un transfert interne : du carburant qui passe des « Activités Ordinaires »
+/// d'une soute à l'une de ses autres répartitions.
+///
+/// Ce n'est pas un dépotage, et il vit dans sa propre table. Un transfert ne
+/// fait pas entrer un litre de plus dans l'école : l'inscrire comme une
+/// réception gonflerait les entrées du jour avec du carburant qui n'est
+/// jamais arrivé.
+class DepotageInterne {
+  final String id;
+  final DateTime date;
+  final String souteId;
+  final String souteLibelle;
+
+  /// Toujours « Activités Ordinaires » — gardé pour que le journal se lise
+  /// sans aller chercher ailleurs.
+  final String sourceLibelle;
+
+  final String destinationLibelle;
+  final String typeCarburant;
+  final int quantite;
+  final String utilisateurId;
+  final String? motif;
+
+  const DepotageInterne({
+    required this.id,
+    required this.date,
+    required this.souteId,
+    required this.souteLibelle,
+    required this.sourceLibelle,
+    required this.destinationLibelle,
+    required this.typeCarburant,
+    required this.quantite,
+    required this.utilisateurId,
+    this.motif,
+  });
+}
