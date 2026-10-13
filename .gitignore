@@ -53,3 +53,18 @@ build/
 
 # Clés et fichiers de service
 android/key.properties
+
+# Skills installés par `npx skills add` — outillage, pas code du projet.
+.agents/
+.claude/skills
+
+# Jamais versionné : la CLI Supabase y écrit le point d'caccès du projet.
+supabase/.temp/
+
+# Magasins de clés de signature — ne doivent jamais entrer dans le dépôt.
+*.jks
+*.keystore
+*.p12
+*.pfx
+.env
+.env.*

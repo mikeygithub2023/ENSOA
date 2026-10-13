@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/identite.dart';
+import '../../../core/push.dart';
 import '../../../core/supabase_client.dart';
 
 class AuthRepository {
@@ -43,7 +44,26 @@ class AuthRepository {
     }
   }
 
-  Future<void> deconnexion() => supabase.auth.signOut();
+  /// Ferme la session, et retire d'abord l'appareil des destinataires de
+  /// notifications.
+  ///
+  /// `Push.oublier()` n'était appelé qu'au bouton « se déconnecter ». Les
+  /// trois autres sorties — le verrou d'inactivité, la session devenue
+  /// irrécupérable, le changement de mot de passe — l'oubliaient, et c'est
+  /// le verrou d'inactivité qui est précisément le cas de la tablette
+  /// posée puis reprise. L'agent suivant recevait les notifications du
+  /// précédent sur l'écran verrouillé, que FLAG_SECURE ne couvre pas.
+  ///
+  /// Posé ici, aucun chemin ne peut plus l'oublier.
+  Future<void> deconnexion() async {
+    // Si le retrait échoue — réseau coupé —, la déconnexion doit avoir
+    // lieu quand même : mieux vaut un jeton orphelin qu'une session qui
+    // reste ouverte.
+    try {
+      await Push.oublier();
+    } catch (_) {}
+    await supabase.auth.signOut();
+  }
 
   Stream<AuthState> get changementsDeSession => supabase.auth.onAuthStateChange;
 

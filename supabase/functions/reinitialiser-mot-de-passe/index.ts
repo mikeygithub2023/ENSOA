@@ -138,7 +138,21 @@ Deno.serve(async (req) => {
     // personne, et deviendrait donc impossible à débloquer. C'est précisément
     // celui qu'il faut pouvoir reprendre en main — même raisonnement que pour
     // la suppression.
+    const posteAppelant = posteDepuisRoles(
+      profilAppelant.role ?? null,
+      profilAppelant.role_logistique ?? null,
+    );
     const posteCible = posteDepuisRoles(cible.role ?? null, cible.role_logistique ?? null);
+    // Un compte dont le poste n'est pas reconnu ne relevait de l'autorité de
+    // personne, et le repli ci-dessous le rendait accessible à TOUT appelant
+    // habilité — donc au chef du soutien technique, dont l'autorité devrait
+    // s'arrêter à ses trois services. Or ces comptes existent par
+    // construction : la migration qui a ajoute `role_logistique` n'a pas
+    // repris les comptes antérieurs, et tout compte naissant sans rôle tombe
+    // dans le même trou. Le repli revient donc au seul administrateur.
+    if (!posteCible && posteAppelant !== "administrateur") {
+      return reponse({ error: "Ce compte ne relève pas de votre autorité." }, 403);
+    }
     if (posteCible && !postesPermis.includes(posteCible)) {
       return reponse({ error: "Ce compte ne relève pas de votre autorité." }, 403);
     }

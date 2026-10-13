@@ -1,7 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+      La sauvegarde automatique d'Android est active par défaut, et
+      supabase_flutter conserve la session en clair dans les préférences
+      partagées. Le jeton de rafraîchissement — valable plusieurs jours —
+      partait donc vers le compte Google personnel de l'utilisateur, d'où il
+      se rejoue depuis n'importe quelle machine, sans mot de passe.
+
+      Une tablette de service n'a rien à sauvegarder : ses données vivent sur
+      le serveur.
+    -->
     <application
         android:label="SIG ENSOA"
         android:name="${applicationName}"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/regles_extraction"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"

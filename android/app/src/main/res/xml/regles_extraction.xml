@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12 et au-delà. Rien ne sort de l'appareil : ni vers une sauvegarde
+  dans le nuage, ni vers un transfert d'appareil à appareil.
+
+  C'est la session Supabase qu'on protège : supabase_flutter la conserve en
+  clair dans les préférences partagées, et son jeton de rafraîchissement vaut
+  plusieurs jours. Il partait vers le compte Google personnel de l'utilisateur,
+  d'où il se rejoue depuis n'importe quelle machine, sans mot de passe.
+
+  Une tablette de service n'a rien à sauvegarder : ses données vivent sur le
+  serveur.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

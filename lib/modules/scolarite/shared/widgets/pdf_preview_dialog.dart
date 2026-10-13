@@ -51,6 +51,17 @@ Future<void> showPdfPreviewDialog(BuildContext context, Uint8List bytes) {
                 canChangePageFormat: false,
                 canChangeOrientation: false,
                 canDebug: false,
+                // Le bouton « partager » du greffon est actif par défaut.
+                // Il écrit le document entier en clair dans le cache de
+                // l'application, sans jamais l'effacer, puis l'ouvre à
+                // l'application choisie — WhatsApp, Drive personnel. Un
+                // bulletin, une liste nominative ou une demande de
+                // pharmacie sortaient ainsi d'un geste, sans laisser la
+                // moindre trace côté serveur : exactement ce que
+                // FLAG_SECURE et le journal d'audit sont là pour empêcher.
+                //
+                // Cette boîte sert sept écrans ; la ligne les couvre tous.
+                allowSharing: false,
               ),
             ),
           ],

@@ -41,6 +41,11 @@ type Resultat = {
   nom: string;
   statut: "cree" | "supprime" | "ignore";
   motif?: string;
+
+  /// Le mot de passe d'ouverture, tiré au hasard et rendu ici une seule
+  /// fois : il n'est stocké nulle part, et l'administrateur doit le
+  /// remettre à l'élève.
+  motDePasse?: string;
 };
 
 function jsonResponse(body: unknown, status = 200) {
@@ -62,6 +67,19 @@ function normaliserTelephone(valeur: string | null): string | null {
 function nomComplet(a: { prenom: string | null; nom: string | null }): string {
   return [a.prenom, a.nom].filter((s) => s && s.trim()).join(" ").trim() ||
     "Apprenant";
+}
+
+/// Un mot de passe d'ouverture que personne ne peut deviner.
+///
+/// Douze caractères tirés d'un alphabet sans ambiguïté — ni O/0, ni I/l/1 —
+/// parce qu'un adjudant va le dicter à un élève, et qu'un mot de passe
+/// qu'on recopie mal est un mot de passe qu'on finit par écrire sur un
+/// papier collé à la tablette.
+function motDePasseAleatoire(): string {
+  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  const octets = new Uint8Array(12);
+  crypto.getRandomValues(octets);
+  return Array.from(octets, (o) => alphabet[o % alphabet.length]).join("");
 }
 
 Deno.serve(async (req) => {
@@ -216,11 +234,25 @@ Deno.serve(async (req) => {
       continue;
     }
 
+    // Le mot de passe d'ouverture n'est plus le numéro de téléphone.
+    //
+    // Il l'était, et le commentaire de la migration qui a créé ces espaces
+    // le reconnaissait : « il figure sur la fiche de l'élève et ses
+    // camarades le connaissent ». Or le drapeau « mot de passe à changer »
+    // n'est appliqué que par le routeur Flutter : aucune politique ne le
+    // lit. Un camarade appelait donc /auth/v1/token avec le numéro et
+    // obtenait un jeton pleinement valide, sans jamais voir l'écran de
+    // changement.
+    //
+    // Le mot de passe est désormais tiré au hasard et rendu à
+    // l'administrateur, qui le remet à l'élève. Personne ne peut le
+    // deviner à partir du dossier.
+    const motDePasseInitial = motDePasseAleatoire();
     const email = `${telephone}@${DOMAINE}`;
     const { data: cree, error: creationError } = await admin.auth.admin
       .createUser({
         email,
-        password: telephone,
+        password: motDePasseInitial,
         email_confirm: true,
         user_metadata: { nom: apprenant.nom, prenom: apprenant.prenom },
       });
@@ -237,6 +269,8 @@ Deno.serve(async (req) => {
       continue;
     }
 
+    // Le mot de passe tiré doit remonter à l'administrateur : lui seul
+    // peut le remettre à l'élève, et il n'est stocké nulle part.
     // Le trigger handle_new_user a déjà créé un profil par défaut.
     const { error: profilError } = await admin.schema("socle").from("profiles")
       .update({
@@ -245,8 +279,8 @@ Deno.serve(async (req) => {
         role: "eleve_stagiaire",
         division_id: apprenant.division_id,
         grade: apprenant.grade,
-        // Le numéro de téléphone n'est qu'un mot de passe d'ouverture :
-        // l'élève devra en choisir un autre avant d'accéder à son espace.
+        // Le mot de passe tiré ci-dessus n'est qu'une ouverture : l'élève
+        // devra en choisir un autre avant d'accéder à son espace.
         doit_changer_mot_de_passe: true,
       })
       .eq("id", cree.user.id);
@@ -275,7 +309,12 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    resultats.push({ apprenantId: apprenant.id, nom, statut: "cree" });
+    resultats.push({
+      apprenantId: apprenant.id,
+      nom,
+      statut: "cree",
+      motDePasse: motDePasseInitial,
+    });
   }
 
   return jsonResponse({ resultats });

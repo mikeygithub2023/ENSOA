@@ -75,6 +75,26 @@ async function resoudreJetonsAppareils(notification: Record<string, unknown>): P
 
 Deno.serve(async (req) => {
   try {
+    // Cette fonction n'avait AUCUN contrôle d'appelant : ni en-tête lu, ni
+    // profil, ni rôle. Le seul laissez-passer était la clé publishable —
+    // qui est publique par destination et voyage dans chaque APK. Quiconque
+    // la lisait poussait une notification de son choix sur TOUTES les
+    // tablettes de l'école, au nom de l'établissement : « changez votre mot
+    // de passe ici ».
+    //
+    // Elle n'est appelée que par un déclencheur de la base, jamais par
+    // l'application. Un secret partagé entre les deux suffit donc, et il ne
+    // quitte jamais le serveur.
+    const secretAttendu = Deno.env.get("WEBHOOK_SECRET");
+    if (!secretAttendu) {
+      // Mieux vaut refuser que s'ouvrir : un secret absent ne doit pas
+      // valoir autorisation.
+      return new Response("Secret de webhook non configuré", { status: 503 });
+    }
+    if (req.headers.get("x-webhook-secret") !== secretAttendu) {
+      return new Response("Interdit", { status: 403 });
+    }
+
     const payload = await req.json();
     const notification = payload.record as Record<string, unknown>;
 
