@@ -177,6 +177,42 @@ class SouteStocksNotifier extends Notifier<List<SouteStock>> {
 
   /// Trouve la ligne (soute, répartition) existante, ou la crée si le
   /// dépotage introduit cette répartition dans une soute pour la 1ère fois.
+  /// Le nom de la répartition où tout dépotage arrive.
+  ///
+  /// Elle naît avec la soute, par un déclencheur de la base : une soute
+  /// sans elle serait une soute où l'on ne peut rien déposer.
+  static const activitesOrdinaires = 'Activités Ordinaires';
+
+  /// La ligne de stock où déposer le carburant reçu par cette soute.
+  ///
+  /// Un camion-citerne livre DANS LA SOUTE, pas dans une affectation : on
+  /// ne demande donc plus au soutier de désigner une répartition au moment
+  /// de la réception. La ventilation vers BA1, CA1 ou CA2 viendra ensuite,
+  /// par un dépotage interne prélevé sur celle-ci.
+  Future<String?> ligneDAccueil(
+    String souteId,
+    List<Repartition> repartitions,
+  ) async {
+    final accueil = repartitions.where((r) => r.libelle == activitesOrdinaires);
+    if (accueil.isEmpty) return null;
+
+    String? chercher() {
+      final ligne = state.where(
+        (s) => s.souteId == souteId && s.repartitionId == accueil.first.id,
+      );
+      return ligne.isEmpty ? null : ligne.first.id;
+    }
+
+    // Une soute créée à l'instant a sa ligne en base, pas encore ici : on
+    // rafraîchit avant de conclure à son absence, plutôt que d'accuser la
+    // base d'un défaut qui n'est qu'un cache en retard.
+    return chercher() ??
+        await () async {
+          await refresh();
+          return chercher();
+        }();
+  }
+
   Future<String> souteStockIdPour({
     required String souteId,
     required String repartitionId,

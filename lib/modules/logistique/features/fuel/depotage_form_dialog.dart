@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:sig_ensoa/core/theme.dart';
 import 'package:sig_ensoa/modules/logistique/compat.dart';
 import '../../data/models/carburant.dart';
 import '../../data/repositories/fuel_providers.dart';
@@ -24,7 +25,6 @@ class DepotageFormDialog extends ConsumerStatefulWidget {
 class _DepotageFormDialogState extends ConsumerState<DepotageFormDialog> {
   final _formKey = GlobalKey<FormState>();
   String? _souteId;
-  String? _repartitionId;
   String _typeCarburant = 'Gasoil';
   final _qteCtrl = TextEditingController();
   bool _envoi = false;
@@ -38,21 +38,17 @@ class _DepotageFormDialogState extends ConsumerState<DepotageFormDialog> {
     if (d == null) return;
     _typeCarburant = d.typeCarburant;
     _qteCtrl.text = '${d.quantiteRecue}';
-    // La ligne de dépotage ne retient que le stock visé ; la soute et la
-    // répartition se relisent dessus pour repeupler les deux listes.
+    // La ligne de dépotage ne retient que le stock visé ; la soute se
+    // relit dessus pour repeupler la liste.
     final stock = ref
         .read(souteStocksProvider)
         .where((s) => s.id == d.souteStockId);
-    if (stock.isNotEmpty) {
-      _souteId = stock.first.souteId;
-      _repartitionId = stock.first.repartitionId;
-    }
+    if (stock.isNotEmpty) _souteId = stock.first.souteId;
   }
 
   @override
   Widget build(BuildContext context) {
     final soutes = ref.watch(soutesProvider);
-    final repartitions = ref.watch(repartitionsProvider);
     return AlertDialog(
       scrollable: true,
       title: Text(_correction ? 'Modifier le dépotage' : 'Nouveau dépotage'),
@@ -76,19 +72,20 @@ class _DepotageFormDialogState extends ConsumerState<DepotageFormDialog> {
                 onChanged: (v) => setState(() => _souteId = v),
                 validator: (v) => v == null ? 'Requis' : null,
               ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                isExpanded: true,
-                initialValue: _repartitionId,
-                decoration: const InputDecoration(
-                  labelText: 'Répartition bénéficiaire (ex. BA1)',
+              // Plus de choix de répartition : le carburant reçu entre dans
+              // « Activités Ordinaires », la répartition d'accueil que
+              // chaque soute reçoit à sa création. Un camion-citerne livre
+              // dans la soute, pas dans une affectation ; la ventilation
+              // est une décision qui vient après la réception.
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Le carburant entre dans « Activités Ordinaires ».',
+                    style: TextStyle(fontSize: 12, color: AppColors.inkMuted),
+                  ),
                 ),
-                items: [
-                  for (final r in repartitions)
-                    DropdownMenuItem(value: r.id, child: Text(r.libelle)),
-                ],
-                onChanged: (v) => setState(() => _repartitionId = v),
-                validator: (v) => v == null ? 'Requis' : null,
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
@@ -135,31 +132,29 @@ class _DepotageFormDialogState extends ConsumerState<DepotageFormDialog> {
     setState(() => _envoi = true);
     final user = ref.read(sessionProvider)!.user;
     try {
-      var typesStock = ref.read(typesStockProvider);
-      if (typesStock.isEmpty) {
-        // Le référentiel Gasoil/Super n'a pas fini de charger (ex. juste après
-        // le lancement de l'app) — on force un rafraîchissement avant d'échouer.
-        await ref.read(typesStockProvider.notifier).refresh();
-        typesStock = ref.read(typesStockProvider);
-      }
-      if (typesStock.isEmpty) {
-        throw Exception(
-          'Référentiel des types de carburant indisponible. Vérifiez la connexion et réessayez.',
-        );
-      }
-      final typeStockId = typesStock
-          .firstWhere(
-            (t) => t.libelle.toLowerCase() == _typeCarburant.toLowerCase(),
-            orElse: () => typesStock.first,
-          )
-          .id;
+      // Le référentiel des types de carburant ne sert plus à viser la ligne
+      // de stock : une ligne porte le gasoil et le super dans deux colonnes,
+      // et c'est `type_carburant` sur le dépotage qui dit laquelle créditer.
+      //
+      // La ligne d'accueil, elle, existe toujours : la base la crée avec la
+      // soute. Si elle manque, c'est que la soute a été posée hors de
+      // l'application avant cette règle — on le dit plutôt que d'enregistrer
+      // ailleurs sans prévenir.
       final souteStockId = await ref
           .read(souteStocksProvider.notifier)
-          .souteStockIdPour(
-            souteId: _souteId!,
-            repartitionId: _repartitionId!,
-            typeStockId: typeStockId,
-          );
+          .ligneDAccueil(_souteId!, ref.read(repartitionsProvider));
+      if (!mounted) return;
+      if (souteStockId == null) {
+        setState(() => _envoi = false);
+        showErrorSnackBar(
+          context,
+          Exception(
+            'Cette soute n\'a pas de répartition « Activités Ordinaires ». '
+            'Signalez-le au chef du soutien technique.',
+          ),
+        );
+        return;
+      }
       final ancien = widget.existant;
       final saisi = Depotage(
         // En correction, la ligne garde son identifiant et sa date : on
