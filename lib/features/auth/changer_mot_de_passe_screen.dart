@@ -2,6 +2,7 @@ import 'package:sig_ensoa/core/formulaire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/erreurs.dart';
 import '../../core/identite.dart';
 import '../../core/theme.dart';
 import 'providers/auth_providers.dart';
@@ -19,6 +20,7 @@ class ChangerMotDePasseScreen extends ConsumerStatefulWidget {
 
 class _ChangerMotDePasseScreenState
     extends ConsumerState<ChangerMotDePasseScreen> {
+  final _actuel = TextEditingController();
   final _nouveau = TextEditingController();
   final _confirmation = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -28,6 +30,7 @@ class _ChangerMotDePasseScreenState
 
   @override
   void dispose() {
+    _actuel.dispose();
     _nouveau.dispose();
     _confirmation.dispose();
     super.dispose();
@@ -41,10 +44,25 @@ class _ChangerMotDePasseScreenState
     });
 
     try {
-      await ref.read(authRepositoryProvider).changerMotDePasse(_nouveau.text);
+      await ref
+          .read(authRepositoryProvider)
+          .changerMotDePasse(actuel: _actuel.text, nouveau: _nouveau.text);
       ref.invalidate(profilCourantProvider);
     } catch (e) {
-      setState(() => _erreur = 'Changement impossible : $e');
+      // Le serveur répond « invalid credentials » quand le mot de passe
+      // actuel est faux. Tel quel, le message désigne la mauvaise chose :
+      // l'agent croit que c'est son NOUVEAU mot de passe qui est refusé, et
+      // en essaie d'autres jusqu'à renoncer.
+      final texte = '$e'.toLowerCase();
+      final actuelFaux =
+          texte.contains('invalid') ||
+          texte.contains('incorrect') ||
+          texte.contains('credential');
+      setState(
+        () => _erreur = actuelFaux
+            ? 'Mot de passe actuel incorrect.'
+            : 'Changement impossible : ${messageErreur(e)}',
+      );
     } finally {
       if (mounted) setState(() => _enCours = false);
     }
@@ -90,19 +108,49 @@ class _ChangerMotDePasseScreenState
                         style: TextStyle(color: AppColors.inkMuted),
                       ),
                       const SizedBox(height: 24),
+                      // Le mot de passe actuel. Il prouve que celui qui est
+                      // devant l'écran est bien le titulaire du compte, et
+                      // non quelqu'un qui a trouvé la tablette ouverte ou
+                      // rejoué une session. Sans lui, un jeton dérobé — il
+                      // vaut plusieurs jours — suffisait à s'approprier le
+                      // compte pour de bon.
+                      //
+                      // Pour un compte qu'un administrateur vient de
+                      // débloquer, c'est le mot de passe provisoire qu'il
+                      // a remis.
+                      TextFormField(
+                        controller: _actuel,
+                        obscureText: true,
+                        autofocus: true,
+                        decoration: const InputDecoration(
+                          labelText: 'Mot de passe actuel',
+                          prefixIcon: Icon(Icons.lock_person_outlined),
+                        ),
+                        validator: (v) => (v == null || v.isEmpty)
+                            ? 'Saisissez votre mot de passe actuel'
+                            : null,
+                      ),
+                      const SizedBox(height: 16),
                       TextFormField(
                         controller: _nouveau,
                         obscureText: true,
-                        autofocus: true,
                         decoration: const InputDecoration(
                           labelText: 'Nouveau mot de passe',
                           prefixIcon: Icon(Icons.lock_outline),
                         ),
-                        validator: (v) =>
-                            (v == null ||
-                                v.length < Identite.longueurMinimaleMotDePasse)
-                            ? '${Identite.longueurMinimaleMotDePasse} caractères minimum'
-                            : null,
+                        validator: (v) {
+                          if (v == null ||
+                              v.length < Identite.longueurMinimaleMotDePasse) {
+                            return '${Identite.longueurMinimaleMotDePasse} caractères minimum';
+                          }
+                          // Remplacer un mot de passe par lui-même n'est pas
+                          // un changement, et laisserait le compte marqué
+                          // « à changer » alors qu'il ne l'est plus.
+                          if (v == _actuel.text) {
+                            return 'Choisissez un mot de passe différent';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
                       TextFormField(

@@ -22,8 +22,20 @@ class AuthRepository {
   /// passe posé à l'ouverture du compte n'a pas été remplacé, deux personnes
   /// peuvent entrer sous la même identité, et le journal d'audit attribuerait
   /// à l'une ce que l'autre a fait.
-  Future<void> changerMotDePasse(String nouveau) async {
-    await supabase.auth.updateUser(UserAttributes(password: nouveau));
+  Future<void> changerMotDePasse({
+    required String actuel,
+    required String nouveau,
+  }) async {
+    // `currentPassword` n'est pas décoratif, mais il ne sert que si le
+    // projet exige la vérification — réglage « Require current password
+    // when updating », côté serveur. C'est LUI qui protège : un jeton volé
+    // suffisait sinon à s'approprier le compte définitivement, puisque le
+    // jeton de rafraîchissement vit plusieurs jours.
+    //
+    // L'écran le demande donc dans tous les cas, et le serveur tranche.
+    await supabase.auth.updateUser(
+      UserAttributes(password: nouveau, currentPassword: actuel),
+    );
     final id = supabase.auth.currentUser?.id;
     if (id == null) return;
     // Le `select` n'est pas décoratif : sans lui, une mise à jour que la RLS
