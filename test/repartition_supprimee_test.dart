@@ -51,6 +51,14 @@ class _StocksFiges extends SouteStocksNotifier {
   ];
 }
 
+class _RepartitionsFigees extends RepartitionsNotifier {
+  @override
+  List<Repartition> build() => const [
+    Repartition(id: '100', libelle: 'Activités Ordinaires'),
+    Repartition(id: '300', libelle: 'CA1'),
+  ];
+}
+
 class _DistributionsFigees extends DistributionsNotifier {
   @override
   List<Distribution> build() => [
@@ -74,6 +82,7 @@ void main() {
       overrides: [
         soutesProvider.overrideWith(_SoutesFigees.new),
         souteStocksProvider.overrideWith(_StocksFiges.new),
+        repartitionsProvider.overrideWith(_RepartitionsFigees.new),
         distributionsProvider.overrideWith(_DistributionsFigees.new),
       ],
     );
@@ -98,6 +107,14 @@ void main() {
     expect(lignes.map((v) => v.stock.repartitionLibelle), [
       'Activités Ordinaires',
     ]);
+  });
+
+  test('la répartition d\'accueil ne paraît pas dans la liste', () {
+    final liste = conteneur.read(repartitionsAvecSoutesProvider);
+
+    // Elle naît avec la soute et personne ne la gère : la lister parmi les
+    // allocations laisserait croire qu'on peut la renommer ou la supprimer.
+    expect(liste.map((r) => r.repartition.libelle), ['CA1']);
   });
 
   test('la distribution déjà enregistrée garde le nom de BA2', () {

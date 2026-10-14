@@ -78,27 +78,25 @@ class RepartitionsTabContent extends ConsumerWidget {
                               ),
                               icon: const Icon(Icons.edit_outlined, size: 20),
                             ),
-                            // La répartition d'accueil est la porte d'entrée
-                            // du carburant : la supprimer rendrait toute
-                            // soute inapte à recevoir un dépotage. La base
-                            // refuse ; on n'offre pas le geste.
-                            if (r.repartition.libelle !=
-                                SouteStocksNotifier.activitesOrdinaires)
-                              IconButton(
-                                tooltip: 'Supprimer',
-                                onPressed: () => _supprimer(
-                                  context,
-                                  ref,
-                                  r.repartition.id,
-                                  r.repartition.libelle,
-                                  r.quantiteTotale,
-                                ),
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  size: 20,
-                                  color: AppColors.danger,
-                                ),
+                            // Toutes celles qui paraissent ici se suppriment :
+                            // la répartition d'accueil n'atteint pas cette
+                            // liste (voir repartitionsAvecSoutesProvider), et
+                            // la base la refuserait de toute façon.
+                            IconButton(
+                              tooltip: 'Supprimer',
+                              onPressed: () => _supprimer(
+                                context,
+                                ref,
+                                r.repartition.id,
+                                r.repartition.libelle,
+                                r.quantiteTotale,
                               ),
+                              icon: const Icon(
+                                Icons.delete_outline,
+                                size: 20,
+                                color: AppColors.danger,
+                              ),
+                            ),
                           ],
                         ],
                       ),

@@ -389,7 +389,16 @@ class RepartitionAvecSoutes {
 final repartitionsAvecSoutesProvider = Provider<List<RepartitionAvecSoutes>>((
   ref,
 ) {
-  final repartitions = ref.watch(repartitionsProvider);
+  // « Activités Ordinaires » n'est pas une répartition au sens de cette
+  // page : c'est la porte d'entrée du carburant, née avec la soute, que
+  // personne ne crée ni ne gère. La lister parmi BA1, CA1, CA2 laisserait
+  // croire qu'on peut la renommer, la supprimer, ou lui affecter du
+  // carburant comme à une unité. Elle reste visible là où elle a un sens :
+  // sur la carte de la soute, où le carburant se trouve réellement, et dans
+  // la boîte de ventilation, qui annonce ce qui reste à répartir.
+  final repartitions = ref
+      .watch(repartitionsProvider)
+      .where((r) => r.libelle != SouteStocksNotifier.activitesOrdinaires);
   final vues = ref.watch(_soutesAvecStockHistoriqueProvider);
   return [
     for (final r in repartitions)
