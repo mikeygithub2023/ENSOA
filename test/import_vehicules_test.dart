@@ -75,6 +75,47 @@ void main() {
       }
     });
 
+    test('un véhicule retiré du parc est rétabli, pas recréé', () {
+      // Le défaut qui a fait échouer l'import du parc de l'ENSOA : « 310 40
+      // 026 » était en base, marquée supprimée. Invisible à l'écran, mais
+      // l'index unique lui réservait toujours sa plaque — l'import annonçait
+      // « à créer », et le lot entier tombait sur la contrainte.
+      final lignes = analyserLignes(
+        brutes: [_ligne(immatriculation: '310 40 026')],
+        parcExistant: const [],
+        parcRetire: [_auParc('310 40 026', marque: 'HOWO')],
+      );
+
+      expect(lignes.single.statut, StatutLigne.aRetablir);
+      expect(lignes.single.existant, isNotNull);
+    });
+
+    test('le parc en service l\'emporte sur le parc retiré', () {
+      // Si la même plaque figurait des deux côtés — ce que la base interdit
+      // mais qu'un cache en retard peut montrer —, c'est le véhicule en
+      // service qui compte : le rétablir n'aurait aucun sens.
+      final lignes = analyserLignes(
+        brutes: [_ligne(immatriculation: '1234 AA 01')],
+        parcExistant: [_auParc('1234AA01')],
+        parcRetire: [_auParc('1234 AA 01')],
+      );
+      expect(lignes.single.statut, StatutLigne.dejaPresent);
+    });
+
+    test('une plaque retirée vue deux fois dans le fichier ne l\'est qu\'une '
+        'fois à rétablir', () {
+      final lignes = analyserLignes(
+        brutes: [
+          _ligne(immatriculation: '310 40 026'),
+          _ligne(immatriculation: '310-40-026'),
+        ],
+        parcExistant: const [],
+        parcRetire: [_auParc('310 40 026')],
+      );
+      expect(lignes[0].statut, StatutLigne.aRetablir);
+      expect(lignes[1].statut, StatutLigne.doublonDansLeFichier);
+    });
+
     test('une immatriculation inconnue est à créer', () {
       final lignes = analyserLignes(
         brutes: [_ligne(immatriculation: '9999 ZZ 99')],

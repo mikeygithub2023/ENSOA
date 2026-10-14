@@ -124,6 +124,22 @@ class VehiculesNotifier extends Notifier<List<Vehicule>> {
     await refresh();
   }
 
+  /// Les véhicules retirés du parc.
+  ///
+  /// Ils ne paraissent nulle part — `refresh()` les écarte —, mais ils
+  /// existent toujours et gardent leur immatriculation : l'index unique la
+  /// leur réserve. L'import doit donc les connaître, sinon il annonce
+  /// « à créer » une plaque que la base refusera.
+  Future<List<Vehicule>> retiresDuParc() async {
+    final rows = await logistique
+        .from('vehicule')
+        .select(_selectVehiculeAvecReferentiel)
+        .eq('supprime', true);
+    return (rows as List)
+        .map((r) => _vehiculeFromRow(r as Map<String, dynamic>))
+        .toList();
+  }
+
   /// Verse en une fois un parc existant, lu depuis un fichier.
   ///
   /// Une seule insertion pour tout le lot, et non une par véhicule : cent
@@ -134,12 +150,19 @@ class VehiculesNotifier extends Notifier<List<Vehicule>> {
   /// Le référentiel marque → modèle → type est résolu une fois par triplet
   /// distinct, puis mémorisé : un parc de cinquante véhicules ne compte
   /// souvent que cinq modèles.
-  Future<void> importer(List<VehiculeAImporter> vehicules) async {
-    if (vehicules.isEmpty) return;
+  /// [retablis] associe l'identifiant d'un véhicule retiré du parc aux
+  /// données du fichier qui le concernent : il revient au parc avec son
+  /// historique, au lieu d'être recréé à côté — ce que l'index unique
+  /// refuserait de toute façon.
+  Future<void> importer(
+    List<VehiculeAImporter> vehicules, {
+    Map<String, VehiculeAImporter> retablis = const {},
+  }) async {
+    if (vehicules.isEmpty && retablis.isEmpty) return;
 
     final typesResolus = <String, String>{};
     final reference = ref.read(typesVehiculeRefProvider.notifier);
-    for (final v in vehicules) {
+    for (final v in [...vehicules, ...retablis.values]) {
       final cle = '${v.marque}|${v.modele}|${v.type}'.toLowerCase();
       if (typesResolus.containsKey(cle)) continue;
       try {
@@ -184,6 +207,37 @@ class VehiculesNotifier extends Notifier<List<Vehicule>> {
       );
     }
 
+    int typeDe(VehiculeAImporter v) => int.parse(
+      typesResolus['${v.marque}|${v.modele}|${v.type}'.toLowerCase()]!,
+    );
+
+    // Les rétablissements d'abord : ils libèrent les immatriculations que
+    // l'insertion suivante pourrait croire disponibles.
+    for (final entree in retablis.entries) {
+      final v = entree.value;
+      await logistique
+          .from('vehicule')
+          .update({
+            'supprime': false,
+            'chassis': v.chassis,
+            'immatriculation': v.immatriculation,
+            'kilometrage': v.kilometrage,
+            'etat': _etatToDb(v.etat),
+            'position_actuelle': v.positionActuelle,
+            'nbre_places': v.nbrePlaces,
+            'observations': v.observations,
+            'type_vhl_id': typeDe(v),
+            'kilometrage_vidange_prochaine': v.kilometrageVidangeProchaine,
+          })
+          .eq('id', int.parse(entree.key))
+          .select('id');
+    }
+
+    if (vehicules.isEmpty) {
+      await refresh();
+      return;
+    }
+
     await logistique.from('vehicule').insert([
       for (final v in vehicules)
         {
@@ -194,9 +248,7 @@ class VehiculesNotifier extends Notifier<List<Vehicule>> {
           'position_actuelle': v.positionActuelle,
           'nbre_places': v.nbrePlaces,
           'observations': v.observations,
-          'type_vhl_id': int.parse(
-            typesResolus['${v.marque}|${v.modele}|${v.type}'.toLowerCase()]!,
-          ),
+          'type_vhl_id': typeDe(v),
           'kilometrage_vidange_prochaine': v.kilometrageVidangeProchaine,
         },
     ]);

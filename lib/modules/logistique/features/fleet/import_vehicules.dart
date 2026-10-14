@@ -60,6 +60,19 @@ enum StatutLigne {
   /// ceux du fichier datent de son export.
   dejaPresent,
 
+  /// Un véhicule RETIRÉ du parc porte cette immatriculation.
+  ///
+  /// Il ne paraît plus nulle part, mais il existe toujours — la suppression
+  /// est douce, pour que ses réparations, vidanges et mouvements restent
+  /// rattachés à quelque chose. Et l'index unique lui réserve toujours sa
+  /// plaque : créer un second véhicule avec la même serait refusé par la
+  /// base.
+  ///
+  /// On le rétablit donc, avec les données du fichier. C'est ce que veut
+  /// celui qui réimporte son parc : le véhicule est sur son état, il doit
+  /// être au parc — et son passé le suit.
+  aRetablir,
+
   /// La même immatriculation paraît plus haut dans le fichier. La première
   /// est retenue, les suivantes écartées.
   doublonDansLeFichier,
@@ -176,13 +189,23 @@ EtatVehicule? lireEtat(String brut) {
 /// [brutes] : les cellules telles que lues, une liste par ligne de données
 /// (l'en-tête exclue). [numeroPremiereLigne] est le numéro qu'affiche le
 /// tableur pour la première d'entre elles.
+///
+/// [parcRetire] : les véhicules retirés du parc. Les omettre serait le
+/// défaut le plus coûteux de cet écran — invisibles partout ailleurs, ils
+/// gardent pourtant leur immatriculation, et l'import entier se ferait
+/// refuser par l'index unique sur une ligne qu'on avait annoncée « à
+/// créer ».
 List<LigneVehicule> analyserLignes({
   required List<List<String>> brutes,
   required List<Vehicule> parcExistant,
+  List<Vehicule> parcRetire = const [],
   int numeroPremiereLigne = 2,
 }) {
   final parParc = {
     for (final v in parcExistant) normaliserImmatriculation(v.immatriculation): v,
+  };
+  final parRetire = {
+    for (final v in parcRetire) normaliserImmatriculation(v.immatriculation): v,
   };
   final vuesDansLeFichier = <String>{};
 
@@ -206,7 +229,14 @@ List<LigneVehicule> analyserLignes({
       statut = StatutLigne.dejaPresent;
       existant = parParc[cle];
     } else if (vuesDansLeFichier.contains(cle)) {
+      // Avant le rétablissement, et non après : deux lignes pour la même
+      // plaque retirée feraient deux écritures sur le même véhicule, la
+      // seconde effaçant la première sans rien dire.
       statut = StatutLigne.doublonDansLeFichier;
+    } else if (parRetire.containsKey(cle)) {
+      statut = StatutLigne.aRetablir;
+      existant = parRetire[cle];
+      vuesDansLeFichier.add(cle);
     } else {
       statut = StatutLigne.nouveau;
       vuesDansLeFichier.add(cle);

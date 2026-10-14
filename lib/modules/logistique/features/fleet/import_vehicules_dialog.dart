@@ -52,6 +52,12 @@ class _ImportVehiculesDialogState
       _lignes?.where((l) => l.statut == StatutLigne.nouveau).toList() ??
       const [];
 
+  List<LigneVehicule> get _aRetablir =>
+      _lignes?.where((l) => l.statut == StatutLigne.aRetablir).toList() ??
+      const [];
+
+  bool get _rienAFaire => _aCreer.isEmpty && _aRetablir.isEmpty;
+
   // --- Le modèle ----------------------------------------------------------
 
   Future<void> _telechargerModele() async {
@@ -113,6 +119,10 @@ class _ImportVehiculesDialogState
       // minutes ferait entrer deux fois un véhicule enregistré entre-temps.
       await ref.read(vehiculesProvider.notifier).refresh();
       final parc = ref.read(vehiculesProvider);
+      // Les retirés du parc ne sont dans aucune liste, mais ils gardent
+      // leur immatriculation : sans eux, l'import annonce « à créer » une
+      // plaque que la base refusera, et le lot entier tombe.
+      final retires = await ref.read(vehiculesProvider.notifier).retiresDuParc();
 
       final classeur = Excel.decodeBytes(octets);
       if (classeur.tables.isEmpty) {
@@ -131,6 +141,7 @@ class _ImportVehiculesDialogState
           for (final ligne in donnees) [for (final c in ligne) _texte(c)],
         ],
         parcExistant: parc,
+        parcRetire: retires,
       );
 
       setState(() {
@@ -165,16 +176,25 @@ class _ImportVehiculesDialogState
 
   Future<void> _importer() async {
     final aCreer = _aCreer;
-    if (aCreer.isEmpty) return;
+    final aRetablir = _aRetablir;
+    if (aCreer.isEmpty && aRetablir.isEmpty) return;
     setState(() => _envoi = true);
     try {
       await ref
           .read(vehiculesProvider.notifier)
-          .importer([for (final l in aCreer) construireImport(l)]);
+          .importer(
+            [for (final l in aCreer) construireImport(l)],
+            retablis: {
+              for (final l in aRetablir) l.existant!.id: construireImport(l),
+            },
+          );
       if (!mounted) return;
       showSuccessSnackBar(
         context,
-        '${aCreer.length} véhicule(s) versés au parc.',
+        aRetablir.isEmpty
+            ? '${aCreer.length} véhicule(s) versés au parc.'
+            : '${aCreer.length} véhicule(s) versés au parc, '
+                  '${aRetablir.length} rétabli(s).',
       );
       Navigator.of(context).pop();
     } catch (e) {
@@ -276,6 +296,7 @@ class _ImportVehiculesDialogState
                     const SizedBox(height: 24),
                     _Decompte(
                       nouveaux: _compte(StatutLigne.nouveau),
+                      aRetablir: _compte(StatutLigne.aRetablir),
                       dejaPresents: _compte(StatutLigne.dejaPresent),
                       doublons: _compte(StatutLigne.doublonDansLeFichier),
                       erreurs: _compte(StatutLigne.erreur),
@@ -303,11 +324,16 @@ class _ImportVehiculesDialogState
                 if (_lignes != null)
                   Expanded(
                     child: Text(
-                      _aCreer.isEmpty
+                      _rienAFaire
                           ? 'Rien à verser : tout ce que porte ce fichier est '
                                 'déjà au parc, ou reste à corriger.'
-                          : '${_aCreer.length} véhicule(s) seront créés. Les '
-                                'autres lignes sont laissées de côté.',
+                          : '${[
+                              if (_aCreer.isNotEmpty)
+                                '${_aCreer.length} véhicule(s) seront créés',
+                              if (_aRetablir.isNotEmpty)
+                                '${_aRetablir.length} rétabli(s)',
+                            ].join(', ')}. Les autres lignes sont laissées '
+                                'de côté.',
                       style: const TextStyle(
                         color: AppColors.inkMuted,
                         fontSize: 13,
@@ -323,7 +349,7 @@ class _ImportVehiculesDialogState
                 ),
                 const SizedBox(width: 8),
                 FilledButton.icon(
-                  onPressed: (_envoi || _aCreer.isEmpty) ? null : _importer,
+                  onPressed: (_envoi || _rienAFaire) ? null : _importer,
                   icon: _envoi
                       ? const SizedBox(
                           height: 16,
@@ -399,12 +425,14 @@ class _TableauFormat extends StatelessWidget {
 class _Decompte extends StatelessWidget {
   const _Decompte({
     required this.nouveaux,
+    required this.aRetablir,
     required this.dejaPresents,
     required this.doublons,
     required this.erreurs,
   });
 
   final int nouveaux;
+  final int aRetablir;
   final int dejaPresents;
   final int doublons;
   final int erreurs;
@@ -428,6 +456,11 @@ class _Decompte extends StatelessWidget {
         // `StatusChip` n'offre que info/warning/critical dans ce module ;
         // le vert manquait, et il porte ici l'essentiel — ce qui va entrer.
         _Pastille(texte: '$nouveaux à créer', couleur: AppColors.success),
+        if (aRetablir > 0)
+          _Pastille(
+            texte: '$aRetablir à rétablir',
+            couleur: AppColors.ivoryOrange,
+          ),
         if (dejaPresents > 0)
           _Pastille(
             texte: '$dejaPresents déjà au parc',
@@ -505,6 +538,7 @@ class _TableauApercu extends StatelessWidget {
 
   Color? _teinte(StatutLigne s) => switch (s) {
     StatutLigne.nouveau => null,
+    StatutLigne.aRetablir => AppColors.ivoryOrange.withValues(alpha: 0.08),
     StatutLigne.dejaPresent => AppColors.blue.withValues(alpha: 0.06),
     StatutLigne.doublonDansLeFichier => AppColors.warning.withValues(
       alpha: 0.08,
@@ -527,6 +561,16 @@ class _Sort extends StatelessWidget {
         AppColors.success,
         Icons.add_circle_outline,
         'Aucun véhicule ne porte cette immatriculation.',
+      ),
+      StatutLigne.aRetablir => (
+        'À rétablir',
+        AppColors.ivoryOrange,
+        Icons.restore_rounded,
+        'Ce véhicule avait été retiré du parc. Il va y revenir avec les '
+            'données du fichier, et son historique — réparations, vidanges, '
+            'mouvements — le suit.\n'
+            'En créer un second porterait la même immatriculation : la base '
+            'le refuserait.',
       ),
       StatutLigne.dejaPresent => (
         'Déjà au parc',
