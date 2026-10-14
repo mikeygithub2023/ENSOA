@@ -1,14 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:sig_ensoa/core/roles.dart';
 import 'package:sig_ensoa/core/supabase_client.dart';
 import 'package:sig_ensoa/core/chargement.dart';
 import '../models/maintenance.dart';
 import '../models/mouvement_vehicule.dart';
-import '../models/notification_item.dart';
 import '../models/vehicule.dart';
 import '../../features/fleet/import_vehicules.dart';
-import 'misc_providers.dart';
 
 EtatVehicule _etatFromDb(String value) {
   switch (value) {
@@ -188,32 +185,20 @@ class VehiculesNotifier extends Notifier<List<Vehicule>> {
     await refresh();
   }
 
-  /// Notifie CST + Garage quand cette mise à jour fait franchir au véhicule
-  /// son seuil de vidange (une seule fois, au moment du franchissement).
+  /// Le franchissement du seuil de vidange prévient CST + Garage — mais
+  /// c'est le déclencheur `notifier_seuil_vidange` qui s'en charge, et non
+  /// plus cette méthode.
+  ///
+  /// Deux raisons. La base voit le franchissement même quand le kilométrage
+  /// est corrigé ailleurs qu'ici. Et elle écrit une notification par
+  /// personne, là où l'application n'en écrivait qu'une pour tout un rôle —
+  /// que le premier lecteur éteignait pour ses collègues.
   Future<void> updateKilometrage(String vehiculeId, int kilometrage) async {
-    final avant = state.where((v) => v.id == vehiculeId);
-    final etaitEnAlerte = avant.isNotEmpty && avant.first.vidangeRequise;
     await logistique
         .from('vehicule')
         .update({'kilometrage': kilometrage})
         .eq('id', int.parse(vehiculeId));
     await refresh();
-    final apres = state.where((v) => v.id == vehiculeId);
-    if (apres.isNotEmpty && !etaitEnAlerte && apres.first.vidangeRequise) {
-      final v = apres.first;
-      await ref
-          .read(notificationsProvider.notifier)
-          .creerPourRoles(
-            categorie: NotificationCategory.maintenance,
-            titre: 'Vidange à prévoir',
-            message:
-                '${v.immatriculation} (${v.marque} ${v.modele}) a atteint son seuil de vidange — $kilometrage km.',
-            roles: const [
-              RoleLogistique.chefSoutienTechnique,
-              RoleLogistique.garage,
-            ],
-          );
-    }
   }
 
   Future<void> updateApresVidange(

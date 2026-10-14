@@ -1,13 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:sig_ensoa/core/roles.dart';
 import 'package:sig_ensoa/modules/logistique/compat.dart';
 import 'package:sig_ensoa/core/supabase_client.dart';
 import 'package:sig_ensoa/core/chargement.dart';
 import 'package:sig_ensoa/features/auth/providers/auth_providers.dart';
-import '../models/notification_item.dart';
 import '../models/oa.dart';
-import 'misc_providers.dart';
 
 StatutActivite _statutActiviteFromDb(String v) {
   switch (v) {
@@ -204,34 +201,15 @@ class TachesNotifier extends Notifier<List<TacheActivite>> {
       'date_limite': dateLimite?.toIso8601String(),
     });
 
-    // Une notification par rôle ne sait pas distinguer deux profils créés :
-    // ils portent le même. On vise donc les comptes de ce profil, nommément.
-    if (profilPersonnaliseId == null) {
-      await ref
-          .read(notificationsProvider.notifier)
-          .creer(
-            categorie: NotificationCategory.activite,
-            titre: 'Nouvelle tâche assignée',
-            message: '$titreActivite — $description',
-            roleCible: acteur!.role,
-          );
-    } else {
-      final comptes = await socle
-          .from('profiles')
-          .select('id')
-          .eq('profil_personnalise_id', profilPersonnaliseId)
-          .eq('actif', true);
-      for (final c in (comptes as List).cast<Map<String, dynamic>>()) {
-        await ref
-            .read(notificationsProvider.notifier)
-            .creer(
-              categorie: NotificationCategory.activite,
-              titre: 'Nouvelle tâche assignée',
-              message: '$titreActivite — $description',
-              destinataireId: c['id'].toString(),
-            );
-      }
-    }
+    // Le destinataire est prévenu par le déclencheur
+    // `notifier_tache_assignee`, qui écrit une notification par personne du
+    // service visé.
+    //
+    // Il ne s'agit pas seulement d'élégance : écrite d'ici, la notification
+    // était refusée par la base. `notifications_insert` n'autorise qu'à
+    // s'écrire à soi-même, et l'Officier Adjoint n'est pas administrateur —
+    // le chef de service ne recevait donc plus rien quand on lui confiait
+    // une tâche.
     await refresh();
   }
 
@@ -267,9 +245,11 @@ class TachesNotifier extends Notifier<List<TacheActivite>> {
     await refresh();
   }
 
+  /// L'Officier Adjoint est prévenu par le déclencheur
+  /// `notifier_statut_tache` — nommément, et sans dépendre d'une politique
+  /// d'insertion qui refusait cette écriture à qui n'est pas administrateur.
   Future<void> marquerTerminee(String id, {String? commentaire}) async {
     final user = ref.read(sessionProvider)!.user;
-    final tache = state.firstWhere((t) => t.id == id);
     await logistique
         .from('tache_activite')
         .update({
@@ -279,19 +259,12 @@ class TachesNotifier extends Notifier<List<TacheActivite>> {
           'commentaire': commentaire,
         })
         .eq('id', int.parse(id));
-    await ref
-        .read(notificationsProvider.notifier)
-        .creer(
-          categorie: NotificationCategory.activite,
-          titre: 'Tâche terminée — à valider',
-          message: '${tache.description} (${tache.destinataire})',
-          roleCible: RoleLogistique.officierAdjoint,
-        );
     await refresh();
   }
 
+  /// Le service qui a fait la tâche apprend qu'elle est acceptée — par le
+  /// déclencheur, une notification par personne.
   Future<void> valider(String id) async {
-    final tache = state.firstWhere((t) => t.id == id);
     await logistique
         .from('tache_activite')
         .update({
@@ -299,17 +272,6 @@ class TachesNotifier extends Notifier<List<TacheActivite>> {
           'validee_le': DateTime.now().toIso8601String(),
         })
         .eq('id', int.parse(id));
-    await ref
-        .read(notificationsProvider.notifier)
-        .creer(
-          categorie: NotificationCategory.activite,
-          titre: 'Tâche validée',
-          message: tache.description,
-          // Une tâche confiée à un profil créé revient à ses comptes
-          // nommément : tous les profils créés partagent le même rôle, et
-          // viser le rôle préviendrait les services voisins.
-          roleCible: tache.acteur?.role,
-        );
     await refresh();
   }
 }

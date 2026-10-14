@@ -2,9 +2,7 @@ import 'package:sig_ensoa/core/formulaire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:sig_ensoa/core/roles.dart';
 import 'package:sig_ensoa/modules/logistique/compat.dart';
-import '../../data/models/notification_item.dart';
 import '../../data/models/police.dart';
 import '../../data/models/vehicule.dart';
 import '../../data/repositories/fleet_providers.dart';
@@ -111,18 +109,10 @@ class _RetourVehiculeDialogState extends ConsumerState<RetourVehiculeDialog> {
             cible: widget.vehicule.immatriculation,
             detail: '$km km',
           );
-      await ref
-          .read(notificationsProvider.notifier)
-          .creerPourRoles(
-            categorie: NotificationCategory.maintenance,
-            titre: 'Véhicule de retour au camp',
-            message:
-                '${widget.vehicule.immatriculation} (${widget.vehicule.marque} ${widget.vehicule.modele}) est rentré au camp — $km km.',
-            roles: const [
-              RoleLogistique.chefSoutienTechnique,
-              RoleLogistique.garage,
-            ],
-          );
+      // CST et Garage sont prévenus par le déclencheur
+      // `notifier_retour_au_camp`, qui écrit une notification par personne.
+      // L'application en écrivait une seule pour tout un rôle, que le
+      // premier lecteur éteignait pour ses collègues.
       if (mounted) {
         showSuccessSnackBar(context, 'Retour enregistré avec succès.');
         Navigator.of(context).pop();

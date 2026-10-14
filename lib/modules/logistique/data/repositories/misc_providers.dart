@@ -171,8 +171,6 @@ NotificationCategory _categorieFromDb(String value) {
   }
 }
 
-String _categorieToDb(NotificationCategory c) => c.name;
-
 AppNotification _notificationFromRow(Map<String, dynamic> row) =>
     AppNotification(
       id: row['id'].toString(),
@@ -184,9 +182,14 @@ AppNotification _notificationFromRow(Map<String, dynamic> row) =>
       noteId: row['note_id'] as String?,
     );
 
-/// Notifications persistées (table `notification`), filtrées côté RLS :
-/// globales, ciblant mon rôle, ou m'étant destinées personnellement — donc
-/// naturellement différentes d'un utilisateur connecté à l'autre.
+/// Les notifications du compte connecté — les siennes, et rien d'autre.
+///
+/// Une notification a un destinataire et un seul : `notifications_select_self`
+/// n'en montre pas d'autres. Un message destiné à un service est autant de
+/// lignes qu'il y a de gens dans ce service, écrites par les déclencheurs de
+/// la base. Ce n'était pas le cas jusqu'au 15 septembre : une ligne unique
+/// portait le rôle visé, et le premier qui la lisait l'éteignait pour ses
+/// collègues.
 class NotificationsNotifier extends Notifier<List<AppNotification>> {
   RealtimeChannel? _canal;
   Timer? _minuterie;
@@ -390,43 +393,15 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
     }
   }
 
-  /// [destinataireId] cible un utilisateur précis, [roleCible] tout un rôle ;
-  /// laisser les deux à null pour une notification globale (tous les rôles).
-  Future<void> creer({
-    required NotificationCategory categorie,
-    required String titre,
-    required String message,
-    String? destinataireId,
-    RoleLogistique? roleCible,
-  }) async {
-    await socle.from('notifications').insert({
-      'type': _categorieToDb(categorie),
-      'title': titre,
-      'message': message,
-      'profile_id': destinataireId,
-      'role_cible': roleCible == null ? null : _roleToDb(roleCible),
-    });
-    await refresh();
-  }
+  /// Les notifications ne s'écrivent plus depuis l'application.
+  ///
+  /// Elles naissent de déclencheurs, qui savent à qui elles reviennent et
+  /// en écrivent une par personne. Un point d'écriture côté client finirait
+  /// par servir à prévenir tout un service — et c'est très exactement ce
+  /// que `notifications_insert` interdit depuis le durcissement du
+  /// 10 septembre : dans le canal officiel de l'école, un message adressé à
+  /// une unité par n'importe quel compte est un hameçonnage crédible.
 
-  /// Une notification par rôle listé — la colonne `role_cible` ne porte
-  /// qu'un seul rôle à la fois, donc "notifier CST et Garage" veut dire deux
-  /// lignes distinctes, chacune ciblant son rôle.
-  Future<void> creerPourRoles({
-    required NotificationCategory categorie,
-    required String titre,
-    required String message,
-    required List<RoleLogistique> roles,
-  }) async {
-    for (final role in roles) {
-      await creer(
-        categorie: categorie,
-        titre: titre,
-        message: message,
-        roleCible: role,
-      );
-    }
-  }
 }
 
 String _roleToDb(RoleLogistique role) {
