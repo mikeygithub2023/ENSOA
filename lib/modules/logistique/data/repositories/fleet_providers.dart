@@ -266,12 +266,28 @@ class VehiculesNotifier extends Notifier<List<Vehicule>> {
   /// Suppression douce : la ligne reste en base (l'historique — réparations,
   /// vidanges, mouvements — y reste rattaché), seule sa visibilité dans les
   /// listes actives disparaît.
-  Future<void> supprimer(String vehiculeId) async {
-    await logistique
+  Future<void> supprimer(String vehiculeId) => supprimerPlusieurs([vehiculeId]);
+
+  /// Retire plusieurs véhicules d'un coup.
+  ///
+  /// Une seule écriture pour tout le lot : vingt suppressions, c'est vingt
+  /// allers-retours, et autant de chances qu'un échoue au milieu en laissant
+  /// la liste à moitié vidée sans qu'on sache où elle s'est arrêtée.
+  ///
+  /// Le `select('id')` final n'est pas décoratif. Sans lui, un refus de la
+  /// sécurité par ligne reviendrait sans erreur : l'écran annoncerait vingt
+  /// véhicules retirés, et le rafraîchissement suivant les ferait tous
+  /// réapparaître sans que personne comprenne. Le nombre rendu est celui que
+  /// la base a réellement retiré.
+  Future<int> supprimerPlusieurs(List<String> vehiculeIds) async {
+    if (vehiculeIds.isEmpty) return 0;
+    final touches = await logistique
         .from('vehicule')
         .update({'supprime': true})
-        .eq('id', int.parse(vehiculeId));
+        .inFilter('id', vehiculeIds.map(int.parse).toList())
+        .select('id');
     await refresh();
+    return (touches as List).length;
   }
 
   /// Le franchissement du seuil de vidange prévient CST + Garage — mais
