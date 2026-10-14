@@ -178,6 +178,21 @@ Future<Uint8List> construireEtatDistributions({
             3: pw.Alignment.center,
             4: pw.Alignment.center,
             5: pw.Alignment.center,
+            6: pw.Alignment.center,
+          },
+          // Huit colonnes tiennent mal en largeur automatique : le nom se
+          // repliait sur trois lignes pendant que la date gardait sa place.
+          // Les proportions sont donc fixées, les colonnes libres au texte
+          // (nom, soutier) servies les premières.
+          columnWidths: const {
+            0: pw.FlexColumnWidth(2.6),
+            1: pw.FlexColumnWidth(1.3),
+            2: pw.FlexColumnWidth(1.5),
+            3: pw.FlexColumnWidth(1.6),
+            4: pw.FlexColumnWidth(1.2),
+            5: pw.FlexColumnWidth(1.4),
+            6: pw.FlexColumnWidth(1.1),
+            7: pw.FlexColumnWidth(1.9),
           },
           border: pw.TableBorder.all(width: 0.4, color: PdfColors.grey400),
           headers: const [
@@ -186,6 +201,10 @@ Future<Uint8List> construireEtatDistributions({
             'VEHICULE',
             'IMMATRICULATION',
             'QUANTITE',
+            // L'allocation sur laquelle le carburant est imputé. Elle suit
+            // la quantité : c'est la même question — combien, et à la
+            // charge de qui.
+            'REPARTITION',
             'DATE',
             'SOUTIER',
           ],
@@ -198,6 +217,7 @@ Future<Uint8List> construireEtatDistributions({
                 v.distribution.vehicule ?? '—',
                 v.distribution.vhlImmatriculation ?? '—',
                 '${v.distribution.typeCarburant} ${v.distribution.quantitePercue} L',
+                v.repartitionLibelle,
                 df.format(v.distribution.date),
                 _libelleSoutier(resoudreSoutier(v.distribution.utilisateurId)),
               ],
