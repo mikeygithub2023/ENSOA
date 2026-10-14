@@ -1,21 +1,27 @@
+import 'dart:typed_data';
+
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 
 import 'package:sig_ensoa/modules/scolarite/features/apprenants/pdf_fonts.dart';
 import '../../data/models/user.dart';
 import '../../data/repositories/fuel_providers.dart';
 
-/// Génère puis ouvre l'aperçu d'impression de l'état des distributions, au
-/// format strict de l'imprimé officiel ENSOA (en-tête EMGA/ENSOA, armoiries,
-/// tableau NOM ET PRENOMS / CONTACT / VEHICULE / IMMATRICULATION / QUANTITE /
-/// DATE / SOUTIER).
+/// Construit l'état des distributions au format strict de l'imprimé officiel
+/// ENSOA (en-tête EMGA/ENSOA, armoiries, tableau NOM ET PRENOMS / CONTACT /
+/// VEHICULE / IMMATRICULATION / QUANTITE / DATE / SOUTIER).
+///
+/// Rend les octets du document plutôt que de l'imprimer : l'appelant les
+/// passe à `showPdfPreviewDialog`, comme le font les sept autres documents de
+/// l'application. L'ancienne version ouvrait directement la boîte
+/// d'impression du système — on ne voyait le document qu'une fois le choix de
+/// l'imprimante fait, et une colonne de travers coûtait une feuille.
 ///
 /// [souteLibelle] nul veut dire « toutes les soutes » : le service tient aussi
 /// un état d'ensemble, et rien ne justifiait de le lui refuser.
-Future<void> imprimerEtatDistributions({
+Future<Uint8List> construireEtatDistributions({
   required String? souteLibelle,
   required String sousTitre,
   required List<DistributionVue> lignes,
@@ -201,10 +207,7 @@ Future<void> imprimerEtatDistributions({
     ),
   );
 
-  await Printing.layoutPdf(
-    onLayout: (format) => doc.save(),
-    name: 'Distribution carburant - ${souteLibelle ?? "toutes les soutes"}',
-  );
+  return doc.save();
 }
 
 /// Le nom du soutier, ou ce qui en tient lieu.

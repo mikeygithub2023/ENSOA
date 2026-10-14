@@ -349,6 +349,24 @@ class SouteAvecRepartitions {
 final soutesRegroupeesProvider = Provider<List<SouteAvecRepartitions>>((ref) {
   final soutes = ref.watch(soutesProvider);
   final stocks = ref.watch(souteStocksProvider);
+
+  /// « Activités Ordinaires » en tête, le reste par ordre alphabétique.
+  ///
+  /// C'est la lecture naturelle d'une soute : ce qui vient d'arriver et
+  /// attend d'être réparti, puis ce qui est déjà affecté. Sans tri, l'ordre
+  /// était celui que la base renvoyait — c'est-à-dire aucun, et il changeait
+  /// d'un rafraîchissement à l'autre.
+  int rang(SouteStock a, SouteStock b) {
+    final aAccueil =
+        a.repartitionLibelle == SouteStocksNotifier.activitesOrdinaires;
+    final bAccueil =
+        b.repartitionLibelle == SouteStocksNotifier.activitesOrdinaires;
+    if (aAccueil != bAccueil) return aAccueil ? -1 : 1;
+    return a.repartitionLibelle.toLowerCase().compareTo(
+      b.repartitionLibelle.toLowerCase(),
+    );
+  }
+
   return [
     for (final soute in soutes)
       SouteAvecRepartitions(
@@ -356,9 +374,11 @@ final soutesRegroupeesProvider = Provider<List<SouteAvecRepartitions>>((ref) {
         // Une répartition supprimée ne paraît plus sur la carte de la soute
         // et ne compte plus dans son total : sa ligne reste en base pour
         // l'historique, elle n'est plus une allocation en service.
-        repartitions: stocks
-            .where((s) => s.souteId == soute.id && !s.repartitionSupprimee)
-            .toList(),
+        repartitions:
+            stocks
+                .where((s) => s.souteId == soute.id && !s.repartitionSupprimee)
+                .toList()
+              ..sort(rang),
       ),
   ];
 });

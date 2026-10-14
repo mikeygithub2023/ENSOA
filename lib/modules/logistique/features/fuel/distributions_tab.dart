@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:sig_ensoa/core/theme.dart';
 import 'package:sig_ensoa/core/chargement.dart';
 import 'package:sig_ensoa/core/format.dart';
+import 'package:sig_ensoa/modules/scolarite/shared/widgets/pdf_preview_dialog.dart';
 import '../../data/repositories/fuel_providers.dart';
 import '../../data/repositories/misc_providers.dart';
 import '../../shared/widgets/skeleton.dart';
@@ -51,12 +52,17 @@ class _DistributionsTabContentState
       } else {
         sousTitre = 'DISTRIBUTION DE CARBURANT DE ${DateTime.now().year}';
       }
-      await imprimerEtatDistributions(
+      final bytes = await construireEtatDistributions(
         souteLibelle: _souteFiltre,
         sousTitre: sousTitre,
         lignes: lignes,
         resoudreSoutier: (id) => findUser(users, id),
       );
+      // L'état se relit avant de partir à l'imprimante : la boîte porte son
+      // propre bouton d'impression. Le partage y est coupé — voir
+      // `showPdfPreviewDialog`.
+      if (!mounted) return;
+      await showPdfPreviewDialog(context, bytes);
     } finally {
       if (mounted) setState(() => _impressionEnCours = false);
     }
