@@ -94,7 +94,14 @@ class RepartitionsNotifier extends Notifier<List<Repartition>> {
   }
 
   Future<void> refresh() async {
-    final rows = await logistique.from('repartition').select().order('libelle');
+    // Les répartitions supprimées restent en base — les mouvements qu'elles
+    // ont reçus gardent leur nom par jointure — mais elles ne paraissent
+    // plus nulle part : ni à l'écran, ni dans une liste de choix.
+    final rows = await logistique
+        .from('repartition')
+        .select()
+        .isFilter('supprime_le', null)
+        .order('libelle');
     state = (rows as List)
         .map((r) => _repartitionFromRow(r as Map<String, dynamic>))
         .toList();
@@ -115,11 +122,26 @@ class RepartitionsNotifier extends Notifier<List<Repartition>> {
     await ref.read(souteStocksProvider.notifier).refresh();
   }
 
-  /// Supprime une répartition. La base refuse tant qu'une soute lui garde du
-  /// stock — et c'est bien : effacer la répartition laisserait du carburant
-  /// sans destinataire.
+  /// Supprime une répartition — en posant sa date de suppression, pas en
+  /// effaçant sa ligne.
+  ///
+  /// Un `delete` échouerait : une répartition qui a servi une fois est
+  /// retenue par sa ligne de stock, elle-même retenue par le dépotage ou la
+  /// distribution qui l'a traversée. Et c'est tant mieux — effacer la ligne
+  /// trouerait le journal du carburant. La répartition cesse donc de
+  /// paraître, mais ce qu'elle a reçu garde son nom.
+  ///
+  /// La base refuse encore deux cas : la répartition d'accueil « Activités
+  /// Ordinaires », et une répartition qui porte des litres. Le `select()`
+  /// final n'est pas décoratif — sans lui, un refus de RLS reviendrait
+  /// silencieusement, et l'écran annoncerait une suppression qui n'a pas eu
+  /// lieu.
   Future<void> supprimer(String id) async {
-    await logistique.from('repartition').delete().eq('id', int.parse(id));
+    await logistique
+        .from('repartition')
+        .update({'supprime_le': DateTime.now().toUtc().toIso8601String()})
+        .eq('id', int.parse(id))
+        .select();
     await refresh();
     await ref.read(souteStocksProvider.notifier).refresh();
   }
@@ -149,6 +171,7 @@ SouteStock _souteStockFromRow(Map<String, dynamic> row) {
     typeStockId: row['type_stock_id']?.toString() ?? '',
     repartitionId: row['repartition_id']?.toString() ?? '',
     repartitionLibelle: (repartition?['libelle'] as String?) ?? '—',
+    repartitionSupprimee: repartition?['supprime_le'] != null,
     qteGasoil: row['qte_gasoil'] as int,
     qteSuper: row['qte_super'] as int,
     seuilNominal: row['seuil_nominal'] as int,
@@ -156,7 +179,8 @@ SouteStock _souteStockFromRow(Map<String, dynamic> row) {
   );
 }
 
-const _selectSouteStockAvecRepartition = '*, repartition(libelle)';
+const _selectSouteStockAvecRepartition =
+    '*, repartition(libelle, supprime_le)';
 
 class SouteStocksNotifier extends Notifier<List<SouteStock>> {
   @override
@@ -283,7 +307,10 @@ class SouteVue {
   const SouteVue({required this.soute, required this.stock});
 }
 
-final soutesAvecStockProvider = Provider<List<SouteVue>>((ref) {
+/// Toutes les lignes, y compris celles des répartitions supprimées. Sert à
+/// relire l'historique : un dépotage de l'an dernier doit garder le nom de
+/// son bénéficiaire même si la répartition n'existe plus.
+final _soutesAvecStockHistoriqueProvider = Provider<List<SouteVue>>((ref) {
   final soutes = ref.watch(soutesProvider);
   final stocks = ref.watch(souteStocksProvider);
   return [
@@ -292,6 +319,15 @@ final soutesAvecStockProvider = Provider<List<SouteVue>>((ref) {
         SouteVue(soute: soute, stock: stock),
   ];
 });
+
+/// L'état courant des soutes : les répartitions supprimées en sont exclues.
+/// On ne distribue pas depuis elles, et elles ne comptent dans aucun total.
+final soutesAvecStockProvider = Provider<List<SouteVue>>(
+  (ref) => ref
+      .watch(_soutesAvecStockHistoriqueProvider)
+      .where((v) => !v.stock.repartitionSupprimee)
+      .toList(),
+);
 
 /// Regroupe les répartitions par soute, avec le total (somme des répartitions).
 class SouteAvecRepartitions {
@@ -317,7 +353,12 @@ final soutesRegroupeesProvider = Provider<List<SouteAvecRepartitions>>((ref) {
     for (final soute in soutes)
       SouteAvecRepartitions(
         soute: soute,
-        repartitions: stocks.where((s) => s.souteId == soute.id).toList(),
+        // Une répartition supprimée ne paraît plus sur la carte de la soute
+        // et ne compte plus dans son total : sa ligne reste en base pour
+        // l'historique, elle n'est plus une allocation en service.
+        repartitions: stocks
+            .where((s) => s.souteId == soute.id && !s.repartitionSupprimee)
+            .toList(),
       ),
   ];
 });
@@ -349,7 +390,7 @@ final repartitionsAvecSoutesProvider = Provider<List<RepartitionAvecSoutes>>((
   ref,
 ) {
   final repartitions = ref.watch(repartitionsProvider);
-  final vues = ref.watch(soutesAvecStockProvider);
+  final vues = ref.watch(_soutesAvecStockHistoriqueProvider);
   return [
     for (final r in repartitions)
       RepartitionAvecSoutes(
@@ -385,7 +426,7 @@ class DepotageVue {
 
 final depotagesAvecLibellesProvider = Provider<List<DepotageVue>>((ref) {
   final depotages = ref.watch(depotagesProvider);
-  final vues = ref.watch(soutesAvecStockProvider);
+  final vues = ref.watch(_soutesAvecStockHistoriqueProvider);
   return [
     for (final d in depotages)
       DepotageVue(
@@ -414,7 +455,7 @@ final distributionsAvecLibellesProvider = Provider<List<DistributionVue>>((
   ref,
 ) {
   final distributions = ref.watch(distributionsProvider);
-  final vues = ref.watch(soutesAvecStockProvider);
+  final vues = ref.watch(_soutesAvecStockHistoriqueProvider);
   return [
     for (final d in distributions)
       DistributionVue(
@@ -653,17 +694,15 @@ class DepotagesInternesNotifier extends Notifier<List<DepotageInterne>> {
         .order('date', ascending: false);
 
     final soutes = {for (final s in ref.read(soutesProvider)) s.id: s.libelle};
-    final repartitions = {
-      for (final r in ref.read(repartitionsProvider)) r.id: r.libelle,
-    };
+    // Le nom vient de la ligne de stock, où la jointure l'a déjà résolu — et
+    // non de la liste des répartitions, qui ne contient que les vivantes :
+    // une ventilation vers une répartition depuis supprimée doit rester
+    // lisible, sans quoi le journal perdrait son sens.
     final lignes = {
-      for (final s in ref.read(souteStocksProvider)) s.id: s.repartitionId,
+      for (final s in ref.read(souteStocksProvider)) s.id: s.repartitionLibelle,
     };
 
-    String nomDe(Object? stockId) {
-      final repartitionId = lignes[stockId?.toString()];
-      return repartitions[repartitionId] ?? '—';
-    }
+    String nomDe(Object? stockId) => lignes[stockId?.toString()] ?? '—';
 
     state = (rows as List).cast<Map<String, dynamic>>().map((r) {
       final souteId = r['soute_id'].toString();

@@ -34,6 +34,12 @@ class SouteStock {
   final String typeStockId; // IDTYPE_STOCK
   final String repartitionId; // Répartition propriétaire de cette ligne
   final String repartitionLibelle; // Résolu via jointure, pour l'affichage
+  /// La répartition propriétaire a-t-elle été supprimée ? La ligne survit —
+  /// les dépotages et distributions qu'elle porte doivent rester lisibles —
+  /// mais elle ne compte plus dans l'état courant d'une soute. L'information
+  /// voyage avec la ligne plutôt que d'être recoupée avec la liste des
+  /// répartitions : l'onglet des soutes n'attend pas son chargement.
+  final bool repartitionSupprimee;
   final int qteGasoil; // QTE_GASOIL
   final int qteSuper; // QTE_SUPER
   final int seuilNominal; // SEUIL_NOMINAL
@@ -45,6 +51,7 @@ class SouteStock {
     required this.typeStockId,
     required this.repartitionId,
     required this.repartitionLibelle,
+    this.repartitionSupprimee = false,
     required this.qteGasoil,
     required this.qteSuper,
     required this.seuilNominal,

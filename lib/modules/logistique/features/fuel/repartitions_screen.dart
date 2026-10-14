@@ -78,21 +78,27 @@ class RepartitionsTabContent extends ConsumerWidget {
                               ),
                               icon: const Icon(Icons.edit_outlined, size: 20),
                             ),
-                            IconButton(
-                              tooltip: 'Supprimer',
-                              onPressed: () => _supprimer(
-                                context,
-                                ref,
-                                r.repartition.id,
-                                r.repartition.libelle,
-                                r.quantiteTotale,
+                            // La répartition d'accueil est la porte d'entrée
+                            // du carburant : la supprimer rendrait toute
+                            // soute inapte à recevoir un dépotage. La base
+                            // refuse ; on n'offre pas le geste.
+                            if (r.repartition.libelle !=
+                                SouteStocksNotifier.activitesOrdinaires)
+                              IconButton(
+                                tooltip: 'Supprimer',
+                                onPressed: () => _supprimer(
+                                  context,
+                                  ref,
+                                  r.repartition.id,
+                                  r.repartition.libelle,
+                                  r.quantiteTotale,
+                                ),
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                  size: 20,
+                                  color: AppColors.danger,
+                                ),
                               ),
-                              icon: const Icon(
-                                Icons.delete_outline,
-                                size: 20,
-                                color: AppColors.danger,
-                              ),
-                            ),
                           ],
                         ],
                       ),
@@ -285,6 +291,11 @@ Future<void> _renommer(
 /// Une répartition qui porte encore du carburant ne se supprime pas : la base
 /// refuserait, et elle a raison — le stock resterait sans destinataire. On le
 /// dit avant, plutôt que de laisser le serveur répondre par une contrainte.
+///
+/// Supprimée, la répartition disparaît des écrans mais sa ligne survit en
+/// base : les dépotages et les distributions qu'elle a reçus gardent le nom
+/// de leur bénéficiaire. C'est le prix d'un journal du carburant qui se
+/// relit.
 Future<void> _supprimer(
   BuildContext context,
   WidgetRef ref,
@@ -312,8 +323,10 @@ Future<void> _supprimer(
       scrollable: true,
       title: const Text('Supprimer la répartition'),
       content: Text(
-        '« $libelle » disparaîtra des dépotages et des distributions à venir. '
-        'Les mouvements déjà enregistrés la gardent en mémoire.',
+        '« $libelle » ne sera plus proposée nulle part : ni en ventilation, '
+        'ni en distribution, et elle quittera la carte des soutes.\n\n'
+        'Les dépotages et distributions déjà enregistrés gardent son nom — '
+        'le journal du carburant reste entier.',
       ),
       actions: [
         TextButton(
