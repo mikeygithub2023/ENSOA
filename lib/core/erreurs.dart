@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart'
     show FunctionException, PostgrestException, StorageException;
 
+import 'erreurs_base.dart';
 import 'session_fraiche.dart';
 
 /// Traduit une exception en une phrase que l'utilisateur peut comprendre et
@@ -27,8 +28,12 @@ String messageErreur(Object erreur) {
     return 'Connexion au serveur interrompue. Vérifiez votre accès Internet, '
         'puis réessayez.';
   }
+  // Le message brut de PostgreSQL s'adresse à qui tient la base, pas à qui
+  // saisit un véhicule : « violates foreign key constraint
+  // "vehicule_type_vhl_id_fkey" » n'apprend rien et inquiète. Voir
+  // `erreurs_base.dart`.
   if (erreur is PostgrestException) {
-    return erreur.message;
+    return messageBaseDeDonnees(erreur);
   }
   if (erreur is StorageException) {
     return erreur.message;

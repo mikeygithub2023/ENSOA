@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sig_ensoa/core/supabase_client.dart';
 import 'package:sig_ensoa/core/chargement.dart';
+import 'package:sig_ensoa/core/erreurs.dart';
 import '../models/maintenance.dart';
 import '../models/mouvement_vehicule.dart';
 import '../models/vehicule.dart';
@@ -140,10 +141,46 @@ class VehiculesNotifier extends Notifier<List<Vehicule>> {
     final reference = ref.read(typesVehiculeRefProvider.notifier);
     for (final v in vehicules) {
       final cle = '${v.marque}|${v.modele}|${v.type}'.toLowerCase();
-      typesResolus[cle] ??= await reference.creerTypeComplet(
-        marque: v.marque,
-        modele: v.modele,
-        type: v.type,
+      if (typesResolus.containsKey(cle)) continue;
+      try {
+        typesResolus[cle] = await reference.creerTypeComplet(
+          marque: v.marque,
+          modele: v.modele,
+          type: v.type,
+        );
+      } catch (e) {
+        // Sans ce rattachement, l'échec remontait nu : l'utilisateur voyait
+        // un refus de la base sans savoir lequel de ses quarante véhicules
+        // l'avait provoqué, ni que c'était le catalogue et non le parc qui
+        // avait résisté.
+        throw Exception(
+          'Le catalogue n\'a pas pu être complété pour '
+          '${v.marque} ${v.modele} — ${v.type} : ${messageErreur(e)}',
+        );
+      }
+    }
+
+    // Le catalogue répond avoir créé ces types ; on vérifie qu'ils y sont
+    // réellement avant d'y accrocher quarante véhicules. Un identifiant qui
+    // ne correspond à rien ferait refuser le lot entier par une clé
+    // étrangère — un message qui ne désigne ni la ligne ni la cause.
+    final attendus = typesResolus.values.map(int.parse).toSet();
+    final presents = await logistique
+        .from('type_vhl')
+        .select('id')
+        .inFilter('id', attendus.toList());
+    final trouves = {
+      for (final r in (presents as List).cast<Map<String, dynamic>>())
+        r['id'] as int,
+    };
+    if (trouves.length != attendus.length) {
+      final manquants = typesResolus.entries
+          .where((e) => !trouves.contains(int.parse(e.value)))
+          .map((e) => e.key.split('|').join(' '))
+          .join(', ');
+      throw Exception(
+        'Le catalogue des types de véhicule n\'a pas enregistré : '
+        '$manquants. Vérifiez vos droits sur le catalogue, puis réessayez.',
       );
     }
 
