@@ -22,25 +22,25 @@ void main() {
 
   // Les proportions déclarées dans `construireEtatDistributions`.
   const flex = <String, double>{
+    'DATE': 1.1,
     'NOM ET PRENOMS': 2.6,
     'CONTACT': 1.3,
     'VEHICULE': 1.5,
     'IMMATRICULATION': 1.6,
     'QUANTITE': 1.2,
     'REPARTITION': 1.4,
-    'DATE': 1.1,
     'SOUTIER': 1.9,
   };
 
   // Le contenu le plus large attendu dans chaque colonne, en service.
   const pires = <String, String>{
+    'DATE': '02/03/2026',
     'NOM ET PRENOMS': 'MDL-CHEF Kouassi N\'Guessan Yao',
     'CONTACT': '07 00 00 00 00',
     'VEHICULE': 'Toyota Land Cruiser',
     'IMMATRICULATION': '1234 AA 01',
     'QUANTITE': 'Gasoil 10000 L',
     'REPARTITION': 'Activités Ordinaires',
-    'DATE': '02/03/2026',
     'SOUTIER': 'MDL-CHEF Kouassi N\'Guessan',
   };
 

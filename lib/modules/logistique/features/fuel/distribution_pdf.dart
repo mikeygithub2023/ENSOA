@@ -174,7 +174,7 @@ Future<Uint8List> construireEtatDistributions({
           cellAlignment: pw.Alignment.centerLeft,
           headerAlignment: pw.Alignment.center,
           cellAlignments: const {
-            2: pw.Alignment.center,
+            0: pw.Alignment.center,
             3: pw.Alignment.center,
             4: pw.Alignment.center,
             5: pw.Alignment.center,
@@ -185,17 +185,21 @@ Future<Uint8List> construireEtatDistributions({
           // Les proportions sont donc fixées, les colonnes libres au texte
           // (nom, soutier) servies les premières.
           columnWidths: const {
-            0: pw.FlexColumnWidth(2.6),
-            1: pw.FlexColumnWidth(1.3),
-            2: pw.FlexColumnWidth(1.5),
-            3: pw.FlexColumnWidth(1.6),
-            4: pw.FlexColumnWidth(1.2),
-            5: pw.FlexColumnWidth(1.4),
-            6: pw.FlexColumnWidth(1.1),
+            0: pw.FlexColumnWidth(1.1),
+            1: pw.FlexColumnWidth(2.6),
+            2: pw.FlexColumnWidth(1.3),
+            3: pw.FlexColumnWidth(1.5),
+            4: pw.FlexColumnWidth(1.6),
+            5: pw.FlexColumnWidth(1.2),
+            6: pw.FlexColumnWidth(1.4),
             7: pw.FlexColumnWidth(1.9),
           },
           border: pw.TableBorder.all(width: 0.4, color: PdfColors.grey400),
           headers: const [
+            // La date ouvre la ligne : c'est par elle qu'on retrouve une
+            // remise dans un état qui en compte cent. Les lignes arrivent
+            // ici de la plus récente à la plus ancienne, comme à l'écran.
+            'DATE',
             'NOM ET PRENOMS',
             'CONTACT',
             'VEHICULE',
@@ -205,12 +209,12 @@ Future<Uint8List> construireEtatDistributions({
             // la quantité : c'est la même question — combien, et à la
             // charge de qui.
             'REPARTITION',
-            'DATE',
             'SOUTIER',
           ],
           data: [
             for (final v in lignes)
               [
+                df.format(v.distribution.date),
                 '${v.distribution.gradeDestinataire ?? ''} ${v.distribution.destinataire}'
                     .trim(),
                 v.distribution.contact ?? '—',
@@ -218,7 +222,6 @@ Future<Uint8List> construireEtatDistributions({
                 v.distribution.vhlImmatriculation ?? '—',
                 '${v.distribution.typeCarburant} ${v.distribution.quantitePercue} L',
                 v.repartitionLibelle,
-                df.format(v.distribution.date),
                 _libelleSoutier(resoudreSoutier(v.distribution.utilisateurId)),
               ],
           ],
