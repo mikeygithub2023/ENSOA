@@ -8,6 +8,7 @@ import '../../data/models/vehicule.dart';
 import '../../data/repositories/fleet_providers.dart';
 import '../../shared/widgets/skeleton.dart';
 import '../../shared/widgets/widgets.dart';
+import 'import_vehicules_dialog.dart';
 import 'vehicle_form_dialog.dart';
 
 class FleetScreen extends ConsumerStatefulWidget {
@@ -39,6 +40,15 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
         label: const Text('Nouveau véhicule'),
       ),
       children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: () => afficherImportVehicules(context),
+            icon: const Icon(Icons.upload_file_outlined, size: 18),
+            label: const Text('Importer depuis Excel'),
+          ),
+        ),
+        const SizedBox(height: 16),
         Wrap(
           spacing: 8,
           children: [

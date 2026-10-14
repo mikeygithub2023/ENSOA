@@ -7,6 +7,7 @@ import '../models/maintenance.dart';
 import '../models/mouvement_vehicule.dart';
 import '../models/notification_item.dart';
 import '../models/vehicule.dart';
+import '../../features/fleet/import_vehicules.dart';
 import 'misc_providers.dart';
 
 EtatVehicule _etatFromDb(String value) {
@@ -122,6 +123,49 @@ class VehiculesNotifier extends Notifier<List<Vehicule>> {
           'kilometrage_vidange_prochaine': kilometrageVidangeProchaine,
         })
         .eq('id', int.parse(id));
+    await refresh();
+  }
+
+  /// Verse en une fois un parc existant, lu depuis un fichier.
+  ///
+  /// Une seule insertion pour tout le lot, et non une par véhicule : cent
+  /// allers-retours sur une liaison d'école, c'est une minute d'attente et
+  /// autant d'occasions de couper au milieu. Ici, ou tout entre, ou rien
+  /// n'entre — et l'on sait lequel des deux.
+  ///
+  /// Le référentiel marque → modèle → type est résolu une fois par triplet
+  /// distinct, puis mémorisé : un parc de cinquante véhicules ne compte
+  /// souvent que cinq modèles.
+  Future<void> importer(List<VehiculeAImporter> vehicules) async {
+    if (vehicules.isEmpty) return;
+
+    final typesResolus = <String, String>{};
+    final reference = ref.read(typesVehiculeRefProvider.notifier);
+    for (final v in vehicules) {
+      final cle = '${v.marque}|${v.modele}|${v.type}'.toLowerCase();
+      typesResolus[cle] ??= await reference.creerTypeComplet(
+        marque: v.marque,
+        modele: v.modele,
+        type: v.type,
+      );
+    }
+
+    await logistique.from('vehicule').insert([
+      for (final v in vehicules)
+        {
+          'chassis': v.chassis,
+          'immatriculation': v.immatriculation,
+          'kilometrage': v.kilometrage,
+          'etat': _etatToDb(v.etat),
+          'position_actuelle': v.positionActuelle,
+          'nbre_places': v.nbrePlaces,
+          'observations': v.observations,
+          'type_vhl_id': int.parse(
+            typesResolus['${v.marque}|${v.modele}|${v.type}'.toLowerCase()]!,
+          ),
+          'kilometrage_vidange_prochaine': v.kilometrageVidangeProchaine,
+        },
+    ]);
     await refresh();
   }
 
