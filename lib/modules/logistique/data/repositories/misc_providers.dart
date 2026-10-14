@@ -333,6 +333,63 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
     }
   }
 
+  /// Éteint d'un coup toutes les notifications non lues de la liste.
+  ///
+  /// Une seule écriture pour tout le lot : trente clics, c'est trente
+  /// allers-retours, et autant de chances qu'un échoue au milieu en laissant
+  /// la liste à moitié éteinte sans qu'on sache où elle s'est arrêtée.
+  ///
+  /// Toutes ne sont pas forcément siennes — une notification adressée à un
+  /// rôle est partagée, et le serveur n'en retiendra que ce qui revient à ce
+  /// compte. On rallume alors celles qu'il n'a pas retenues et l'on rend le
+  /// nombre réellement marqué, plutôt que d'annoncer un succès en bloc.
+  ///
+  /// Même ordre que [markRead], et pour la même raison : on éteint tout de
+  /// suite, on écrit ensuite.
+  Future<int> markAllRead() async {
+    final aEteindre = [
+      for (final n in state)
+        if (!n.lue) n.id,
+    ];
+    if (aEteindre.isEmpty) return 0;
+
+    final avant = state;
+    state = [
+      for (final n in state)
+        if (n.lue) n else n.copieLue(),
+    ];
+    _luesLocalement.addAll(aEteindre);
+    _nonLues = 0;
+
+    try {
+      final touchees = await socle
+          .from('notifications')
+          .update({'read': true})
+          .inFilter('id', aEteindre)
+          .select('id');
+      final retenues = {for (final r in touchees) r['id'].toString()};
+
+      if (retenues.length != aEteindre.length) {
+        _luesLocalement.removeAll(
+          aEteindre.where((id) => !retenues.contains(id)),
+        );
+        // `avant` porte l'état d'origine : les déjà-lues y sont lues, et
+        // seules les retenues par le serveur s'éteignent.
+        state = [
+          for (final n in avant)
+            if (retenues.contains(n.id)) n.copieLue() else n,
+        ];
+        _nonLues = state.where((n) => !n.lue).length;
+      }
+      return retenues.length;
+    } catch (_) {
+      _luesLocalement.removeAll(aEteindre);
+      state = avant;
+      _nonLues = avant.where((n) => !n.lue).length;
+      rethrow;
+    }
+  }
+
   /// [destinataireId] cible un utilisateur précis, [roleCible] tout un rôle ;
   /// laisser les deux à null pour une notification globale (tous les rôles).
   Future<void> creer({

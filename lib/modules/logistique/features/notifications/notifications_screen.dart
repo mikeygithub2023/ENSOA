@@ -26,9 +26,22 @@ class NotificationsScreen extends ConsumerWidget {
         ref.watch(profilCourantProvider).value?.roleScolarite ==
         RoleScolarite.admin;
 
+    final nonLues = notifications.where((n) => !n.lue).length;
+
     return ScreenScaffold(
       title: 'Notifications',
       children: [
+        if (nonLues > 0) ...[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => _toutMarquerLu(context, ref),
+              icon: const Icon(Icons.done_all_rounded, size: 18),
+              label: Text('Tout marquer comme lu ($nonLues)'),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         if (notifications.isEmpty)
           const EmptyState(message: 'Aucune notification'),
         for (final n in notifications) ...[
@@ -134,6 +147,43 @@ Future<void> _marquerLue(
         SnackBar(
           backgroundColor: AppColors.danger,
           content: Text('Notification non marquée comme lue : $e'),
+        ),
+      );
+  }
+}
+
+/// Éteint d'un coup tout ce que la liste affiche d'encore allumé.
+///
+/// Le nombre annoncé est celui que le serveur a réellement retenu, non
+/// celui qu'on lui a soumis : une notification adressée à un rôle est
+/// partagée, et toutes ne reviennent pas à ce compte. Annoncer « 12
+/// marquées » quand il n'y en a eu que 9 ferait douter de celles qui
+/// restent allumées.
+Future<void> _toutMarquerLu(BuildContext context, WidgetRef ref) async {
+  final messager = ScaffoldMessenger.of(context);
+  try {
+    final marquees = await ref
+        .read(notificationsProvider.notifier)
+        .markAllRead();
+    messager
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.success,
+          content: Text(
+            marquees <= 1
+                ? '$marquees notification marquée comme lue.'
+                : '$marquees notifications marquées comme lues.',
+          ),
+        ),
+      );
+  } catch (e) {
+    messager
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          backgroundColor: AppColors.danger,
+          content: Text('Notifications non marquées comme lues : $e'),
         ),
       );
   }
