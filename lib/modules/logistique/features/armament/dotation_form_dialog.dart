@@ -56,12 +56,19 @@ class _DotationFormDialogState extends ConsumerState<DotationFormDialog> {
     _numeroSerieCtrl.text = a.numeroSerie;
     _typeCtrl.text = a.type;
     _modeleCtrl.text = a.modele;
-    _armeTrouvee = a.etat == EtatArme.enArmurerie ? a : null;
-    _messageRecherche =
-        message ??
-        (a.etat == EtatArme.enArmurerie
-            ? null
-            : 'Cette arme n\'est pas disponible actuellement (${a.etat.label}).');
+    // Une arme n'est pas disponible pour deux raisons, et elles se lisent
+    // à deux endroits différents : elle est déjà sortie (un bon en cours
+    // le dit), ou elle est défectueuse (son état le dit).
+    final dejaSortie = ref
+        .read(dotationsProvider)
+        .any((d) => d.armeId == a.id && d.enCours);
+    final indisponible = dejaSortie
+        ? 'Cette arme est déjà sortie sur un bon en cours.'
+        : (a.etat == EtatArme.defectueux
+              ? 'Cette arme est portée défectueuse au registre.'
+              : null);
+    _armeTrouvee = indisponible == null ? a : null;
+    _messageRecherche = message ?? indisponible;
   }
 
   void _rechercherArme() {

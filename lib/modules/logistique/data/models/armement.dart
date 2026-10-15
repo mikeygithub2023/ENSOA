@@ -1,18 +1,18 @@
-enum EtatArme { enDotation, enArmurerie, enMaintenance, reforme }
+/// L'état d'une arme, au sens du registre : elle est bonne, ou elle est
+/// défectueuse.
+///
+/// Ce champ portait jusqu'au 17 octobre 2026 quatre valeurs — En dotation,
+/// En armurerie, En maintenance, Réformée — qui mêlaient deux questions :
+/// en quel état est l'arme, et où elle se trouve. La seconde se lit mieux
+/// ailleurs : [Arme.positionActuelle] dit où, et le bon de sortie en cours
+/// dit chez qui. Seule la première est un état.
+enum EtatArme { bon, defectueux }
 
 extension EtatArmeLabel on EtatArme {
-  String get label {
-    switch (this) {
-      case EtatArme.enDotation:
-        return 'En dotation';
-      case EtatArme.enArmurerie:
-        return 'En armurerie';
-      case EtatArme.enMaintenance:
-        return 'En maintenance';
-      case EtatArme.reforme:
-        return 'Réformée';
-    }
-  }
+  String get label => this == EtatArme.bon ? 'Bon' : 'Défectueux';
+
+  /// Le mot accordé à « arme » : « une arme défectueuse ».
+  String get labelAccorde => this == EtatArme.bon ? 'bonne' : 'défectueuse';
 }
 
 /// Une arme au registre.
@@ -31,6 +31,9 @@ class Arme {
   /// Marquage — « Modèle » jusqu'au 17 octobre 2026.
   final String modele;
 
+  /// Bon ou défectueux — l'état du registre. Où l'arme se trouve se lit
+  /// sur [positionActuelle] ; chez qui elle est sortie, sur son bon de
+  /// sortie en cours.
   final EtatArme etat;
 
   /// Où se trouve l'arme : armurerie, compagnie, atelier...

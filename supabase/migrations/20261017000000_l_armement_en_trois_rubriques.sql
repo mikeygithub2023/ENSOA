@@ -17,6 +17,18 @@
 --    l'écran d'alertes fausses trois mois plus tard. Mieux vaut une case
 --    vide qu'une date inventée.
 --
+--    L'ÉTAT D'UNE ARME devient ce que dit le registre : BON ou DÉFECTUEUX.
+--    La colonne `etat` portait jusqu'ici quatre valeurs qui mêlaient deux
+--    questions distinctes — en quel état est l'arme (bonne, défectueuse)
+--    et où elle se trouve (à l'armurerie, en dotation). La seconde se lit
+--    déjà ailleurs, et mieux : « position actuelle » dit où, et le bon de
+--    sortie en cours dit chez qui. Seule la première reste un état.
+--
+--    `etat` n'est pas supprimée pour autant : les bons de sortie
+--    continuent de l'écrire (`en_dotation` à la remise, `en_armurerie` au
+--    retour), de sorte qu'une lecture SQL directe reste cohérente. Elle
+--    n'est simplement plus montrée ni interrogée par l'application.
+--
 -- 2. LES MOUVEMENTS DE STOCK deviennent une écriture, et non plus un
 --    ajustement muet.
 --
@@ -57,6 +69,39 @@ comment on column logistique.arme.modele is
   'Marquage porté par l''arme. Nommé « Modèle » jusqu''au 17 octobre 2026.';
 comment on column logistique.arme.position_actuelle is
   'Où se trouve l''arme : armurerie, compagnie, atelier...';
+
+-- L'état au sens du registre : bon ou défectueux, rien d'autre.
+alter table logistique.arme
+  add column if not exists etat_general text not null default 'bon';
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+     where conrelid = 'logistique.arme'::regclass
+       and conname = 'arme_etat_general_connu'
+  ) then
+    alter table logistique.arme
+      add constraint arme_etat_general_connu
+      check (etat_general in ('bon', 'defectueux'));
+  end if;
+end $$;
+
+-- Reprise de l'existant. Une arme en maintenance ou réformée était, de
+-- fait, défectueuse ; les autres sont bonnes. Le `default` ci-dessus a
+-- déjà mis 'bon' partout, on ne corrige donc que les deux cas.
+update logistique.arme
+   set etat_general = 'defectueux'
+ where etat in ('en_maintenance', 'reforme');
+
+comment on column logistique.arme.etat_general is
+  'L''état au sens du registre : bon ou defectueux. C''est l''« État » '
+  'que montre l''application depuis le 17 octobre 2026.';
+comment on column logistique.arme.etat is
+  'Situation interne, écrite par les bons de sortie (en_dotation / '
+  'en_armurerie). Plus affichée ni interrogée par l''application : « où '
+  'se trouve l''arme » se lit sur position_actuelle et sur le bon en '
+  'cours.';
 
 -- --- 2. Le journal des mouvements de munitions et d'équipements ------------
 

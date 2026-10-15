@@ -46,11 +46,10 @@ const colonnesArme = <ColonneArme>[
   ColonneArme(
     'etat',
     'État',
-    'En armurerie, En dotation, En maintenance, Réformée — '
-        '« Bon », « En service » valent En armurerie ; « Mauvais », '
-        '« En réparation » valent En maintenance ; « HS » vaut Réformée. '
-        'En armurerie si vide',
-    'En armurerie',
+    'BON ou DÉFECTUEUX — « En service », « RAS » valent BON ; '
+        '« Mauvais », « HS », « En réparation » valent DÉFECTUEUX. '
+        'BON si vide',
+    'BON',
   ),
   ColonneArme('observations', 'Observations', 'Libre, facultatif', ''),
 ];
@@ -154,65 +153,48 @@ String _sansAccent(String s) {
 /// Les mots du registre, tels qu'on les écrit à la main, et l'état auquel
 /// chacun correspond.
 ///
-/// Un registre d'armurerie ne dit pas « en_armurerie » : il dit « BON »,
-/// « EN SERVICE », « HS ». Refuser ces mots-là obligerait à réécrire le
-/// fichier avant de l'importer — et c'est précisément ce qu'on veut
-/// épargner. La correspondance est donc large, mais **annoncée** : le
-/// modèle téléchargeable et l'aperçu la donnent mot pour mot.
+/// Le registre de l'école porte BON ou DÉFECTUEUX. Les variantes
+/// acceptées autour de ces deux-là ne sont pas de la complaisance : un
+/// fichier tenu à plusieurs mains écrit « bon état », « mauvais », « HS »,
+/// et refuser la ligne obligerait à réécrire le fichier avant de
+/// l'importer. La correspondance est large, mais **annoncée** : le modèle
+/// téléchargeable la donne mot pour mot.
 const _etatsConnus = <String, EtatArme>{
-  // En armurerie — l'arme est là, en état de servir.
-  'enarmurerie': EtatArme.enArmurerie,
-  'armurerie': EtatArme.enArmurerie,
-  'bon': EtatArme.enArmurerie,
-  'bonetat': EtatArme.enArmurerie,
-  'tresbon': EtatArme.enArmurerie,
-  'tresbonetat': EtatArme.enArmurerie,
-  'enservice': EtatArme.enArmurerie,
-  'service': EtatArme.enArmurerie,
-  'disponible': EtatArme.enArmurerie,
-  'enstock': EtatArme.enArmurerie,
-  'stock': EtatArme.enArmurerie,
-  'ras': EtatArme.enArmurerie,
-  // En dotation — l'arme est sortie, entre les mains de quelqu'un.
-  'endotation': EtatArme.enDotation,
-  'dotation': EtatArme.enDotation,
-  'percue': EtatArme.enDotation,
-  'percu': EtatArme.enDotation,
-  'attribuee': EtatArme.enDotation,
-  'attribue': EtatArme.enDotation,
-  'sortie': EtatArme.enDotation,
-  // En maintenance — l'arme existe mais ne sert pas en l'état.
-  'enmaintenance': EtatArme.enMaintenance,
-  'maintenance': EtatArme.enMaintenance,
-  'enreparation': EtatArme.enMaintenance,
-  'reparation': EtatArme.enMaintenance,
-  'areparer': EtatArme.enMaintenance,
-  'mauvais': EtatArme.enMaintenance,
-  'mauvaisetat': EtatArme.enMaintenance,
-  'passable': EtatArme.enMaintenance,
-  'moyen': EtatArme.enMaintenance,
-  'defectueuse': EtatArme.enMaintenance,
-  'defectueux': EtatArme.enMaintenance,
-  'atelier': EtatArme.enMaintenance,
-  // Réformée — l'arme ne reviendra pas au service.
-  'reforme': EtatArme.reforme,
-  'reformee': EtatArme.reforme,
-  'horsservice': EtatArme.reforme,
-  'hs': EtatArme.reforme,
-  'detruite': EtatArme.reforme,
-  'detruit': EtatArme.reforme,
-  'perdue': EtatArme.reforme,
-  'perdu': EtatArme.reforme,
+  // Bon — l'arme est en état de servir.
+  'bon': EtatArme.bon,
+  'bonne': EtatArme.bon,
+  'bonetat': EtatArme.bon,
+  'enbonetat': EtatArme.bon,
+  'tresbon': EtatArme.bon,
+  'tresbonetat': EtatArme.bon,
+  'enservice': EtatArme.bon,
+  'service': EtatArme.bon,
+  'ras': EtatArme.bon,
+  'ok': EtatArme.bon,
+  // Défectueux — l'arme ne sert pas en l'état.
+  'defectueux': EtatArme.defectueux,
+  'defectueuse': EtatArme.defectueux,
+  'mauvais': EtatArme.defectueux,
+  'mauvaise': EtatArme.defectueux,
+  'mauvaisetat': EtatArme.defectueux,
+  'enmauvaisetat': EtatArme.defectueux,
+  'horsservice': EtatArme.defectueux,
+  'hs': EtatArme.defectueux,
+  'enreparation': EtatArme.defectueux,
+  'reparation': EtatArme.defectueux,
+  'areparer': EtatArme.defectueux,
+  'enmaintenance': EtatArme.defectueux,
+  'maintenance': EtatArme.defectueux,
 };
 
 /// L'état d'une arme, écrit comme on l'écrit à la main.
 ///
 /// Nul si la valeur n'est pas reconnue — et c'est alors une erreur, non un
-/// repli sur « en armurerie » : une arme réformée versée au registre actif
-/// est une arme qu'on croit pouvoir distribuer.
+/// repli sur « bon » : une arme défectueuse versée au registre comme
+/// bonne est une arme qu'on croit pouvoir distribuer.
 EtatArme? lireEtatArme(String brut) {
   final v = _sansAccent(brut);
-  if (v.isEmpty) return EtatArme.enArmurerie;
+  if (v.isEmpty) return EtatArme.bon;
   return _etatsConnus[v];
 }
 

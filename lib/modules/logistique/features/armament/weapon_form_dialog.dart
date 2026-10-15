@@ -35,6 +35,7 @@ class _WeaponFormDialogState extends ConsumerState<WeaponFormDialog> {
     text: widget.arme?.observations ?? '',
   );
   String? _typeArmeLibelle;
+  EtatArme _etat = EtatArme.bon;
   bool _envoi = false;
 
   bool get _edition => widget.arme != null;
@@ -43,6 +44,7 @@ class _WeaponFormDialogState extends ConsumerState<WeaponFormDialog> {
   void initState() {
     super.initState();
     _typeArmeLibelle = widget.arme?.type;
+    _etat = widget.arme?.etat ?? EtatArme.bon;
   }
 
   @override
@@ -137,6 +139,27 @@ class _WeaponFormDialogState extends ConsumerState<WeaponFormDialog> {
                 decoration: const InputDecoration(labelText: 'Marquage'),
               ),
               const SizedBox(height: 12),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: SegmentedButton<EtatArme>(
+                  segments: const [
+                    ButtonSegment(
+                      value: EtatArme.bon,
+                      label: Text('Bon'),
+                      icon: Icon(Icons.check),
+                    ),
+                    ButtonSegment(
+                      value: EtatArme.defectueux,
+                      label: Text('Défectueux'),
+                      icon: Icon(Icons.build_outlined),
+                    ),
+                  ],
+                  selected: {_etat},
+                  onSelectionChanged: (s) => setState(() => _etat = s.first),
+                ),
+              ),
+              const SizedBox(height: 4),
               TextFormField(
                 controller: _positionCtrl,
                 decoration: const InputDecoration(
@@ -184,6 +207,7 @@ class _WeaponFormDialogState extends ConsumerState<WeaponFormDialog> {
               numeroSerie: _serieCtrl.text.trim(),
               type: _typeArmeLibelle!,
               modele: _modeleCtrl.text.trim(),
+              etat: _etat,
               positionActuelle: _net(_positionCtrl),
               observations: _net(_observationsCtrl),
             );
@@ -202,7 +226,7 @@ class _WeaponFormDialogState extends ConsumerState<WeaponFormDialog> {
           numeroSerie: _serieCtrl.text.trim(),
           type: _typeArmeLibelle!,
           modele: _modeleCtrl.text.trim(),
-          etat: EtatArme.enArmurerie,
+          etat: _etat,
           positionActuelle: _net(_positionCtrl),
           observations: _net(_observationsCtrl),
           // Une arme saisie ici entre aujourd'hui : la date d'acquisition

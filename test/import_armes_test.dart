@@ -15,7 +15,7 @@ Arme _auRegistre(
   String numeroSerie, {
   String designation = 'Fusil d\'assaut',
   String marquage = 'AK 47',
-  EtatArme etat = EtatArme.enArmurerie,
+  EtatArme etat = EtatArme.bon,
   String? position,
 }) => Arme(
   id: '1',
@@ -32,7 +32,7 @@ List<String> _ligne({
   String marquage = 'AK 47',
   String numeroSerie = '1975-A-04412',
   String position = 'Armurerie',
-  String etat = 'En armurerie',
+  String etat = 'BON',
   String observations = '',
 }) => [designation, marquage, numeroSerie, position, etat, observations];
 
@@ -186,31 +186,33 @@ void main() {
   });
 
   group('l\'état, écrit comme on l\'écrit à la main', () {
-    test('les quatre états du logiciel sont reconnus', () {
-      expect(lireEtatArme('En armurerie'), EtatArme.enArmurerie);
-      expect(lireEtatArme('En dotation'), EtatArme.enDotation);
-      expect(lireEtatArme('En maintenance'), EtatArme.enMaintenance);
-      expect(lireEtatArme('Réformée'), EtatArme.reforme);
+    test('les deux mots du registre sont reconnus', () {
+      expect(lireEtatArme('BON'), EtatArme.bon);
+      expect(lireEtatArme('DEFECTUEUX'), EtatArme.defectueux);
+      expect(lireEtatArme('Défectueux'), EtatArme.defectueux);
     });
 
-    test('les mots du registre le sont aussi', () {
-      expect(lireEtatArme('BON'), EtatArme.enArmurerie);
-      expect(lireEtatArme('bon état'), EtatArme.enArmurerie);
-      expect(lireEtatArme('En service'), EtatArme.enArmurerie);
-      expect(lireEtatArme('Mauvais'), EtatArme.enMaintenance);
-      expect(lireEtatArme('en réparation'), EtatArme.enMaintenance);
-      expect(lireEtatArme('HS'), EtatArme.reforme);
-      expect(lireEtatArme('Hors service'), EtatArme.reforme);
+    test('leurs variantes aussi', () {
+      // Un fichier tenu à plusieurs mains n'écrit pas deux fois le même
+      // mot ; le refuser obligerait à réécrire le fichier avant l'import.
+      expect(lireEtatArme('bon état'), EtatArme.bon);
+      expect(lireEtatArme('En service'), EtatArme.bon);
+      expect(lireEtatArme('RAS'), EtatArme.bon);
+      expect(lireEtatArme('Mauvais'), EtatArme.defectueux);
+      expect(lireEtatArme('mauvais état'), EtatArme.defectueux);
+      expect(lireEtatArme('en réparation'), EtatArme.defectueux);
+      expect(lireEtatArme('HS'), EtatArme.defectueux);
+      expect(lireEtatArme('Hors service'), EtatArme.defectueux);
     });
 
-    test('une case vide vaut « en armurerie »', () {
-      expect(lireEtatArme(''), EtatArme.enArmurerie);
-      expect(lireEtatArme('   '), EtatArme.enArmurerie);
+    test('une case vide vaut « bon »', () {
+      expect(lireEtatArme(''), EtatArme.bon);
+      expect(lireEtatArme('   '), EtatArme.bon);
     });
 
     test('un mot inconnu est une erreur, jamais un repli silencieux', () {
-      // Une arme réformée versée au registre actif est une arme qu'on
-      // croit pouvoir distribuer.
+      // Une arme défectueuse versée au registre comme bonne est une arme
+      // qu'on croit pouvoir distribuer.
       expect(lireEtatArme('à vérifier'), isNull);
       final lignes = analyserLignesArmes(
         brutes: [_ligne(etat: 'à vérifier')],
@@ -255,7 +257,7 @@ void main() {
             designation: 'Pistolet automatique',
             marquage: 'PA MAC 50',
             position: 'CIE 2',
-            etat: 'Mauvais',
+            etat: 'DEFECTUEUX',
             observations: 'Chargeur manquant',
           ),
         ],
@@ -265,7 +267,7 @@ void main() {
       expect(a.designation, 'Pistolet automatique');
       expect(a.marquage, 'PA MAC 50');
       expect(a.positionActuelle, 'CIE 2');
-      expect(a.etat, EtatArme.enMaintenance);
+      expect(a.etat, EtatArme.defectueux);
       expect(a.observations, 'Chargeur manquant');
     });
   });

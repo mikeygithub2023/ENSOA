@@ -96,9 +96,11 @@ class _WeaponDetailScreenState extends ConsumerState<WeaponDetailScreen> {
                 const SizedBox(width: 12),
                 StatusChip(
                   label: current.etat.label,
-                  level: current.inspectionEnRetard
-                      ? AlertLevel.warning
-                      : AlertLevel.info,
+                  level: current.etat == EtatArme.defectueux
+                      ? AlertLevel.critical
+                      : (current.inspectionEnRetard
+                            ? AlertLevel.warning
+                            : AlertLevel.info),
                 ),
               ],
             ),
@@ -182,7 +184,11 @@ class _WeaponDetailScreenState extends ConsumerState<WeaponDetailScreen> {
                   icon: const Icon(Icons.edit_outlined),
                   label: const Text('Modifier'),
                 ),
-                if (current.etat == EtatArme.enArmurerie)
+                // Une arme se remet si elle n'est pas déjà dehors. C'est
+                // le bon de sortie en cours qui le dit, et non une colonne
+                // d'état tenue à côté : deux sources pour un même fait
+                // finissent par se contredire.
+                if (charge && enCours == null)
                   FilledButton.icon(
                     onPressed: () => showDialog(
                       context: context,

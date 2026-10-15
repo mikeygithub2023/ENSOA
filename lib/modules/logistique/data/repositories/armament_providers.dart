@@ -5,31 +5,22 @@ import 'package:sig_ensoa/core/chargement.dart';
 import '../models/armement.dart';
 import '../../features/armament/import_armes.dart';
 
-EtatArme _etatArmeFromDb(String value) {
-  switch (value) {
-    case 'en_dotation':
-      return EtatArme.enDotation;
-    case 'en_maintenance':
-      return EtatArme.enMaintenance;
-    case 'reforme':
-      return EtatArme.reforme;
-    default:
-      return EtatArme.enArmurerie;
-  }
-}
+/// L'état du registre, tel que la colonne `etat_general` le porte. Tout ce
+/// qui n'est pas explicitement défectueux est bon : la colonne a 'bon' pour
+/// défaut, et une valeur inattendue ne doit pas faire disparaître une arme
+/// de la liste.
+EtatArme _etatArmeFromDb(Object? value) =>
+    value == 'defectueux' ? EtatArme.defectueux : EtatArme.bon;
 
-String _etatArmeToDb(EtatArme etat) {
-  switch (etat) {
-    case EtatArme.enDotation:
-      return 'en_dotation';
-    case EtatArme.enArmurerie:
-      return 'en_armurerie';
-    case EtatArme.enMaintenance:
-      return 'en_maintenance';
-    case EtatArme.reforme:
-      return 'reforme';
-  }
-}
+String _etatArmeToDb(EtatArme etat) =>
+    etat == EtatArme.defectueux ? 'defectueux' : 'bon';
+
+/// La colonne `etat` (énumération `logistique.etat_arme`) n'est plus un état
+/// au sens de l'application — elle n'est ni lue ni montrée. Les bons de
+/// sortie continuent pourtant de l'écrire, pour qu'une lecture SQL directe
+/// du registre reste cohérente avec ce qui est sorti.
+const _situationEnDotation = 'en_dotation';
+const _situationEnArmurerie = 'en_armurerie';
 
 DateTime? _dateOuNull(Object? v) =>
     v == null ? null : DateTime.parse(v as String);
@@ -39,7 +30,7 @@ Arme _armeFromRow(Map<String, dynamic> row) => Arme(
   numeroSerie: row['numero_serie'] as String,
   type: row['type'] as String,
   modele: row['modele'] as String,
-  etat: _etatArmeFromDb(row['etat'] as String),
+  etat: _etatArmeFromDb(row['etat_general']),
   positionActuelle: row['position_actuelle'] as String?,
   observations: row['observations'] as String?,
   dateAcquisition: _dateOuNull(row['date_acquisition']),
@@ -73,7 +64,7 @@ class ArmesNotifier extends Notifier<List<Arme>> {
       'numero_serie': a.numeroSerie,
       'type': a.type,
       'modele': a.modele,
-      'etat': _etatArmeToDb(a.etat),
+      'etat_general': _etatArmeToDb(a.etat),
       'position_actuelle': a.positionActuelle,
       'observations': a.observations,
       'date_acquisition': a.dateAcquisition?.toIso8601String(),
@@ -87,6 +78,7 @@ class ArmesNotifier extends Notifier<List<Arme>> {
     required String numeroSerie,
     required String type,
     required String modele,
+    required EtatArme etat,
     String? positionActuelle,
     String? observations,
   }) async {
@@ -96,6 +88,7 @@ class ArmesNotifier extends Notifier<List<Arme>> {
           'numero_serie': numeroSerie,
           'type': type,
           'modele': modele,
+          'etat_general': _etatArmeToDb(etat),
           'position_actuelle': positionActuelle,
           'observations': observations,
         })
@@ -103,10 +96,12 @@ class ArmesNotifier extends Notifier<List<Arme>> {
     await refresh();
   }
 
-  Future<void> updateEtat(String id, EtatArme etat) async {
+  /// Écrit la situation interne — pas l'état du registre. Appelée par les
+  /// bons de sortie et de retour, et par eux seuls.
+  Future<void> _marquerSituation(String id, String situation) async {
     await logistique
         .from('arme')
-        .update({'etat': _etatArmeToDb(etat)})
+        .update({'etat': situation})
         .eq('id', int.parse(id));
     await refresh();
   }
@@ -199,7 +194,7 @@ class ArmesNotifier extends Notifier<List<Arme>> {
             'numero_serie': a.numeroSerie,
             'type': a.designation,
             'modele': a.marquage,
-            'etat': _etatArmeToDb(a.etat),
+            'etat_general': _etatArmeToDb(a.etat),
             'position_actuelle': a.positionActuelle,
             'observations': a.observations,
           })
@@ -218,7 +213,7 @@ class ArmesNotifier extends Notifier<List<Arme>> {
           'numero_serie': a.numeroSerie,
           'type': a.designation,
           'modele': a.marquage,
-          'etat': _etatArmeToDb(a.etat),
+          'etat_general': _etatArmeToDb(a.etat),
           'position_actuelle': a.positionActuelle,
           'observations': a.observations,
         },
@@ -280,7 +275,7 @@ class DotationsNotifier extends Notifier<List<DotationArme>> {
     });
     await ref
         .read(armesProvider.notifier)
-        .updateEtat(d.armeId, EtatArme.enDotation);
+        ._marquerSituation(d.armeId, _situationEnDotation);
     await refresh();
   }
 
@@ -291,7 +286,7 @@ class DotationsNotifier extends Notifier<List<DotationArme>> {
         .eq('id', int.parse(dotationId));
     await ref
         .read(armesProvider.notifier)
-        .updateEtat(armeId, EtatArme.enArmurerie);
+        ._marquerSituation(armeId, _situationEnArmurerie);
     await refresh();
   }
 }

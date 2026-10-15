@@ -35,17 +35,9 @@ class _ArmesTabContentState extends ConsumerState<ArmesTabContent> {
   }
 
   Color _levelColor(Arme a) {
+    if (a.etat == EtatArme.defectueux) return AppColors.danger;
     if (a.inspectionEnRetard) return AppColors.warning;
-    switch (a.etat) {
-      case EtatArme.enDotation:
-        return AppColors.militaryGreen;
-      case EtatArme.enArmurerie:
-        return AppColors.success;
-      case EtatArme.enMaintenance:
-        return AppColors.warning;
-      case EtatArme.reforme:
-        return AppColors.danger;
-    }
+    return AppColors.success;
   }
 
   @override
@@ -160,9 +152,11 @@ class _ArmesTabContentState extends ConsumerState<ArmesTabContent> {
                   children: [
                     StatusChip(
                       label: a.etat.label,
-                      level: a.inspectionEnRetard
-                          ? AlertLevel.warning
-                          : AlertLevel.info,
+                      level: a.etat == EtatArme.defectueux
+                          ? AlertLevel.critical
+                          : (a.inspectionEnRetard
+                                ? AlertLevel.warning
+                                : AlertLevel.info),
                     ),
                     MenuSuppressionArticle(
                       titre: 'Supprimer l\'arme',

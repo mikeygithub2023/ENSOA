@@ -16,6 +16,7 @@ import 'package:sig_ensoa/models/profil.dart';
 import 'package:sig_ensoa/modules/logistique/data/models/armement.dart';
 import 'package:sig_ensoa/modules/logistique/data/repositories/armament_providers.dart';
 import 'package:sig_ensoa/modules/logistique/features/armament/armament_screen.dart';
+import 'package:sig_ensoa/modules/logistique/shared/widgets/widgets.dart';
 
 class _ToutCharge extends ChargementNotifier {
   @override
@@ -42,7 +43,7 @@ class _RegistreFige extends ArmesNotifier {
       numeroSerie: '1975-A-04412',
       type: 'Fusil d\'assaut',
       modele: 'AK 47',
-      etat: EtatArme.enArmurerie,
+      etat: EtatArme.bon,
       positionActuelle: 'Armurerie',
     ),
     // Sans marquage : la fiche ne doit pas afficher un tiret suivi de rien.
@@ -51,7 +52,7 @@ class _RegistreFige extends ArmesNotifier {
       numeroSerie: '1975-A-04413',
       type: 'Pistolet automatique',
       modele: '',
-      etat: EtatArme.enMaintenance,
+      etat: EtatArme.defectueux,
     ),
   ];
 }
@@ -223,6 +224,47 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Séance de tir'), findsNothing);
     expect(find.text('Aucun bon pour ce filtre'), findsOneWidget);
+  });
+
+  group("l'état d'une arme est celui du registre", () {
+    // Le registre de l'école ne connaît que deux états : BON ou
+    // DÉFECTUEUX. Les quatre anciennes valeurs mêlaient l'état de l'arme
+    // et l'endroit où elle se trouve ; le second se lit sur « position
+    // actuelle » et sur le bon de sortie en cours.
+    testWidgets("les filtres n'offrent que ces deux-là", (tester) async {
+      await _ouvrir(tester);
+      expect(find.widgetWithText(FilterChipPill, 'Bon'), findsOneWidget);
+      expect(
+        find.widgetWithText(FilterChipPill, 'Défectueux'),
+        findsOneWidget,
+      );
+      for (final ancien in [
+        'En armurerie',
+        'En dotation',
+        'En maintenance',
+        'Réformée',
+      ]) {
+        expect(
+          find.widgetWithText(FilterChipPill, ancien),
+          findsNothing,
+          reason: "« $ancien » n'est plus un état",
+        );
+      }
+    });
+
+    testWidgets('chaque arme porte le sien', (tester) async {
+      await _ouvrir(tester);
+      expect(find.widgetWithText(StatusChip, 'Bon'), findsOneWidget);
+      expect(find.widgetWithText(StatusChip, 'Défectueux'), findsOneWidget);
+    });
+
+    testWidgets("le filtre ne retient que ce qu'il nomme", (tester) async {
+      await _ouvrir(tester);
+      await tester.tap(find.widgetWithText(FilterChipPill, 'Défectueux'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pistolet automatique'), findsOneWidget);
+      expect(find.text("Fusil d'assaut — AK 47"), findsNothing);
+    });
   });
 
   testWidgets('une arme sans marquage ne porte pas de tiret orphelin', (

@@ -52,15 +52,15 @@ class DashboardArmurerie extends ConsumerWidget {
       );
     }
 
-    // Une arme réformée n'est plus du parc : la compter ferait baisser une
-    // disponibilité sur laquelle personne ne peut plus rien.
-    final enService = armes.where((a) => a.etat != EtatArme.reforme).toList();
-    final enArmurerie = enService
-        .where((a) => a.etat == EtatArme.enArmurerie)
-        .length;
-    final enDotation = dotations
-        .where((d) => d.dateRetourEffective == null)
-        .length;
+    // Une arme défectueuse n'est pas distribuable : la compter ferait
+    // monter une disponibilité sur laquelle personne ne peut compter.
+    final enService = armes.where((a) => a.etat == EtatArme.bon).toList();
+    final sorties = {
+      for (final d in dotations)
+        if (d.dateRetourEffective == null) d.armeId,
+    };
+    final enArmurerie = enService.where((a) => !sorties.contains(a.id)).length;
+    final enDotation = sorties.length;
 
     // Les munitions se comptent par calibre, tous casiers confondus : c'est
     // ainsi qu'on les demande, et ainsi qu'on en manque.

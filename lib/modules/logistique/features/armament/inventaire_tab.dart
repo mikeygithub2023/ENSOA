@@ -79,9 +79,9 @@ class InventaireArmesTabContent extends ConsumerWidget {
             SizedBox(
               width: 240,
               child: StatCard(
-                label: 'En armurerie',
-                value: '${parEtat[EtatArme.enArmurerie]}',
-                icon: Icons.lock_outline,
+                label: 'En bon état',
+                value: '${parEtat[EtatArme.bon]}',
+                icon: Icons.verified_outlined,
                 color: AppColors.militaryGreen,
               ),
             ),
@@ -119,7 +119,9 @@ class InventaireArmesTabContent extends ConsumerWidget {
                 for (final e in EtatArme.values) ...[
                   DotProgressRow(
                     iconWidget: const IconeArme(size: 28),
-                    iconColor: AppColors.navy,
+                    iconColor: e == EtatArme.defectueux
+                        ? AppColors.danger
+                        : AppColors.militaryGreen,
                     title: e.label,
                     subtitle: '${parEtat[e]} arme(s)',
                     completed: parEtat[e] ?? 0,
