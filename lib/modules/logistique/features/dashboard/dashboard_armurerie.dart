@@ -85,7 +85,7 @@ class DashboardArmurerie extends ConsumerWidget {
         ),
       for (final a in armesRetard)
         Alerte(
-          '${a.modele} — inspection en retard',
+          '${a.designationComplete} — inspection en retard',
           versArmement,
           iconeWidget: const IconeArmeTeintee(
             couleur: AppColors.blueBright,

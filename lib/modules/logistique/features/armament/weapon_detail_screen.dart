@@ -88,7 +88,7 @@ class _WeaponDetailScreenState extends ConsumerState<WeaponDetailScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '${current.type} — ${current.modele}',
+                  current.designationComplete,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -115,9 +115,19 @@ class _WeaponDetailScreenState extends ConsumerState<WeaponDetailScreen> {
                 ),
                 _infoTile(
                   context,
+                  Icons.place_outlined,
+                  'Position actuelle',
+                  (current.positionActuelle ?? '').trim().isEmpty
+                      ? '—'
+                      : current.positionActuelle!,
+                ),
+                _infoTile(
+                  context,
                   Icons.event_available_outlined,
                   'Acquisition',
-                  df.format(current.dateAcquisition),
+                  current.dateAcquisition != null
+                      ? df.format(current.dateAcquisition!)
+                      : '—',
                 ),
                 _infoTile(
                   context,
@@ -131,10 +141,34 @@ class _WeaponDetailScreenState extends ConsumerState<WeaponDetailScreen> {
                   context,
                   Icons.event_repeat_outlined,
                   'Prochaine inspection',
-                  df.format(current.prochaineInspection),
+                  current.prochaineInspection != null
+                      ? df.format(current.prochaineInspection!)
+                      : '—',
                 ),
               ],
             ),
+            if ((current.observations ?? '').trim().isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Observations',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.inkMuted,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(current.observations!),
+                    ],
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 24),
             Wrap(
               spacing: 12,

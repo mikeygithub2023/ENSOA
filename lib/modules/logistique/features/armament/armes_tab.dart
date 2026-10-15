@@ -4,14 +4,18 @@ import 'package:go_router/go_router.dart';
 
 import 'package:sig_ensoa/core/theme.dart';
 import 'package:sig_ensoa/core/chargement.dart';
+import 'package:sig_ensoa/core/roles.dart';
+import 'package:sig_ensoa/modules/logistique/compat.dart';
 import '../../data/models/armement.dart';
 import '../../data/repositories/armament_providers.dart';
 import '../../shared/widgets/skeleton.dart';
 import 'package:sig_ensoa/shared/widgets/icone_arme.dart';
 import '../../shared/widgets/widgets.dart';
+import 'import_armes_dialog.dart';
 import 'menu_suppression.dart';
 
-/// Contenu de l'onglet "Armes" — registre des armes, filtrable par état.
+/// Sous-rubrique « Registre » de l'Armement — les armes une à une,
+/// filtrables par état, et l'import d'un registre existant.
 class ArmesTabContent extends ConsumerStatefulWidget {
   const ArmesTabContent({super.key});
 
@@ -21,6 +25,14 @@ class ArmesTabContent extends ConsumerStatefulWidget {
 
 class _ArmesTabContentState extends ConsumerState<ArmesTabContent> {
   EtatArme? _filtre;
+  final _rechercheCtrl = TextEditingController();
+  String _recherche = '';
+
+  @override
+  void dispose() {
+    _rechercheCtrl.dispose();
+    super.dispose();
+  }
 
   Color _levelColor(Arme a) {
     if (a.inspectionEnRetard) return AppColors.warning;
@@ -40,13 +52,63 @@ class _ArmesTabContentState extends ConsumerState<ArmesTabContent> {
   Widget build(BuildContext context) {
     final charge = estCharge(ref, ['armes']);
     final armes = ref.watch(armesProvider);
-    final filtres = _filtre == null
-        ? armes
-        : armes.where((a) => a.etat == _filtre).toList();
+
+    // Le registre ne s'écrit pas par tout le monde : la base ne l'ouvre
+    // qu'à l'armurerie, au chef du soutien technique et à
+    // l'administrateur. Un bouton qui se ferait refuser par le serveur ne
+    // vaut pas mieux qu'une absence de bouton.
+    final role = ref.watch(sessionProvider)?.user.role;
+    final peutEcrire =
+        role == RoleLogistique.armurerie ||
+        role == RoleLogistique.chefSoutienTechnique ||
+        role == RoleLogistique.administrateur;
+
+    final recherche = _recherche.trim().toLowerCase();
+    final filtres = armes.where((a) {
+      if (_filtre != null && a.etat != _filtre) return false;
+      if (recherche.isEmpty) return true;
+      return [
+        a.numeroSerie,
+        a.type,
+        a.modele,
+        a.positionActuelle ?? '',
+      ].join(' ').toLowerCase().contains(recherche);
+    }).toList();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(4, 4, 4, 100),
       children: [
+        if (peutEcrire) ...[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => afficherImportArmes(context),
+              icon: const Icon(Icons.upload_file_outlined, size: 18),
+              label: const Text('Importer depuis Excel'),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        TextField(
+          controller: _rechercheCtrl,
+          decoration: InputDecoration(
+            hintText:
+                'Rechercher une arme (désignation, marquage, n° série, '
+                'position)...',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: _recherche.isEmpty
+                ? null
+                : IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => setState(() {
+                      _rechercheCtrl.clear();
+                      _recherche = '';
+                    }),
+                  ),
+          ),
+          onChanged: (v) => setState(() => _recherche = v),
+        ),
+        const SizedBox(height: 12),
         Wrap(
           spacing: 8,
           children: [
@@ -87,9 +149,11 @@ class _ArmesTabContentState extends ConsumerState<ArmesTabContent> {
                     child: const IconeArme(size: 28),
                   ),
                 ),
-                title: Text('${a.type} — ${a.modele}'),
+                title: Text(a.designationComplete),
                 subtitle: Text(
-                  'N° série ${a.numeroSerie}${a.inspectionEnRetard ? ' · inspection en retard' : ''}',
+                  'N° série ${a.numeroSerie}'
+                  '${(a.positionActuelle ?? '').trim().isEmpty ? '' : ' · ${a.positionActuelle}'}'
+                  '${a.inspectionEnRetard ? ' · inspection en retard' : ''}',
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -103,7 +167,7 @@ class _ArmesTabContentState extends ConsumerState<ArmesTabContent> {
                     MenuSuppressionArticle(
                       titre: 'Supprimer l\'arme',
                       designation:
-                          '${a.type} ${a.modele} (n° ${a.numeroSerie})',
+                          '${a.designationComplete} (n° ${a.numeroSerie})',
                       // Une arme entre les mains de quelqu'un ne quitte pas
                       // le registre : c'est précisément ce que l'armurerie
                       // doit pouvoir retrouver.

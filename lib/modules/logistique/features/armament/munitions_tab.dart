@@ -4,10 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sig_ensoa/core/theme.dart';
 import 'package:sig_ensoa/core/chargement.dart';
 import 'package:sig_ensoa/core/format.dart';
+import '../../data/models/armement.dart';
 import '../../data/repositories/armament_providers.dart';
 import '../../shared/widgets/skeleton.dart';
 import '../../shared/widgets/widgets.dart';
-import 'ajuster_stock_dialog.dart';
+import 'bon_stock_dialog.dart';
 import 'menu_suppression.dart';
 
 /// Contenu de l'onglet "Munitions" — stock par calibre. Cartes à hauteur
@@ -54,13 +55,11 @@ class MunitionsTabContent extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(16),
                             onTap: () => showDialog(
                               context: context,
-                              builder: (_) => AjusterStockDialog(
-                                titre: 'Calibre ${m.calibre}',
-                                libelleArticle: 'Calibre ${m.calibre}',
+                              builder: (_) => BonStockDialog(
+                                famille: FamilleArticle.munition,
+                                articleId: m.id,
+                                libelleArticle: 'calibre ${m.calibre}',
                                 quantiteActuelle: m.quantiteDisponible,
-                                onAjuster: (delta) => ref
-                                    .read(munitionsProvider.notifier)
-                                    .ajusterStock(m.id, delta),
                               ),
                             ),
                             child: Padding(

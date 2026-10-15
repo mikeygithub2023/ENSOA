@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sig_ensoa/core/supabase_client.dart';
 import 'package:sig_ensoa/core/chargement.dart';
 import '../models/armement.dart';
+import '../../features/armament/import_armes.dart';
 
 EtatArme _etatArmeFromDb(String value) {
   switch (value) {
@@ -30,17 +31,20 @@ String _etatArmeToDb(EtatArme etat) {
   }
 }
 
+DateTime? _dateOuNull(Object? v) =>
+    v == null ? null : DateTime.parse(v as String);
+
 Arme _armeFromRow(Map<String, dynamic> row) => Arme(
   id: row['id'].toString(),
   numeroSerie: row['numero_serie'] as String,
   type: row['type'] as String,
   modele: row['modele'] as String,
   etat: _etatArmeFromDb(row['etat'] as String),
-  dateAcquisition: DateTime.parse(row['date_acquisition'] as String),
-  derniereInspection: row['derniere_inspection'] != null
-      ? DateTime.parse(row['derniere_inspection'] as String)
-      : null,
-  prochaineInspection: DateTime.parse(row['prochaine_inspection'] as String),
+  positionActuelle: row['position_actuelle'] as String?,
+  observations: row['observations'] as String?,
+  dateAcquisition: _dateOuNull(row['date_acquisition']),
+  derniereInspection: _dateOuNull(row['derniere_inspection']),
+  prochaineInspection: _dateOuNull(row['prochaine_inspection']),
 );
 
 class ArmesNotifier extends Notifier<List<Arme>> {
@@ -70,8 +74,10 @@ class ArmesNotifier extends Notifier<List<Arme>> {
       'type': a.type,
       'modele': a.modele,
       'etat': _etatArmeToDb(a.etat),
-      'date_acquisition': a.dateAcquisition.toIso8601String(),
-      'prochaine_inspection': a.prochaineInspection.toIso8601String(),
+      'position_actuelle': a.positionActuelle,
+      'observations': a.observations,
+      'date_acquisition': a.dateAcquisition?.toIso8601String(),
+      'prochaine_inspection': a.prochaineInspection?.toIso8601String(),
     });
     await refresh();
   }
@@ -81,10 +87,18 @@ class ArmesNotifier extends Notifier<List<Arme>> {
     required String numeroSerie,
     required String type,
     required String modele,
+    String? positionActuelle,
+    String? observations,
   }) async {
     await logistique
         .from('arme')
-        .update({'numero_serie': numeroSerie, 'type': type, 'modele': modele})
+        .update({
+          'numero_serie': numeroSerie,
+          'type': type,
+          'modele': modele,
+          'position_actuelle': positionActuelle,
+          'observations': observations,
+        })
         .eq('id', int.parse(id));
     await refresh();
   }
@@ -100,12 +114,23 @@ class ArmesNotifier extends Notifier<List<Arme>> {
   /// Suppression douce : l'arme quitte le registre actif mais reste en
   /// base, car les bons de sortie passés s'y rattachent — et un registre
   /// d'armurerie se relit des années après.
-  Future<void> supprimer(String id) async {
-    await logistique
+  Future<void> supprimer(String id) => supprimerPlusieurs([id]);
+
+  /// Retire plusieurs armes en une écriture.
+  ///
+  /// `.select('id')` n'est pas décoratif : sans lui, PostgREST ne rend
+  /// aucune erreur quand la sécurité par ligne refuse l'écriture, et
+  /// l'écran annoncerait des suppressions qui n'ont pas eu lieu. Le compte
+  /// rendu est celui des lignes que la base a réellement touchées.
+  Future<int> supprimerPlusieurs(List<String> armeIds) async {
+    if (armeIds.isEmpty) return 0;
+    final touchees = await logistique
         .from('arme')
         .update({'supprime': true})
-        .eq('id', int.parse(id));
+        .inFilter('id', armeIds.map(int.parse).toList())
+        .select('id');
     await refresh();
+    return (touchees as List).length;
   }
 
   Future<void> enregistrerInspection(
@@ -119,6 +144,85 @@ class ArmesNotifier extends Notifier<List<Arme>> {
           'prochaine_inspection': prochaineInspection.toIso8601String(),
         })
         .eq('id', int.parse(id));
+    await refresh();
+  }
+
+  /// Les armes retirées du registre.
+  ///
+  /// Elles ne paraissent nulle part — `refresh()` les écarte —, mais elles
+  /// existent toujours et gardent leur numéro de série : la contrainte
+  /// d'unicité le leur réserve. L'import doit donc les connaître, sinon il
+  /// annonce « à créer » un numéro que la base refusera.
+  Future<List<Arme>> retireesDuRegistre() async {
+    final rows = await logistique
+        .from('arme')
+        .select()
+        .eq('supprime', true);
+    return (rows as List)
+        .map((r) => _armeFromRow(r as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Verse en une fois un registre existant, lu depuis un fichier.
+  ///
+  /// Une seule insertion pour tout le lot, et non une par arme : cent
+  /// allers-retours sur une liaison d'école, c'est une minute d'attente et
+  /// autant d'occasions de couper au milieu.
+  ///
+  /// [retablies] associe l'identifiant d'une arme retirée du registre aux
+  /// données du fichier qui la concernent : elle y revient avec ses bons,
+  /// au lieu d'être recréée à côté — ce que la contrainte d'unicité
+  /// refuserait de toute façon.
+  Future<void> importer(
+    List<ArmeAImporter> armes, {
+    Map<String, ArmeAImporter> retablies = const {},
+  }) async {
+    if (armes.isEmpty && retablies.isEmpty) return;
+
+    // Le référentiel des désignations suit : sans cela, une arme importée
+    // porterait une désignation absente de la liste déroulante du
+    // formulaire, et la modifier obligerait à en choisir une autre.
+    await ref
+        .read(typesArmeProvider.notifier)
+        .completer([
+          for (final a in [...armes, ...retablies.values]) a.designation,
+        ]);
+
+    // Les rétablissements d'abord : ils libèrent les numéros de série que
+    // l'insertion suivante pourrait croire disponibles.
+    for (final entree in retablies.entries) {
+      final a = entree.value;
+      await logistique
+          .from('arme')
+          .update({
+            'supprime': false,
+            'numero_serie': a.numeroSerie,
+            'type': a.designation,
+            'modele': a.marquage,
+            'etat': _etatArmeToDb(a.etat),
+            'position_actuelle': a.positionActuelle,
+            'observations': a.observations,
+          })
+          .eq('id', int.parse(entree.key))
+          .select('id');
+    }
+
+    if (armes.isEmpty) {
+      await refresh();
+      return;
+    }
+
+    await logistique.from('arme').insert([
+      for (final a in armes)
+        {
+          'numero_serie': a.numeroSerie,
+          'type': a.designation,
+          'modele': a.marquage,
+          'etat': _etatArmeToDb(a.etat),
+          'position_actuelle': a.positionActuelle,
+          'observations': a.observations,
+        },
+    ]);
     await refresh();
   }
 }
@@ -248,23 +352,6 @@ class MunitionsNotifier extends Notifier<List<StockMunition>> {
         .eq('id', int.parse(id));
     await refresh();
   }
-
-  Future<void> ajusterStock(String id, int delta) async {
-    final actuel = state.firstWhere(
-      (m) => m.id == id,
-      orElse: () => state.first,
-    );
-    await logistique
-        .from('stock_munition')
-        .update({
-          'quantite_disponible': (actuel.quantiteDisponible + delta).clamp(
-            0,
-            1 << 30,
-          ),
-        })
-        .eq('id', int.parse(id));
-    await refresh();
-  }
 }
 
 final munitionsProvider =
@@ -296,6 +383,28 @@ class TypesArmeNotifier extends Notifier<List<TypeArme>> {
 
   Future<void> creer(String libelle) async {
     await logistique.from('type_arme').insert({'libelle': libelle});
+    await refresh();
+  }
+
+  /// Ajoute au référentiel les désignations qui en manquent, et elles
+  /// seules. La comparaison ignore la casse et les espaces de bord : un
+  /// fichier qui écrit « fusil d'assaut » ne doit pas créer un doublon de
+  /// « Fusil d'assaut ».
+  Future<void> completer(Iterable<String> designations) async {
+    await refresh();
+    final connues = {for (final t in state) t.libelle.trim().toLowerCase()};
+    final aCreer = <String, String>{};
+    for (final d in designations) {
+      final net = d.trim();
+      if (net.isEmpty) continue;
+      final cle = net.toLowerCase();
+      if (connues.contains(cle) || aCreer.containsKey(cle)) continue;
+      aCreer[cle] = net;
+    }
+    if (aCreer.isEmpty) return;
+    await logistique.from('type_arme').insert([
+      for (final libelle in aCreer.values) {'libelle': libelle},
+    ]);
     await refresh();
   }
 }
@@ -351,23 +460,6 @@ class EquipementsNotifier extends Notifier<List<EquipementProtection>> {
         .eq('id', int.parse(id));
     await refresh();
   }
-
-  Future<void> ajusterStock(String id, int delta) async {
-    final actuel = state.firstWhere(
-      (e) => e.id == id,
-      orElse: () => state.first,
-    );
-    await logistique
-        .from('equipement_protection')
-        .update({
-          'quantite_disponible': (actuel.quantiteDisponible + delta).clamp(
-            0,
-            1 << 30,
-          ),
-        })
-        .eq('id', int.parse(id));
-    await refresh();
-  }
 }
 
 final equipementsProvider =
@@ -382,3 +474,93 @@ final equipementsEnAlerteProvider = Provider<List<EquipementProtection>>(
 final munitionsEnAlerteProvider = Provider<List<StockMunition>>(
   (ref) => ref.watch(munitionsProvider).where((m) => m.seuilAtteint).toList(),
 );
+
+// --- Bons de munitions et d'équipements ------------------------------------
+
+MouvementArticle _mouvementFromRow(Map<String, dynamic> row) {
+  final munition = row['munition_id'];
+  return MouvementArticle(
+    id: row['id'].toString(),
+    famille: munition != null
+        ? FamilleArticle.munition
+        : FamilleArticle.equipement,
+    articleId: (munition ?? row['equipement_id']).toString(),
+    sens: row['sens'] == 'entree' ? SensMouvement.entree : SensMouvement.sortie,
+    quantite: row['quantite'] as int,
+    beneficiaireMatricule: row['beneficiaire_matricule'] as String?,
+    beneficiaireNom: row['beneficiaire_nom'] as String?,
+    motif: row['motif'] as String?,
+    date: DateTime.parse(row['date'] as String),
+  );
+}
+
+/// Le journal des entrées et sorties de munitions et d'équipements.
+///
+/// C'est lui qui meut le stock, et non l'inverse : un déclencheur applique
+/// chaque mouvement à la quantité disponible, dans la même transaction.
+/// Une écriture, donc — jamais un stock modifié sans bon correspondant, ni
+/// un bon sans effet.
+class MouvementsArticleNotifier extends Notifier<List<MouvementArticle>> {
+  @override
+  List<MouvementArticle> build() {
+    Future.microtask(refresh);
+    return [];
+  }
+
+  Future<void> refresh() async {
+    final rows = await logistique
+        .from('mouvement_article')
+        .select()
+        .order('date', ascending: false);
+    state = (rows as List)
+        .map((r) => _mouvementFromRow(r as Map<String, dynamic>))
+        .toList();
+    ref.read(chargementProvider.notifier).marquerCharge('mouvements_articles');
+  }
+
+  Future<void> enregistrer({
+    required FamilleArticle famille,
+    required String articleId,
+    required SensMouvement sens,
+    required int quantite,
+    String? beneficiaireMatricule,
+    String? beneficiaireNom,
+    String? motif,
+    String? auteurId,
+  }) async {
+    await logistique.from('mouvement_article').insert({
+      if (famille == FamilleArticle.munition)
+        'munition_id': int.parse(articleId)
+      else
+        'equipement_id': int.parse(articleId),
+      'sens': sens == SensMouvement.entree ? 'entree' : 'sortie',
+      'quantite': quantite,
+      'beneficiaire_matricule': beneficiaireMatricule,
+      'beneficiaire_nom': beneficiaireNom,
+      'motif': motif,
+      'auteur_id': auteurId,
+    });
+    await refresh();
+    // Le stock a bougé en base sous l'effet du déclencheur ; les listes
+    // doivent le relire, sinon l'écran continue d'afficher l'ancien chiffre.
+    if (famille == FamilleArticle.munition) {
+      await ref.read(munitionsProvider.notifier).refresh();
+    } else {
+      await ref.read(equipementsProvider.notifier).refresh();
+    }
+  }
+}
+
+final mouvementsArticleProvider =
+    NotifierProvider<MouvementsArticleNotifier, List<MouvementArticle>>(
+      MouvementsArticleNotifier.new,
+    );
+
+/// Les mouvements d'une famille, les plus récents d'abord.
+final mouvementsParFamilleProvider =
+    Provider.family<List<MouvementArticle>, FamilleArticle>(
+      (ref, famille) => ref
+          .watch(mouvementsArticleProvider)
+          .where((m) => m.famille == famille)
+          .toList(),
+    );

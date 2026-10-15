@@ -15,15 +15,33 @@ extension EtatArmeLabel on EtatArme {
   }
 }
 
+/// Une arme au registre.
+///
+/// Les deux premiers champs portent à l'écran les noms du registre tenu à
+/// la main : [type] est la **désignation** (PA, PM, FA...), [modele] le
+/// **marquage**. Les colonnes de la base gardent leurs anciens noms — les
+/// bons de sortie s'y rattachent depuis l'origine.
 class Arme {
   final String id;
   final String numeroSerie;
-  final String type; // ex: Fusil d'assaut, Pistolet, Mitrailleuse...
+
+  /// Désignation — « Type d'arme » jusqu'au 17 octobre 2026.
+  final String type;
+
+  /// Marquage — « Modèle » jusqu'au 17 octobre 2026.
   final String modele;
+
   final EtatArme etat;
-  final DateTime dateAcquisition;
+
+  /// Où se trouve l'arme : armurerie, compagnie, atelier...
+  final String? positionActuelle;
+  final String? observations;
+
+  /// Facultatives : un registre repris d'un fichier ne les porte pas, et
+  /// une date inventée vaut moins qu'une case vide.
+  final DateTime? dateAcquisition;
   final DateTime? derniereInspection;
-  final DateTime prochaineInspection;
+  final DateTime? prochaineInspection;
 
   const Arme({
     required this.id,
@@ -31,12 +49,23 @@ class Arme {
     required this.type,
     required this.modele,
     required this.etat,
-    required this.dateAcquisition,
+    this.positionActuelle,
+    this.observations,
+    this.dateAcquisition,
     this.derniereInspection,
-    required this.prochaineInspection,
+    this.prochaineInspection,
   });
 
-  bool get inspectionEnRetard => DateTime.now().isAfter(prochaineInspection);
+  /// Sans date d'inspection prévue, il n'y a pas de retard : il n'y a rien
+  /// de prévu. Les deux ne se confondent pas.
+  bool get inspectionEnRetard =>
+      prochaineInspection != null &&
+      DateTime.now().isAfter(prochaineInspection!);
+
+  /// « FA — AK 47 », ou « FA » seul quand le marquage manque : un tiret qui
+  /// ne précède rien ressemble à une donnée perdue.
+  String get designationComplete =>
+      modele.trim().isEmpty ? type : '$type — $modele';
 }
 
 class DotationArme {
@@ -88,7 +117,8 @@ class StockMunition {
   bool get seuilAtteint => quantiteDisponible <= seuilCritique;
 }
 
-/// Référentiel des types d'arme (TYPE_ARME) — remplace la saisie libre.
+/// Référentiel des désignations d'arme (TYPE_ARME) — remplace la saisie
+/// libre.
 class TypeArme {
   final String id;
   final String libelle;
@@ -134,4 +164,63 @@ class DotationEquipement {
   });
 
   bool get enCours => dateRetourEffective == null;
+}
+
+// --- Bons de munitions et d'équipements ------------------------------------
+
+/// Les deux familles tenues en quantité, par opposition aux armes, tenues
+/// pièce par pièce.
+enum FamilleArticle { munition, equipement }
+
+extension FamilleArticleLabel on FamilleArticle {
+  String get libelle =>
+      this == FamilleArticle.munition ? 'Munitions' : 'Équipements';
+}
+
+enum SensMouvement { entree, sortie }
+
+extension SensMouvementLabel on SensMouvement {
+  String get label => this == SensMouvement.entree ? 'Entrée' : 'Sortie';
+
+  /// Le mot du registre : on perçoit ce qui sort, on réintègre ce qui rentre.
+  String get libelleBon =>
+      this == SensMouvement.entree ? 'Bon d\'entrée' : 'Bon de sortie';
+}
+
+/// Une entrée ou une sortie de stock — le bon lui-même.
+///
+/// C'est ce mouvement qui fait bouger la quantité disponible, et non
+/// l'inverse : un déclencheur l'applique au stock dans la même transaction.
+/// Le journal est donc toujours d'accord avec le stock.
+class MouvementArticle {
+  final String id;
+  final FamilleArticle famille;
+  final String articleId;
+  final SensMouvement sens;
+  final int quantite;
+  final String? beneficiaireMatricule;
+  final String? beneficiaireNom;
+  final String? motif;
+  final DateTime date;
+
+  const MouvementArticle({
+    required this.id,
+    required this.famille,
+    required this.articleId,
+    required this.sens,
+    required this.quantite,
+    this.beneficiaireMatricule,
+    this.beneficiaireNom,
+    this.motif,
+    required this.date,
+  });
+
+  String get beneficiaire {
+    final nom = beneficiaireNom?.trim() ?? '';
+    final mat = beneficiaireMatricule?.trim() ?? '';
+    if (nom.isEmpty && mat.isEmpty) return '—';
+    if (nom.isEmpty) return mat;
+    if (mat.isEmpty) return nom;
+    return '$nom ($mat)';
+  }
 }

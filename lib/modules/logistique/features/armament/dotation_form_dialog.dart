@@ -143,7 +143,7 @@ class _DotationFormDialogState extends ConsumerState<DotationFormDialog> {
                       controller: _typeCtrl,
                       readOnly: true,
                       decoration: const InputDecoration(
-                        labelText: "Type d'arme",
+                        labelText: 'Désignation',
                       ),
                     ),
                   ),
@@ -152,7 +152,7 @@ class _DotationFormDialogState extends ConsumerState<DotationFormDialog> {
                     child: TextFormField(
                       controller: _modeleCtrl,
                       readOnly: true,
-                      decoration: const InputDecoration(labelText: 'Modèle'),
+                      decoration: const InputDecoration(labelText: 'Marquage'),
                     ),
                   ),
                 ],

@@ -4,10 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sig_ensoa/core/theme.dart';
 import 'package:sig_ensoa/core/chargement.dart';
 import 'package:sig_ensoa/core/format.dart';
+import '../../data/models/armement.dart';
 import '../../data/repositories/armament_providers.dart';
 import '../../shared/widgets/skeleton.dart';
 import '../../shared/widgets/widgets.dart';
-import 'ajuster_stock_dialog.dart';
+import 'bon_stock_dialog.dart';
 import 'menu_suppression.dart';
 
 /// Contenu de l'onglet "Équipements" — stock d'équipements de protection
@@ -51,13 +52,11 @@ class EquipementsTabContent extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(16),
                             onTap: () => showDialog(
                               context: context,
-                              builder: (_) => AjusterStockDialog(
-                                titre: e.libelle,
+                              builder: (_) => BonStockDialog(
+                                famille: FamilleArticle.equipement,
+                                articleId: e.id,
                                 libelleArticle: e.libelle,
                                 quantiteActuelle: e.quantiteDisponible,
-                                onAjuster: (delta) => ref
-                                    .read(equipementsProvider.notifier)
-                                    .ajusterStock(e.id, delta),
                               ),
                             ),
                             child: Padding(

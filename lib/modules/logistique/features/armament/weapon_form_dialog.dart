@@ -28,6 +28,12 @@ class _WeaponFormDialogState extends ConsumerState<WeaponFormDialog> {
   late final _modeleCtrl = TextEditingController(
     text: widget.arme?.modele ?? '',
   );
+  late final _positionCtrl = TextEditingController(
+    text: widget.arme?.positionActuelle ?? '',
+  );
+  late final _observationsCtrl = TextEditingController(
+    text: widget.arme?.observations ?? '',
+  );
   String? _typeArmeLibelle;
   bool _envoi = false;
 
@@ -43,6 +49,8 @@ class _WeaponFormDialogState extends ConsumerState<WeaponFormDialog> {
   void dispose() {
     _serieCtrl.dispose();
     _modeleCtrl.dispose();
+    _positionCtrl.dispose();
+    _observationsCtrl.dispose();
     super.dispose();
   }
 
@@ -52,7 +60,7 @@ class _WeaponFormDialogState extends ConsumerState<WeaponFormDialog> {
       context: context,
       builder: (context) => AlertDialog(
         scrollable: true,
-        title: const Text('Nouveau type d\'arme'),
+        title: const Text('Nouvelle désignation'),
         content: TextField(
           controller: ctrl,
           autofocus: true,
@@ -102,7 +110,7 @@ class _WeaponFormDialogState extends ConsumerState<WeaponFormDialog> {
                       isExpanded: true,
                       initialValue: _typeArmeLibelle,
                       decoration: const InputDecoration(
-                        labelText: "Type d'arme",
+                        labelText: 'Désignation',
                       ),
                       items: [
                         for (final t in types)
@@ -117,7 +125,7 @@ class _WeaponFormDialogState extends ConsumerState<WeaponFormDialog> {
                   ),
                   const SizedBox(width: 8),
                   IconButton.filledTonal(
-                    tooltip: 'Nouveau type',
+                    tooltip: 'Nouvelle désignation',
                     onPressed: _nouveauType,
                     icon: const Icon(Icons.add),
                   ),
@@ -126,9 +134,22 @@ class _WeaponFormDialogState extends ConsumerState<WeaponFormDialog> {
               const SizedBox(height: 12),
               TextFormField(
                 controller: _modeleCtrl,
-                decoration: const InputDecoration(labelText: 'Modèle'),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Requis' : null,
+                decoration: const InputDecoration(labelText: 'Marquage'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _positionCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Position actuelle',
+                  helperText: 'Armurerie, compagnie, atelier...',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _observationsCtrl,
+                decoration: const InputDecoration(labelText: 'Observations'),
+                minLines: 2,
+                maxLines: 4,
               ),
             ],
           ),
@@ -147,6 +168,9 @@ class _WeaponFormDialogState extends ConsumerState<WeaponFormDialog> {
     );
   }
 
+  String? _net(TextEditingController c) =>
+      c.text.trim().isEmpty ? null : c.text.trim();
+
   Future<void> _submit() async {
     if (!validerFormulaire(context, _formKey)) return;
     setState(() => _envoi = true);
@@ -160,6 +184,8 @@ class _WeaponFormDialogState extends ConsumerState<WeaponFormDialog> {
               numeroSerie: _serieCtrl.text.trim(),
               type: _typeArmeLibelle!,
               modele: _modeleCtrl.text.trim(),
+              positionActuelle: _net(_positionCtrl),
+              observations: _net(_observationsCtrl),
             );
         ref
             .read(auditProvider.notifier)
@@ -177,6 +203,11 @@ class _WeaponFormDialogState extends ConsumerState<WeaponFormDialog> {
           type: _typeArmeLibelle!,
           modele: _modeleCtrl.text.trim(),
           etat: EtatArme.enArmurerie,
+          positionActuelle: _net(_positionCtrl),
+          observations: _net(_observationsCtrl),
+          // Une arme saisie ici entre aujourd'hui : la date d'acquisition
+          // est donc juste, contrairement à celle d'une arme importée d'un
+          // registre ancien, qu'on laisse vide plutôt que d'inventer.
           dateAcquisition: now,
           prochaineInspection: now.add(const Duration(days: 90)),
         );
@@ -187,7 +218,7 @@ class _WeaponFormDialogState extends ConsumerState<WeaponFormDialog> {
               auteurId: user.id,
               action: 'ARME_ENREGISTREE',
               cible: arme.numeroSerie,
-              detail: '${arme.type} — ${arme.modele}',
+              detail: arme.designationComplete,
             );
       }
       if (mounted) {

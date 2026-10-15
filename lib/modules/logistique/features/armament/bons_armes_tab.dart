@@ -112,7 +112,8 @@ class _BonsArmesTabContentState extends ConsumerState<BonsArmesTabContent> {
           controller: _rechercheCtrl,
           decoration: InputDecoration(
             hintText:
-                'Rechercher une arme (N° série, type, modèle) ou un bénéficiaire...',
+                'Rechercher une arme (n° série, désignation, marquage) '
+                'ou un bénéficiaire...',
             prefixIcon: const Icon(Icons.search),
             suffixIcon: _recherche.isEmpty
                 ? null
@@ -165,7 +166,8 @@ class _BonsArmesTabContentState extends ConsumerState<BonsArmesTabContent> {
               ),
               title: Text(
                 armeDe(d) != null
-                    ? '${armeDe(d)!.type} — ${armeDe(d)!.modele} (N° ${armeDe(d)!.numeroSerie})'
+                    ? '${armeDe(d)!.designationComplete} '
+                          '(N° ${armeDe(d)!.numeroSerie})'
                     : 'Arme inconnue',
               ),
               subtitle: Text(
