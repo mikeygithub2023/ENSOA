@@ -168,11 +168,15 @@ class DashboardGarage extends ConsumerWidget {
                 onTap: versParc,
               ),
               const Divider(height: 1),
+              // Le compteur montre ce qui roule, pas ce qui est cloué : le
+              // libellé « immobilisé » affiché avec « 15/22 » se lisait à
+              // l'envers (15 étaient en service, non immobilisés). On nomme
+              // donc la ligne par ce qu'elle compte vraiment.
               DotProgressRow(
                 icon: Icons.car_crash_rounded,
                 iconColor: AppColors.danger,
-                title: 'Parc immobilisé',
-                subtitle: 'Véhicules hors service',
+                title: 'Parc en service',
+                subtitle: 'Véhicules non immobilisés — $horsService hors service',
                 completed: vehicules.length - horsService,
                 total: vehicules.length,
                 onTap: versParc,
