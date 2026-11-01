@@ -100,9 +100,9 @@ class DashboardGarage extends ConsumerWidget {
           final large = constraints.maxWidth > 820;
           final jauge = GaugeCard(
             title: 'Disponibilité du parc',
-            subtitle: 'Véhicules prêts à l\'emploi',
-            progress: enService.isEmpty ? 0 : disponibles / enService.length,
-            centerValue: '$disponibles/${enService.length}',
+            subtitle: 'Disponibles sur l\'ensemble du parc enregistré',
+            progress: vehicules.isEmpty ? 0 : disponibles / vehicules.length,
+            centerValue: '$disponibles/${vehicules.length}',
             centerLabel: 'dispo.',
             color: AppColors.success,
           );

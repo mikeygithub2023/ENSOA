@@ -81,8 +81,10 @@ class _GarageWorkspaceScreenState extends State<GarageWorkspaceScreen>
   }
 }
 
-/// Les onglets du Garage, en bandeau segmenté — même dessin que les grandes
-/// rubriques de l'Armement.
+/// Les onglets du Garage, en onglets soulignés — volontairement distincts du
+/// bandeau-pilule des grandes rubriques au-dessus (Garage, Soutien pétrolier,
+/// Armurerie), pour qu'on lise d'un coup d'œil le niveau où l'on se trouve.
+/// C'est le dessin des sous-rubriques de l'Armement.
 class _BarreOnglets extends StatelessWidget {
   const _BarreOnglets({required this.controller});
 
@@ -90,23 +92,17 @@ class _BarreOnglets extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppColors.blueMist,
-        borderRadius: BorderRadius.circular(AppRadii.pill),
-        border: Border.all(color: AppColors.border),
-      ),
+    return Align(
+      alignment: Alignment.centerLeft,
       child: TabBar(
         controller: controller,
-        indicator: BoxDecoration(
-          color: AppColors.navy,
-          borderRadius: BorderRadius.circular(AppRadii.pill),
-        ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        dividerColor: Colors.transparent,
-        labelColor: Colors.white,
+        isScrollable: true,
+        tabAlignment: TabAlignment.start,
+        labelColor: AppColors.navy,
         unselectedLabelColor: AppColors.inkMuted,
+        indicatorColor: AppColors.navy,
+        indicatorWeight: 3,
+        dividerColor: AppColors.border,
         labelStyle: const TextStyle(fontWeight: FontWeight.w800),
         unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
         tabs: const [
