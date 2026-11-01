@@ -48,7 +48,7 @@ class _MouvementFormDialogState extends ConsumerState<MouvementFormDialog> {
     final vehicule = widget.vehicule;
     return AlertDialog(
       scrollable: true,
-      title: Text('Nouveau mouvement — ${vehicule.immatriculation}'),
+      title: Text('Nouvel ordre de mission — ${vehicule.immatriculation}'),
       content: SizedBox(
         width: 420,
         child: Form(
@@ -93,7 +93,7 @@ class _MouvementFormDialogState extends ConsumerState<MouvementFormDialog> {
                     child: TextFormField(
                       controller: _nomCtrl,
                       decoration: const InputDecoration(
-                        labelText: 'Nom du chef de bord',
+                        labelText: 'Nom du conducteur',
                       ),
                       validator: (v) =>
                           v == null || v.trim().isEmpty ? 'Requis' : null,

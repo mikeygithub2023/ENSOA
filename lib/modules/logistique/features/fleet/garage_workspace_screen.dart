@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:sig_ensoa/core/theme.dart';
 import '../dashboard/dashboard_garage.dart';
 import 'fleet_screen.dart';
+import 'ordres_mission_tab.dart';
 
 /// L'espace de travail du Garage, à onglets.
 ///
@@ -30,7 +31,7 @@ class _GarageWorkspaceScreenState extends State<GarageWorkspaceScreen>
   @override
   void initState() {
     super.initState();
-    _onglets = TabController(length: 2, vsync: this);
+    _onglets = TabController(length: 3, vsync: this);
     _onglets.addListener(() {
       if (!_onglets.indexIsChanging) setState(() {});
     });
@@ -73,6 +74,9 @@ class _GarageWorkspaceScreenState extends State<GarageWorkspaceScreen>
               // La liste porte son propre défilement et son bouton « Nouveau
               // véhicule » : on la laisse se rendre seule.
               FleetScreen(sansCadre: true),
+              // Les ordres de mission, de même, portent leur liste et leur
+              // bouton « Nouvel ordre de mission ».
+              OrdresMissionTab(),
             ],
           ),
         ),
@@ -108,6 +112,7 @@ class _BarreOnglets extends StatelessWidget {
         tabs: const [
           Tab(text: 'Tableau de bord'),
           Tab(text: 'Liste des véhicules'),
+          Tab(text: 'Ordres de mission'),
         ],
       ),
     );
