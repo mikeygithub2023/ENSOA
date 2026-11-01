@@ -1,9 +1,8 @@
-import 'dart:io';
-
 import 'package:supabase_flutter/supabase_flutter.dart'
     show FunctionException, PostgrestException, StorageException;
 
 import 'erreurs_base.dart';
+import 'exceptions_reseau.dart';
 import 'session_fraiche.dart';
 
 /// Traduit une exception en une phrase que l'utilisateur peut comprendre et
@@ -21,10 +20,7 @@ String messageErreur(Object erreur) {
   if (estSessionExpiree(erreur)) {
     return 'Votre session a expiré. Reconnectez-vous pour continuer.';
   }
-  if (erreur is SocketException ||
-      erreur is HttpException ||
-      erreur is HandshakeException ||
-      _estCoupureClient(erreur)) {
+  if (estExceptionReseauBasNiveau(erreur) || _estCoupureClient(erreur)) {
     return 'Connexion au serveur interrompue. Vérifiez votre accès Internet, '
         'puis réessayez.';
   }
@@ -70,10 +66,7 @@ String messageErreur(Object erreur) {
 /// `AuthRetryableFetchException`, dont le message porte encore le
 /// « Failed host lookup » d'origine. On regarde donc aussi le texte.
 bool estProblemeReseau(Object erreur) {
-  if (erreur is SocketException ||
-      erreur is HttpException ||
-      erreur is HandshakeException ||
-      _estCoupureClient(erreur)) {
+  if (estExceptionReseauBasNiveau(erreur) || _estCoupureClient(erreur)) {
     return true;
   }
   final texte = erreur.toString().toLowerCase();

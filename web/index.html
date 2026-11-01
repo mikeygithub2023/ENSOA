@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <!--
+    Chemin de base. Remplacé à la compilation par la valeur de `--base-href`.
+    À la racine du domaine (le cas d'un hébergeur statique dédié), il vaut « / ».
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Système de Gestion Intégrée de l'ENSOA — scolarité et soutien technique.">
+  <meta name="theme-color" content="#101F3C">
+
+  <!-- Installable comme application sur mobile et sur poste -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SIG ENSOA">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>SIG ENSOA</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    /* Écran de chargement : évite la page blanche pendant que le paquet de
+       l'application se télécharge. Aux couleurs de l'écusson, il s'efface au
+       premier rendu de Flutter (événement « flutter-first-frame »). */
+    html, body { margin: 0; padding: 0; height: 100%; background-color: #101F3C; }
+    #ecran-chargement {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background-color: #101F3C;
+      transition: opacity 0.35s ease;
+      z-index: 999;
+    }
+    #ecran-chargement img { width: 112px; height: 112px; margin-bottom: 28px; }
+    #ecran-chargement .anneau {
+      width: 36px; height: 36px;
+      border: 3px solid rgba(255, 255, 255, 0.25);
+      border-top-color: #5B9BFF;
+      border-radius: 50%;
+      animation: tourne 0.9s linear infinite;
+    }
+    #ecran-chargement .titre {
+      margin-top: 20px;
+      color: #BBD3FF;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    @keyframes tourne { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="ecran-chargement">
+    <img src="icons/Icon-192.png" alt="Écusson de l'ENSOA">
+    <div class="anneau"></div>
+    <div class="titre">SIG ENSOA</div>
+  </div>
+
+  <script>
+    // L'écran de chargement s'efface dès que Flutter a peint son premier
+    // frame. Un repli par délai le retire même si l'événement manque.
+    (function () {
+      function effacer() {
+        var ecran = document.getElementById('ecran-chargement');
+        if (!ecran) return;
+        ecran.style.opacity = '0';
+        setTimeout(function () { ecran.remove(); }, 400);
+      }
+      window.addEventListener('flutter-first-frame', effacer);
+      setTimeout(effacer, 12000);
+    })();
+  </script>
+
+  <script>
+    // Enregistrement explicite du service worker.
+    //
+    // Flutter 3.44 a déprécié l'enregistrement automatique de son service
+    // worker (il sera retiré d'une prochaine version — voir flutter/flutter
+    // #156910) : sans ce code, la PWA n'est ni installable ni mise en cache.
+    // On l'enregistre donc nous-mêmes.
+    //
+    // `flutter_service_worker.js` est régénéré à chaque build avec l'empreinte
+    // de chaque fichier. Quand une nouvelle version est déployée, son contenu
+    // change ; le navigateur le détecte, installe la nouvelle version en
+    // arrière-plan et l'applique au prochain lancement. C'est là toute la
+    // mise à jour automatique : plus d'APK ni d'EXE à réinstaller.
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('flutter_service_worker.js')
+          .catch(function (e) {
+            console.warn('Service worker non enregistré :', e);
+          });
+      });
+    }
+  </script>
+
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

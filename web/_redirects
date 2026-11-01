@@ -1,0 +1,5 @@
+# Repli SPA : toute URL inconnue sert index.html (code 200), pour que le
+# routage interne de l'application prenne le relais au lieu d'un 404 de
+# l'hébergeur. Lu par Netlify et Cloudflare Pages ; sans effet ailleurs.
+# Flutter copie ce fichier tel quel dans build/web à la compilation.
+/*  /index.html  200

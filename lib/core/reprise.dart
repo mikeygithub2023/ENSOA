@@ -1,5 +1,6 @@
-import 'dart:io';
 import 'dart:math';
+
+import 'exceptions_reseau.dart';
 
 /// Rejoue une requête une fois lorsque la connexion a été coupée avant
 /// qu'aucune réponse n'arrive.
@@ -29,7 +30,7 @@ Future<T> avecReprise<T>(Future<T> Function() action) async {
 }
 
 bool _estConnexionDormante(Object erreur) {
-  if (erreur is SocketException) return true;
+  if (estCoupureSocket(erreur)) return true;
   if (erreur.runtimeType.toString() != 'ClientException') return false;
   final texte = erreur.toString().toLowerCase();
   return texte.contains('connection closed before full header') ||

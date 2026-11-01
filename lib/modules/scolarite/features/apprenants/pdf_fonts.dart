@@ -1,8 +1,7 @@
-import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/widgets.dart' as pw;
+
+import 'pdf_arial.dart';
 
 /// Thème typographique commun à tous les documents imprimés.
 ///
@@ -40,29 +39,12 @@ import 'package:pdf/widgets.dart' as pw;
 Future<pw.ThemeData?> chargerThemePdf() async {
   if (_charge) return _theme;
   _charge = true;
-  _theme = await _arialDeWindows() ?? await _robotoEmbarquee();
+  _theme = await arialDeWindows() ?? await _robotoEmbarquee();
   return _theme;
 }
 
 pw.ThemeData? _theme;
 bool _charge = false;
-
-Future<pw.ThemeData?> _arialDeWindows() async {
-  if (!Platform.isWindows) return null;
-  try {
-    final dossier =
-        '${Platform.environment['WINDIR'] ?? r'C:\Windows'}'
-        r'\Fonts';
-    return pw.ThemeData.withFont(
-      base: await _policeDuDisque('$dossier\\arial.ttf'),
-      bold: await _policeDuDisque('$dossier\\arialbd.ttf'),
-      italic: await _policeDuDisque('$dossier\\ariali.ttf'),
-      boldItalic: await _policeDuDisque('$dossier\\arialbi.ttf'),
-    );
-  } catch (_) {
-    return null;
-  }
-}
 
 Future<pw.ThemeData?> _robotoEmbarquee() async {
   try {
@@ -77,11 +59,6 @@ Future<pw.ThemeData?> _robotoEmbarquee() async {
   } catch (_) {
     return null;
   }
-}
-
-Future<pw.Font> _policeDuDisque(String chemin) async {
-  final octets = await File(chemin).readAsBytes();
-  return pw.Font.ttf(ByteData.view(octets.buffer));
 }
 
 Future<pw.Font> _policeDesRessources(String chemin) async =>

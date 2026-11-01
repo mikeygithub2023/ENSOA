@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -90,11 +90,17 @@ class Push {
     }
   }
 
-  /// Firebase Messaging ne couvre pas Windows : le poste de travail reçoit
-  /// ses notifications dans l'application, pas dans la barre système.
-  static bool get supporte => Platform.isAndroid || Platform.isIOS;
+  /// Firebase Messaging ne couvre ni Windows ni, pour l'instant, la version
+  /// web (PWA) : le poste de travail et le navigateur reçoivent leurs
+  /// notifications dans l'application, pas dans la barre système. Le push web
+  /// demanderait un service worker dédié et une clé VAPID — reporté.
+  static bool get supporte =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
 
-  static String get _plateforme => Platform.isIOS ? 'ios' : 'android';
+  static String get _plateforme =>
+      defaultTargetPlatform == TargetPlatform.iOS ? 'ios' : 'android';
 }
 
 /// Doit rester une fonction hors classe : c'est l'exigence de Firebase pour le

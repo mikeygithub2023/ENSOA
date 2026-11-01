@@ -1,4 +1,5 @@
 import 'package:sig_ensoa/core/formulaire.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:local_auth/local_auth.dart';
@@ -264,12 +265,18 @@ class _ConnexionScreenState extends ConsumerState<ConnexionScreen> {
                                 : const Text('Se connecter'),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        OutlinedButton.icon(
-                          onPressed: _loading ? null : _biometricUnlock,
-                          icon: const Icon(Icons.fingerprint),
-                          label: const Text('Déverrouiller par biométrie'),
-                        ),
+                        // La biométrie n'existe pas dans le navigateur : sur
+                        // le web (PWA), on ne propose pas un bouton qui ne
+                        // ferait qu'échouer. L'identité reste vérifiée par le
+                        // matricule et le mot de passe.
+                        if (!kIsWeb) ...[
+                          const SizedBox(height: 12),
+                          OutlinedButton.icon(
+                            onPressed: _loading ? null : _biometricUnlock,
+                            icon: const Icon(Icons.fingerprint),
+                            label: const Text('Déverrouiller par biométrie'),
+                          ),
+                        ],
                         const SizedBox(height: 24),
                         Text(
                           "Accès réservé au personnel autorisé de l'ENSOA. Toute tentative non autorisée est journalisée.",
