@@ -1,0 +1,58 @@
+# Déploiement de la PWA sur GitHub Pages.
+#
+# À chaque poussée de code, l'application web est recompilée et publiée. Les
+# appareils installés récupèrent la nouvelle version d'eux-mêmes au prochain
+# lancement (service worker) : plus d'APK ni d'EXE à redistribuer.
+#
+# Étape manuelle, une seule fois : dépôt → Settings → Pages → « Build and
+# deployment » → Source = « GitHub Actions ». Sans cela, le travail « deploy »
+# ci-dessous n'a nulle part où publier.
+#
+# Le site d'un dépôt se sert sous /<nom-du-dépôt>/ — ici /ENSOA/ — d'où le
+# base-href. Si tu passes un jour à un domaine propre ou à un dépôt
+# <compte>.github.io, remets base-href à « / ».
+name: Déploiement web (PWA)
+
+on:
+  push:
+    branches: [main, master, migration-pwa]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Une seule publication à la fois ; la plus récente l'emporte.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.8
+
+      - run: flutter pub get
+
+      - run: flutter build web --release --base-href /ENSOA/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
