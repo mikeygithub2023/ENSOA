@@ -125,65 +125,98 @@ class DashboardGarage extends ConsumerWidget {
         },
       ),
       const SizedBox(height: 16),
-      SoutesStockCard(
-        title: 'Parc par type',
-        total: enService.length,
-        soutes: types,
-        unite: 'vhl',
-      ),
-      const SizedBox(height: 24),
-      const SectionHeader(title: 'Suivi du garage'),
-      Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Column(
+      // « Parc par type » et « Suivi du garage » tiennent sur une même ligne
+      // là où la largeur le permet, empilés sinon : deux lectures
+      // complémentaires du parc, qu'on embrasse d'un seul regard.
+      LayoutBuilder(
+        builder: (context, constraints) {
+          final large = constraints.maxWidth > 820;
+
+          final parType = SoutesStockCard(
+            title: 'Parc par type',
+            total: enService.length,
+            soutes: types,
+            unite: 'vhl',
+          );
+
+          final suivi = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DotProgressRow(
-                icon: Icons.directions_car_rounded,
-                iconColor: AppColors.blue,
-                title: 'Disponibilité',
-                subtitle: 'Véhicules prêts sur le parc en service',
-                completed: disponibles,
-                total: enService.length,
-                onTap: versParc,
-              ),
-              const Divider(height: 1),
-              DotProgressRow(
-                icon: Icons.oil_barrel_rounded,
-                iconColor: AppColors.warning,
-                title: 'Entretien',
-                subtitle: 'Véhicules à jour de vidange',
-                completed: enService.length - vidangeRequise.length,
-                total: enService.length,
-                onTap: versParc,
-              ),
-              const Divider(height: 1),
-              DotProgressRow(
-                icon: Icons.car_repair_rounded,
-                iconColor: AppColors.navy,
-                title: 'Réparations',
-                subtitle: 'Interventions clôturées',
-                completed: reparations.length - ouvertes.length,
-                total: reparations.length,
-                onTap: versParc,
-              ),
-              const Divider(height: 1),
-              // Le compteur montre ce qui roule, pas ce qui est cloué : le
-              // libellé « immobilisé » affiché avec « 15/22 » se lisait à
-              // l'envers (15 étaient en service, non immobilisés). On nomme
-              // donc la ligne par ce qu'elle compte vraiment.
-              DotProgressRow(
-                icon: Icons.car_crash_rounded,
-                iconColor: AppColors.danger,
-                title: 'Parc en service',
-                subtitle: 'Véhicules non immobilisés — $horsService hors service',
-                completed: vehicules.length - horsService,
-                total: vehicules.length,
-                onTap: versParc,
+              const SectionHeader(title: 'Suivi du garage'),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Column(
+                    children: [
+                      DotProgressRow(
+                        icon: Icons.directions_car_rounded,
+                        iconColor: AppColors.blue,
+                        title: 'Disponibilité',
+                        subtitle: 'Véhicules prêts sur le parc en service',
+                        completed: disponibles,
+                        total: enService.length,
+                        onTap: versParc,
+                      ),
+                      const Divider(height: 1),
+                      DotProgressRow(
+                        icon: Icons.oil_barrel_rounded,
+                        iconColor: AppColors.warning,
+                        title: 'Entretien',
+                        subtitle: 'Véhicules à jour de vidange',
+                        completed: enService.length - vidangeRequise.length,
+                        total: enService.length,
+                        onTap: versParc,
+                      ),
+                      const Divider(height: 1),
+                      DotProgressRow(
+                        icon: Icons.car_repair_rounded,
+                        iconColor: AppColors.navy,
+                        title: 'Réparations',
+                        subtitle: 'Interventions clôturées',
+                        completed: reparations.length - ouvertes.length,
+                        total: reparations.length,
+                        onTap: versParc,
+                      ),
+                      const Divider(height: 1),
+                      // Le compteur montre ce qui roule, pas ce qui est cloué :
+                      // « immobilisé » affiché avec « 15/22 » se lisait à
+                      // l'envers (15 étaient en service). On nomme la ligne par
+                      // ce qu'elle compte vraiment.
+                      DotProgressRow(
+                        icon: Icons.car_crash_rounded,
+                        iconColor: AppColors.danger,
+                        title: 'Parc en service',
+                        subtitle:
+                            'Véhicules non immobilisés — $horsService hors service',
+                        completed: vehicules.length - horsService,
+                        total: vehicules.length,
+                        onTap: versParc,
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
-          ),
-        ),
+          );
+
+          if (!large) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [parType, const SizedBox(height: 24), suivi],
+            );
+          }
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: parType),
+              const SizedBox(width: 16),
+              Expanded(child: suivi),
+            ],
+          );
+        },
       ),
     ];
 
