@@ -46,10 +46,20 @@ jobs:
 
       - run: flutter build web --release
 
-      - uses: cloudflare/wrangler-action@v3
+      # `pages deploy` ne crée pas le projet : on l'y prépare d'abord. L'étape
+      # échoue sans dommage si le projet existe déjà (continue-on-error) — elle
+      # ne sert qu'au tout premier déploiement.
+      - name: Préparer le projet Pages
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # Crée le projet « sig-ensoa » au premier déploiement s'il n'existe
-          # pas encore, et y publie le contenu de build/web.
-          command: pages deploy build/web --project-name=sig-ensoa
+          command: pages project create sig-ensoa --production-branch=migration-pwa
+
+      - name: Déployer sur Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy build/web --project-name=sig-ensoa --branch=migration-pwa
