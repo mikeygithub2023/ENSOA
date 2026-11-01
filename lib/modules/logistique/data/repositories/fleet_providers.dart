@@ -555,6 +555,8 @@ MouvementVehicule _mouvementFromRow(Map<String, dynamic> row) =>
       gradeChefBord: (row['grade_chef_bord'] as String?) ?? '',
       nomChefBord: row['nom_chef_bord'] as String,
       contactChefBord: (row['contact_chef_bord'] as String?) ?? '',
+      gradeChefDeBord: (row['grade_chef_de_bord'] as String?) ?? '',
+      nomChefDeBord: (row['nom_chef_de_bord'] as String?) ?? '',
     );
 
 class MouvementsVehiculeNotifier extends Notifier<List<MouvementVehicule>> {
@@ -585,6 +587,8 @@ class MouvementsVehiculeNotifier extends Notifier<List<MouvementVehicule>> {
       'grade_chef_bord': m.gradeChefBord,
       'nom_chef_bord': m.nomChefBord,
       'contact_chef_bord': m.contactChefBord,
+      'grade_chef_de_bord': m.gradeChefDeBord,
+      'nom_chef_de_bord': m.nomChefDeBord,
     });
     await refresh();
   }
@@ -613,6 +617,8 @@ class MouvementsVehiculeNotifier extends Notifier<List<MouvementVehicule>> {
           'grade_chef_bord': m.gradeChefBord,
           'nom_chef_bord': m.nomChefBord,
           'contact_chef_bord': m.contactChefBord,
+          'grade_chef_de_bord': m.gradeChefDeBord,
+          'nom_chef_de_bord': m.nomChefDeBord,
         })
         .eq('id', int.parse(m.id));
     await refresh();

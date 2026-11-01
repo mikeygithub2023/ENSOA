@@ -38,6 +38,8 @@ class _MouvementFormDialogState extends ConsumerState<MouvementFormDialog> {
   final _gradeCtrl = TextEditingController();
   final _nomCtrl = TextEditingController();
   final _contactCtrl = TextEditingController();
+  final _gradeCdbCtrl = TextEditingController();
+  final _nomCdbCtrl = TextEditingController();
   final _objetCtrl = TextEditingController();
   final _destinationCtrl = TextEditingController();
 
@@ -53,6 +55,8 @@ class _MouvementFormDialogState extends ConsumerState<MouvementFormDialog> {
       _gradeCtrl.text = m.gradeChefBord;
       _nomCtrl.text = m.nomChefBord;
       _contactCtrl.text = m.contactChefBord;
+      _gradeCdbCtrl.text = m.gradeChefDeBord;
+      _nomCdbCtrl.text = m.nomChefDeBord;
       _objetCtrl.text = m.objet;
       _destinationCtrl.text = m.destination;
     }
@@ -63,6 +67,8 @@ class _MouvementFormDialogState extends ConsumerState<MouvementFormDialog> {
     _gradeCtrl.dispose();
     _nomCtrl.dispose();
     _contactCtrl.dispose();
+    _gradeCdbCtrl.dispose();
+    _nomCdbCtrl.dispose();
     _objetCtrl.dispose();
     _destinationCtrl.dispose();
     super.dispose();
@@ -141,6 +147,35 @@ class _MouvementFormDialogState extends ConsumerState<MouvementFormDialog> {
                     v == null || v.trim().isEmpty ? 'Requis' : null,
               ),
               const SizedBox(height: 12),
+              // Le chef de bord — qui commande la mission, distinct du
+              // conducteur.
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _gradeCdbCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Grade chef de bord',
+                      ),
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Requis' : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: TextFormField(
+                      controller: _nomCdbCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Nom du chef de bord',
+                      ),
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Requis' : null,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               TextFormField(
                 controller: _objetCtrl,
                 decoration: const InputDecoration(
@@ -207,6 +242,8 @@ class _MouvementFormDialogState extends ConsumerState<MouvementFormDialog> {
             gradeChefBord: _gradeCtrl.text.trim(),
             nomChefBord: _nomCtrl.text.trim(),
             contactChefBord: _contactCtrl.text.trim(),
+            gradeChefDeBord: _gradeCdbCtrl.text.trim(),
+            nomChefDeBord: _nomCdbCtrl.text.trim(),
           ),
         );
         ref
@@ -231,6 +268,8 @@ class _MouvementFormDialogState extends ConsumerState<MouvementFormDialog> {
             gradeChefBord: _gradeCtrl.text.trim(),
             nomChefBord: _nomCtrl.text.trim(),
             contactChefBord: _contactCtrl.text.trim(),
+            gradeChefDeBord: _gradeCdbCtrl.text.trim(),
+            nomChefDeBord: _nomCdbCtrl.text.trim(),
           ),
         );
         await ref

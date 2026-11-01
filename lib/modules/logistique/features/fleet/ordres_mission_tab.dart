@@ -198,6 +198,13 @@ class _CarteOrdreMission extends ConsumerWidget {
                   'Conducteur : ${mouvement.gradeChefBord} ${mouvement.nomChefBord}'
                   .trim(),
             ),
+            if (mouvement.nomChefDeBord.isNotEmpty)
+              _Ligne(
+                icone: Icons.military_tech_outlined,
+                texte:
+                    'Chef de bord : ${mouvement.gradeChefDeBord} ${mouvement.nomChefDeBord}'
+                    .trim(),
+              ),
             _Ligne(
               icone: Icons.schedule_rounded,
               texte: 'Départ : ${depart.format(mouvement.dateDepart)}',
