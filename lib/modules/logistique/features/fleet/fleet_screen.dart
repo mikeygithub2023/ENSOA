@@ -14,7 +14,12 @@ import 'import_vehicules_dialog.dart';
 import 'vehicle_form_dialog.dart';
 
 class FleetScreen extends ConsumerStatefulWidget {
-  const FleetScreen({super.key});
+  const FleetScreen({super.key, this.sansCadre = false});
+
+  /// Rendu nu, sans titre ni cadre propre : l'espace Garage à onglets porte le
+  /// titre, et la liste des véhicules n'y est qu'un onglet parmi d'autres. Le
+  /// bouton « Nouveau véhicule » reste, posé sur l'onglet.
+  final bool sansCadre;
 
   @override
   ConsumerState<FleetScreen> createState() => _FleetScreenState();
@@ -64,19 +69,18 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
     final visibles = {for (final v in filtres) v.id};
     final cochesVisibles = _coches.where(visibles.contains).toSet();
 
-    return ScreenScaffold(
-      title: 'Parc automobile',
-      floatingActionButton: _selection
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () => showDialog(
-                context: context,
-                builder: (_) => const VehicleFormDialog(),
-              ),
-              icon: const Icon(Icons.add),
-              label: const Text('Nouveau véhicule'),
+    final fab = _selection
+        ? null
+        : FloatingActionButton.extended(
+            onPressed: () => showDialog(
+              context: context,
+              builder: (_) => const VehicleFormDialog(),
             ),
-      children: [
+            icon: const Icon(Icons.add),
+            label: const Text('Nouveau véhicule'),
+          );
+
+    final corps = <Widget>[
         if (_selection)
           _BarreSelection(
             coches: cochesVisibles.length,
@@ -242,7 +246,31 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
               );
             },
           ),
-      ],
+    ];
+
+    if (widget.sansCadre) {
+      // L'onglet porte son propre défilement et pose le FAB par-dessus, comme
+      // le fait ScreenScaffold — mais sans titre, celui de l'espace Garage
+      // suffisant.
+      return Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 100),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: corps,
+            ),
+          ),
+          if (fab != null)
+            Positioned(right: 4, bottom: 12, child: fab),
+        ],
+      );
+    }
+
+    return ScreenScaffold(
+      title: 'Parc automobile',
+      floatingActionButton: fab,
+      children: corps,
     );
   }
 

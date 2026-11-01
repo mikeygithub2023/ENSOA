@@ -17,7 +17,7 @@ import '../modules/logistique/features/armament/armament_screen.dart';
 import '../modules/logistique/features/armament/weapon_detail_screen.dart';
 import '../modules/logistique/features/audit/audit_screen.dart';
 import '../modules/logistique/features/dashboard/soutien_technique_screen.dart';
-import '../modules/logistique/features/fleet/fleet_screen.dart';
+import '../modules/logistique/features/fleet/garage_workspace_screen.dart';
 import '../modules/logistique/features/fleet/vehicle_detail_screen.dart';
 import '../modules/logistique/features/fuel/fuel_screen.dart';
 import '../modules/logistique/features/notifications/notifications_screen.dart';
@@ -75,7 +75,9 @@ final _ecransPortes = <String, Widget Function()>{
   // une seule rubrique — réservé au super administrateur par la permission qui
   // ouvre son entrée de menu.
   '/logistique/soutien-technique': () => const SoutienTechniqueScreen(),
-  '/logistique/parc': () => const FleetScreen(),
+  // Le Garage est désormais un espace à onglets (tableau de bord, liste des
+  // véhicules, et bientôt les ordres de mission) plutôt que la seule liste.
+  '/logistique/parc': () => const GarageWorkspaceScreen(),
   '/logistique/carburant': () => const FuelScreen(),
   '/logistique/armement': () => const ArmamentScreen(),
   '/logistique/poste-police': () => const PoliceScreen(),

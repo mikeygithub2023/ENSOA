@@ -166,9 +166,12 @@ const elementsNav = <ElementNav>[
     section: SectionNav.soutienTechnique,
     permissions: {Permission.administrerPlateforme},
   ),
+  // Le Garage : son tableau de bord, la liste des véhicules et, bientôt, les
+  // ordres de mission, réunis en un espace à onglets. L'entrée garde son chemin
+  // `/logistique/parc` — c'est toujours le parc qu'on ouvre, enrichi.
   ElementNav(
     chemin: '/logistique/parc',
-    libelle: 'Parc automobile',
+    libelle: 'Garage',
     icone: Icons.directions_car_filled_rounded,
     section: SectionNav.soutienTechnique,
     permissions: {Permission.gererParc, Permission.gererMaintenance},

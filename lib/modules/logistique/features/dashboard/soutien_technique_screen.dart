@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'package:sig_ensoa/core/theme.dart';
+import '../fleet/garage_workspace_screen.dart';
 import 'dashboard_armurerie.dart';
 import 'dashboard_carburant.dart';
-import 'dashboard_garage.dart';
 
 /// Les trois tableaux de bord du soutien technique sous une seule rubrique.
 ///
@@ -68,7 +68,10 @@ class _SoutienTechniqueScreenState extends State<SoutienTechniqueScreen>
             // défilement.
             physics: const NeverScrollableScrollPhysics(),
             children: const [
-              _OngletDashboard(child: DashboardGarage(sansCadre: true)),
+              // Le Garage est lui-même un espace à onglets : il porte son
+              // propre défilement, on ne l'emballe donc pas dans celui des
+              // autres onglets (son TabBarView interne exige une hauteur bornée).
+              GarageWorkspaceScreen(sansCadre: true),
               _OngletDashboard(child: DashboardCarburant(sansCadre: true)),
               _OngletDashboard(child: DashboardArmurerie(sansCadre: true)),
             ],
