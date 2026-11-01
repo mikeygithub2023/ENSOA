@@ -17,6 +17,7 @@ List<String> _chemins(RoleLogistique role) =>
 
 void main() {
   _profilPersonnalise();
+  _regroupementSuperAdmin();
 
   group('le tableau de bord', () {
     test("s'ouvre à l'administrateur", () {
@@ -40,6 +41,47 @@ void main() {
         expect(_chemins(role), contains('/tableau-de-bord'));
       });
     }
+  });
+}
+
+/// Le super administrateur tient le parc, le carburant et l'armement sous une
+/// seule rubrique « Soutien technique » à trois onglets ; les chefs de
+/// service, eux, gardent leur entrée propre. On vérifie que le regroupement
+/// remplace bien les trois entrées pour l'un sans les ôter aux autres.
+void _regroupementSuperAdmin() {
+  group('le regroupement du soutien technique', () {
+    test("remplace les trois entrées pour l'administrateur", () {
+      final chemins = _chemins(RoleLogistique.administrateur);
+
+      expect(chemins, contains('/logistique/soutien-technique'));
+      expect(chemins, isNot(contains('/logistique/parc')));
+      expect(chemins, isNot(contains('/logistique/carburant')));
+      expect(chemins, isNot(contains('/logistique/armement')));
+    });
+
+    // Le chef de garage n'administre pas la plateforme : il garde son parc,
+    // et le regroupement du super administrateur ne le concerne pas.
+    test('ne change rien pour le chef de garage', () {
+      final chemins = _chemins(RoleLogistique.garage);
+
+      expect(chemins, contains('/logistique/parc'));
+      expect(chemins, isNot(contains('/logistique/soutien-technique')));
+    });
+
+    test("ne concerne pas l'armurier ni le soutien pétrolier", () {
+      expect(
+        _chemins(RoleLogistique.armurerie),
+        contains('/logistique/armement'),
+      );
+      expect(
+        _chemins(RoleLogistique.armurerie),
+        isNot(contains('/logistique/soutien-technique')),
+      );
+      expect(
+        _chemins(RoleLogistique.soutienPetrolier),
+        contains('/logistique/carburant'),
+      );
+    });
   });
 }
 

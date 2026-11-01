@@ -16,6 +16,7 @@ import '../modules/logistique/data/models/vehicule.dart';
 import '../modules/logistique/features/armament/armament_screen.dart';
 import '../modules/logistique/features/armament/weapon_detail_screen.dart';
 import '../modules/logistique/features/audit/audit_screen.dart';
+import '../modules/logistique/features/dashboard/soutien_technique_screen.dart';
 import '../modules/logistique/features/fleet/fleet_screen.dart';
 import '../modules/logistique/features/fleet/vehicle_detail_screen.dart';
 import '../modules/logistique/features/fuel/fuel_screen.dart';
@@ -70,6 +71,10 @@ final _ecransPortes = <String, Widget Function()>{
   '/scolarite/mon-espace': () => const MonProfilScreen(),
 
   // Soutien technique
+  // Le regroupement des trois dashboards (garage, carburant, armurerie) sous
+  // une seule rubrique — réservé au super administrateur par la permission qui
+  // ouvre son entrée de menu.
+  '/logistique/soutien-technique': () => const SoutienTechniqueScreen(),
   '/logistique/parc': () => const FleetScreen(),
   '/logistique/carburant': () => const FuelScreen(),
   '/logistique/armement': () => const ArmamentScreen(),

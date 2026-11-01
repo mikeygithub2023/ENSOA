@@ -37,10 +37,15 @@ class DashboardGarage extends ConsumerWidget {
     final mesTaches = ref.watch(mesTachesProvider);
 
     if (!estCharge(ref, ['vehicules', 'reparations'])) {
-      return const ScreenScaffold(
-        title: 'Tableau de bord',
-        children: [SkeletonDashboard()],
-      );
+      // Sans cadre, le squelette se rend nu : la page qui réunit les onglets
+      // porte déjà le titre et le défilement, et un ScreenScaffold imbriqué y
+      // empilerait deux zones de défilement.
+      return sansCadre
+          ? const SkeletonDashboard()
+          : const ScreenScaffold(
+              title: 'Tableau de bord',
+              children: [SkeletonDashboard()],
+            );
     }
 
     // Un véhicule hors service ne se répare plus : le compter ferait baisser

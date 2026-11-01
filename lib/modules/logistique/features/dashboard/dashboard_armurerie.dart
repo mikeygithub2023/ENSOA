@@ -46,10 +46,14 @@ class DashboardArmurerie extends ConsumerWidget {
       'munitions',
       'equipements',
     ])) {
-      return const ScreenScaffold(
-        title: 'Tableau de bord',
-        children: [SkeletonDashboard()],
-      );
+      // Sans cadre, le squelette se rend nu : la page qui réunit les onglets
+      // porte déjà le titre et le défilement.
+      return sansCadre
+          ? const SkeletonDashboard()
+          : const ScreenScaffold(
+              title: 'Tableau de bord',
+              children: [SkeletonDashboard()],
+            );
     }
 
     // Une arme défectueuse n'est pas distribuable : la compter ferait

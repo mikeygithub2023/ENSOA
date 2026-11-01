@@ -23,6 +23,7 @@ class ElementNav {
     required this.icone,
     required this.section,
     this.permissions = const {},
+    this.masqueeSi = const {},
     this.iconeArme = false,
   });
 
@@ -36,12 +37,21 @@ class ElementNav {
   /// rôle ne doit pas obliger à rouvrir ce fichier.
   final Set<Permission> permissions;
 
+  /// Les permissions qui, à l'inverse, retirent cette entrée. Sert à regrouper
+  /// ailleurs ce qu'un profil voit déjà autrement : le super administrateur
+  /// tient le parc, le carburant et l'armement sous une seule rubrique
+  /// « Soutien technique », on cache donc pour lui les trois entrées séparées
+  /// — sans les ôter au chef de service qui, lui, n'a que la sienne. Toujours
+  /// une permission, jamais un rôle.
+  final Set<Permission> masqueeSi;
+
   /// Material Icons ne propose délibérément aucune icône d'arme : l'armement
   /// utilise le dessin fourni avec l'application d'origine.
   final bool iconeArme;
 
   bool ouvertA(Profil profil) =>
-      permissions.isEmpty || permissions.any(profil.peut);
+      (permissions.isEmpty || permissions.any(profil.peut)) &&
+      !masqueeSi.any(profil.peut);
 }
 
 /// Les chemins sont préfixés par module : `/admin`, `/notifications` et
@@ -144,12 +154,25 @@ const elementsNav = <ElementNav>[
   ),
 
   // --- Soutien technique ---
+
+  // Le regroupement du super administrateur : les trois dashboards — garage,
+  // soutien pétrolier, armurerie — sous une seule entrée à trois onglets. Il
+  // ne paraît que pour qui administre la plateforme, et prend la place des
+  // trois entrées séparées, masquées ci-dessous pour ce même profil.
+  ElementNav(
+    chemin: '/logistique/soutien-technique',
+    libelle: 'Soutien technique',
+    icone: Icons.engineering_rounded,
+    section: SectionNav.soutienTechnique,
+    permissions: {Permission.administrerPlateforme},
+  ),
   ElementNav(
     chemin: '/logistique/parc',
     libelle: 'Parc automobile',
     icone: Icons.directions_car_filled_rounded,
     section: SectionNav.soutienTechnique,
     permissions: {Permission.gererParc, Permission.gererMaintenance},
+    masqueeSi: {Permission.administrerPlateforme},
   ),
   ElementNav(
     chemin: '/logistique/carburant',
@@ -157,6 +180,7 @@ const elementsNav = <ElementNav>[
     icone: Icons.local_gas_station_rounded,
     section: SectionNav.soutienTechnique,
     permissions: {Permission.gererCarburant},
+    masqueeSi: {Permission.administrerPlateforme},
   ),
   ElementNav(
     chemin: '/logistique/armement',
@@ -165,6 +189,7 @@ const elementsNav = <ElementNav>[
     iconeArme: true,
     section: SectionNav.soutienTechnique,
     permissions: {Permission.gererArmement},
+    masqueeSi: {Permission.administrerPlateforme},
   ),
   ElementNav(
     chemin: '/logistique/poste-police',
