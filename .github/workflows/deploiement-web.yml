@@ -1,16 +1,24 @@
-# Déploiement de la PWA sur GitHub Pages.
+# Déploiement de la PWA sur Cloudflare Pages.
 #
-# À chaque poussée de code, l'application web est recompilée et publiée. Les
-# appareils installés récupèrent la nouvelle version d'eux-mêmes au prochain
-# lancement (service worker) : plus d'APK ni d'EXE à redistribuer.
+# À chaque poussée de code, GitHub Actions recompile l'application web (Flutter
+# y est disponible) puis la publie sur Cloudflare Pages. Les appareils
+# installés récupèrent la nouvelle version d'eux-mêmes au prochain lancement
+# (service worker) : plus d'APK ni d'EXE à redistribuer.
 #
-# Étape manuelle, une seule fois : dépôt → Settings → Pages → « Build and
-# deployment » → Source = « GitHub Actions ». Sans cela, le travail « deploy »
-# ci-dessous n'a nulle part où publier.
+# Le site est servi à la racine d'un sous-domaine pages.dev (ex.
+# sig-ensoa.pages.dev), donc pas de base-href : l'application vit sous « / ».
 #
-# Le site d'un dépôt se sert sous /<nom-du-dépôt>/ — ici /ENSOA/ — d'où le
-# base-href. Si tu passes un jour à un domaine propre ou à un dépôt
-# <compte>.github.io, remets base-href à « / ».
+# Configuration, une seule fois (côté toi — je ne peux pas créer de compte ni
+# de jeton à ta place) :
+#   1. Compte Cloudflare gratuit, puis un projet Pages nommé « sig-ensoa »
+#      (Workers & Pages → Create → Pages → Direct Upload, ou laissé créer au
+#      premier déploiement).
+#   2. Un jeton d'API Cloudflare avec la permission « Account → Cloudflare
+#      Pages → Edit », et ton « Account ID » (tableau de bord Cloudflare).
+#   3. Dans le dépôt GitHub : Settings → Secrets and variables → Actions →
+#      New repository secret, deux fois :
+#        - CLOUDFLARE_API_TOKEN   = le jeton
+#        - CLOUDFLARE_ACCOUNT_ID  = l'Account ID
 name: Déploiement web (PWA)
 
 on:
@@ -18,18 +26,13 @@ on:
     branches: [main, master, migration-pwa]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 # Une seule publication à la fois ; la plus récente l'emporte.
 concurrency:
-  group: pages
+  group: cloudflare-pages
   cancel-in-progress: true
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,18 +44,12 @@ jobs:
 
       - run: flutter pub get
 
-      - run: flutter build web --release --base-href /ENSOA/
+      - run: flutter build web --release
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: cloudflare/wrangler-action@v3
         with:
-          path: build/web
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Crée le projet « sig-ensoa » au premier déploiement s'il n'existe
+          # pas encore, et y publie le contenu de build/web.
+          command: pages deploy build/web --project-name=sig-ensoa
