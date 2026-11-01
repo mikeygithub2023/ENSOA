@@ -270,15 +270,19 @@ class _VehicleDetailScreenState extends ConsumerState<VehicleDetailScreen> {
               const EmptyState(message: 'Aucune panne signalée'),
             if (charge)
               for (final p in pannes)
-                Card(
-                  child: ListTile(
-                    leading: Icon(
-                      Icons.report_problem_outlined,
-                      color: _couleurGravite(p.gravite),
-                    ),
-                    title: Text(p.description),
-                    subtitle: Text(
-                      '${df.format(p.dateSignalement)} · ${p.gravite.label}',
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Card(
+                    margin: EdgeInsets.zero,
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.report_problem_outlined,
+                        color: _couleurGravite(p.gravite),
+                      ),
+                      title: Text(p.description),
+                      subtitle: Text(
+                        '${df.format(p.dateSignalement)} · ${p.gravite.label}',
+                      ),
                     ),
                   ),
                 ),
