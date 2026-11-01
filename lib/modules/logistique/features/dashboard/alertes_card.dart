@@ -82,8 +82,16 @@ class AlertesCard extends StatelessWidget {
                           ),
                           const SizedBox(width: 10),
                           Expanded(
+                            // Une alerte tient sur une ligne : le détail — un
+                            // devis de réparation peut faire trente lignes — se
+                            // lit au clic, sur l'écran du domaine. Sans cette
+                            // limite, une seule alerte bavarde gonflait la carte
+                            // et, les deux cartes partageant leur hauteur,
+                            // laissait la jauge voisine flotter dans le vide.
                             child: Text(
                               a.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 13,
