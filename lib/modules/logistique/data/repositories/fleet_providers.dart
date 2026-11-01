@@ -600,6 +600,30 @@ class MouvementsVehiculeNotifier extends Notifier<List<MouvementVehicule>> {
         .eq('id', int.parse(id));
     await refresh();
   }
+
+  /// Corrige un ordre de mission : son objet, sa destination et son chef de
+  /// bord. On ne touche ni au véhicule, ni aux dates, ni au kilométrage —
+  /// ceux-là suivent le départ et la clôture, non une correction de saisie.
+  Future<void> modifier(MouvementVehicule m) async {
+    await logistique
+        .from('mouvement')
+        .update({
+          'objet': m.objet,
+          'destination': m.destination,
+          'grade_chef_bord': m.gradeChefBord,
+          'nom_chef_bord': m.nomChefBord,
+          'contact_chef_bord': m.contactChefBord,
+        })
+        .eq('id', int.parse(m.id));
+    await refresh();
+  }
+
+  /// Supprime un ordre de mission. Rendre le véhicule à sa disponibilité, s'il
+  /// y a lieu, revient à l'appelant : lui seul sait s'il faut le libérer.
+  Future<void> supprimer(String id) async {
+    await logistique.from('mouvement').delete().eq('id', int.parse(id));
+    await refresh();
+  }
 }
 
 final mouvementsVehiculeProvider =

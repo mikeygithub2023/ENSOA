@@ -127,15 +127,16 @@ class OrdresMissionTab extends ConsumerWidget {
 }
 
 /// Une carte d'ordre de mission : le véhicule, son état, et le détail de la
-/// mission.
-class _CarteOrdreMission extends StatelessWidget {
+/// mission. On peut la corriger ou la supprimer — supprimer un ordre en cours
+/// rend le véhicule à sa disponibilité.
+class _CarteOrdreMission extends ConsumerWidget {
   const _CarteOrdreMission({required this.mouvement, this.vehicule});
 
   final MouvementVehicule mouvement;
   final Vehicule? vehicule;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final depart = DateFormat('dd/MM/yyyy à HH:mm', 'fr_FR');
     final v = vehicule;
     final titre = v == null
@@ -161,6 +162,25 @@ class _CarteOrdreMission extends StatelessWidget {
                   ),
                 ),
                 _PastilleStatut(etat: mouvement.etat),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, size: 20),
+                  tooltip: 'Actions',
+                  onSelected: (choix) {
+                    if (choix == 'modifier') _modifier(context);
+                    if (choix == 'supprimer') _supprimer(context, ref);
+                  },
+                  itemBuilder: (_) => [
+                    if (v != null)
+                      const PopupMenuItem(
+                        value: 'modifier',
+                        child: Text('Modifier'),
+                      ),
+                    const PopupMenuItem(
+                      value: 'supprimer',
+                      child: Text('Supprimer'),
+                    ),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -197,6 +217,61 @@ class _CarteOrdreMission extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _modifier(BuildContext context) async {
+    final v = vehicule;
+    if (v == null) return;
+    await showDialog(
+      context: context,
+      builder: (_) => MouvementFormDialog(vehicule: v, mouvement: mouvement),
+    );
+  }
+
+  Future<void> _supprimer(BuildContext context, WidgetRef ref) async {
+    final enCours = mouvement.etat == EtatMouvement.enCours;
+    final confirme = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer l\'ordre de mission'),
+        content: Text(
+          enCours
+              ? 'Cet ordre est en cours : le supprimer rendra le véhicule '
+                    'disponible.'
+              : 'Cet ordre de mission sera supprimé.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+    if (confirme != true) return;
+
+    try {
+      // Un ordre en cours tient le véhicule « En mission » : en le supprimant,
+      // on le rend à sa disponibilité, sans quoi il resterait immobilisé sans
+      // mission pour le justifier.
+      final v = vehicule;
+      if (enCours && v != null) {
+        await ref
+            .read(vehiculesProvider.notifier)
+            .updateEtat(v.id, EtatVehicule.disponible);
+      }
+      await ref.read(mouvementsVehiculeProvider.notifier).supprimer(mouvement.id);
+      if (context.mounted) {
+        showSuccessSnackBar(context, 'Ordre de mission supprimé.');
+      }
+    } catch (e) {
+      if (context.mounted) showErrorSnackBar(context, e);
+    }
   }
 }
 
