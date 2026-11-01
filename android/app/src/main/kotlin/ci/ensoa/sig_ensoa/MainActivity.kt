@@ -26,10 +26,13 @@ class MainActivity : FlutterActivity() {
      * anomalie —, commenter l'appel ci-dessous et recompiler.
      */
     override fun onCreate(savedInstanceState: Bundle?) {
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_SECURE,
-            WindowManager.LayoutParams.FLAG_SECURE,
-        )
+        // MAINTENANCE : captures d'écran autorisées le temps de la maintenance
+        // du projet. Pour rétablir la protection, dé-commenter l'appel ci-dessous
+        // et recompiler.
+        // window.setFlags(
+        //     WindowManager.LayoutParams.FLAG_SECURE,
+        //     WindowManager.LayoutParams.FLAG_SECURE,
+        // )
         super.onCreate(savedInstanceState)
     }
 }
