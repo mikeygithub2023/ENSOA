@@ -6,13 +6,16 @@ import 'package:intl/intl.dart';
 import 'package:sig_ensoa/core/theme.dart';
 import 'package:sig_ensoa/core/chargement.dart';
 import '../../data/models/mouvement_vehicule.dart';
+import '../../data/models/pannes.dart';
 import '../../data/models/vehicule.dart';
 import '../../data/repositories/fleet_providers.dart';
+import '../../data/repositories/pannes_providers.dart';
 import '../../shared/widgets/skeleton.dart';
 import '../../shared/widgets/widgets.dart';
 import 'close_repair_dialog.dart';
+import 'demande_reparation_form_dialog.dart';
 import 'mouvement_form_dialog.dart';
-import 'repair_form_dialog.dart';
+import 'panne_form_dialog.dart';
 import 'vehicle_form_dialog.dart';
 import 'vidange_form_dialog.dart';
 
@@ -86,7 +89,13 @@ class _VehicleDetailScreenState extends ConsumerState<VehicleDetailScreen> {
         .watch(mouvementsVehiculeProvider)
         .where((m) => m.vehiculeId == current.id)
         .toList();
-    final charge = estCharge(ref, ['reparations', 'vidanges', 'mouvements']);
+    final pannes = ref.watch(pannesOuvertesProvider(current.id));
+    final charge = estCharge(ref, [
+      'reparations',
+      'vidanges',
+      'mouvements',
+      'pannes',
+    ]);
     final df = DateFormat('dd/MM/yyyy');
     final peutDemarrerMouvement =
         current.etat == EtatVehicule.disponible &&
@@ -217,10 +226,19 @@ class _VehicleDetailScreenState extends ConsumerState<VehicleDetailScreen> {
                 FilledButton.icon(
                   onPressed: () => showDialog(
                     context: context,
-                    builder: (_) => RepairFormDialog(vehicule: current),
+                    builder: (_) =>
+                        DemandeReparationFormDialog(vehicule: current),
                   ),
                   icon: const Icon(Icons.build_outlined),
-                  label: const Text('Déclarer une réparation'),
+                  label: const Text('Demande de mise en réparation'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => showDialog(
+                    context: context,
+                    builder: (_) => PanneFormDialog(vehicule: current),
+                  ),
+                  icon: const Icon(Icons.report_problem_outlined),
+                  label: const Text('Signaler une panne'),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => showDialog(
@@ -241,6 +259,29 @@ class _VehicleDetailScreenState extends ConsumerState<VehicleDetailScreen> {
                   ),
               ],
             ),
+            // Les pannes signalées, avant tout le reste : c'est ce qui appelle
+            // une décision de mise en réparation.
+            const SizedBox(height: 32),
+            SectionHeader(
+              title: 'Pannes signalées (${charge ? pannes.length : '…'})',
+            ),
+            if (!charge) const SkeletonList(itemCount: 2),
+            if (charge && pannes.isEmpty)
+              const EmptyState(message: 'Aucune panne signalée'),
+            if (charge)
+              for (final p in pannes)
+                Card(
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.report_problem_outlined,
+                      color: _couleurGravite(p.gravite),
+                    ),
+                    title: Text(p.description),
+                    subtitle: Text(
+                      '${df.format(p.dateSignalement)} · ${p.gravite.label}',
+                    ),
+                  ),
+                ),
             // L'ordre suit la vie du véhicule : ce qu'il a fait (ses missions),
             // son entretien courant (les vidanges), puis l'exceptionnel (les
             // réparations).
@@ -383,3 +424,11 @@ class _VehicleDetailScreenState extends ConsumerState<VehicleDetailScreen> {
     );
   }
 }
+
+/// La couleur d'une gravité de panne : discrète pour une panne légère, chaude
+/// pour une panne majeure, rouge pour une panne critique.
+Color _couleurGravite(GravitePanne g) => switch (g) {
+  GravitePanne.legere => AppColors.inkMuted,
+  GravitePanne.majeure => AppColors.warning,
+  GravitePanne.critique => AppColors.danger,
+};

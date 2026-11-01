@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:sig_ensoa/core/theme.dart';
 import '../dashboard/dashboard_garage.dart';
+import 'demandes_reparation_tab.dart';
 import 'fleet_screen.dart';
 import 'ordres_mission_tab.dart';
 
@@ -31,7 +32,7 @@ class _GarageWorkspaceScreenState extends State<GarageWorkspaceScreen>
   @override
   void initState() {
     super.initState();
-    _onglets = TabController(length: 3, vsync: this);
+    _onglets = TabController(length: 4, vsync: this);
     _onglets.addListener(() {
       if (!_onglets.indexIsChanging) setState(() {});
     });
@@ -77,6 +78,8 @@ class _GarageWorkspaceScreenState extends State<GarageWorkspaceScreen>
               // Les ordres de mission, de même, portent leur liste et leur
               // bouton « Nouvel ordre de mission ».
               OrdresMissionTab(),
+              // Les demandes de mise en réparation, et leur validation.
+              DemandesReparationTab(),
             ],
           ),
         ),
@@ -113,6 +116,7 @@ class _BarreOnglets extends StatelessWidget {
           Tab(text: 'Tableau de bord'),
           Tab(text: 'Liste des véhicules'),
           Tab(text: 'Ordres de mission'),
+          Tab(text: 'Demandes de réparation'),
         ],
       ),
     );
