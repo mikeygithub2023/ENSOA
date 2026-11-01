@@ -241,6 +241,60 @@ class _VehicleDetailScreenState extends ConsumerState<VehicleDetailScreen> {
                   ),
               ],
             ),
+            // L'ordre suit la vie du véhicule : ce qu'il a fait (ses missions),
+            // son entretien courant (les vidanges), puis l'exceptionnel (les
+            // réparations).
+            const SizedBox(height: 32),
+            SectionHeader(
+              title: 'Missions effectuées (${charge ? trajets.length : '…'})',
+            ),
+            if (!charge) const SkeletonList(itemCount: 2),
+            if (charge && trajets.isEmpty)
+              const EmptyState(message: 'Aucune mission effectuée'),
+            if (charge)
+              for (final m in trajets)
+                Card(
+                  child: ListTile(
+                    leading: Icon(
+                      Icons.route_outlined,
+                      color: m.etat == EtatMouvement.enCours
+                          ? AppColors.ivoryOrange
+                          : AppColors.success,
+                    ),
+                    title: Text('${m.objet} — ${m.destination}'),
+                    subtitle: Text(
+                      '${df.format(m.dateDepart)} · conducteur ${m.nomChefBord}'
+                      '${m.kmArrivee != null ? ' · ${m.kmArrivee! - m.kmDepart} km parcourus' : ''}',
+                    ),
+                    trailing: StatusChip(
+                      label: m.etat == EtatMouvement.enCours
+                          ? 'En cours (poste de police)'
+                          : m.etat.label,
+                      level: m.etat == EtatMouvement.enCours
+                          ? AlertLevel.warning
+                          : AlertLevel.info,
+                    ),
+                  ),
+                ),
+            const SizedBox(height: 32),
+            SectionHeader(
+              title:
+                  'Historique des vidanges (${charge ? vidanges.length : '…'})',
+            ),
+            if (!charge) const SkeletonList(itemCount: 2),
+            if (charge && vidanges.isEmpty)
+              const EmptyState(message: 'Aucune vidange enregistrée'),
+            if (charge)
+              for (final v in vidanges)
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.oil_barrel_outlined),
+                    title: Text('${v.typeHuile} — ${v.qteHuile} L'),
+                    subtitle: Text(
+                      '${df.format(v.date)}${v.filtreVidange != null ? ' · ${v.filtreVidange}' : ''}',
+                    ),
+                  ),
+                ),
             const SizedBox(height: 32),
             SectionHeader(
               title:
@@ -280,57 +334,6 @@ class _VehicleDetailScreenState extends ConsumerState<VehicleDetailScreen> {
                             ),
                             child: const Text('Clôturer'),
                           ),
-                  ),
-                ),
-            const SizedBox(height: 32),
-            SectionHeader(
-              title:
-                  'Historique des vidanges (${charge ? vidanges.length : '…'})',
-            ),
-            if (!charge) const SkeletonList(itemCount: 2),
-            if (charge && vidanges.isEmpty)
-              const EmptyState(message: 'Aucune vidange enregistrée'),
-            if (charge)
-              for (final v in vidanges)
-                Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.oil_barrel_outlined),
-                    title: Text('${v.typeHuile} — ${v.qteHuile} L'),
-                    subtitle: Text(
-                      '${df.format(v.date)}${v.filtreVidange != null ? ' · ${v.filtreVidange}' : ''}',
-                    ),
-                  ),
-                ),
-            const SizedBox(height: 32),
-            SectionHeader(
-              title: 'Trajets & missions (${charge ? trajets.length : '…'})',
-            ),
-            if (!charge) const SkeletonList(itemCount: 2),
-            if (charge && trajets.isEmpty)
-              const EmptyState(message: 'Aucun trajet enregistré'),
-            if (charge)
-              for (final m in trajets)
-                Card(
-                  child: ListTile(
-                    leading: Icon(
-                      Icons.route_outlined,
-                      color: m.etat == EtatMouvement.enCours
-                          ? AppColors.ivoryOrange
-                          : AppColors.success,
-                    ),
-                    title: Text('${m.objet} — ${m.destination}'),
-                    subtitle: Text(
-                      '${df.format(m.dateDepart)} · chef de bord ${m.nomChefBord}'
-                      '${m.kmArrivee != null ? ' · ${m.kmArrivee! - m.kmDepart} km parcourus' : ''}',
-                    ),
-                    trailing: StatusChip(
-                      label: m.etat == EtatMouvement.enCours
-                          ? 'En cours (poste de police)'
-                          : m.etat.label,
-                      level: m.etat == EtatMouvement.enCours
-                          ? AlertLevel.warning
-                          : AlertLevel.info,
-                    ),
                   ),
                 ),
           ],
