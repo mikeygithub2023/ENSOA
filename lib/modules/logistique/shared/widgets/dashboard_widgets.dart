@@ -194,18 +194,41 @@ class DisponibiliteParTypeCard extends StatelessWidget {
               style: const TextStyle(fontSize: 12, color: AppColors.inkMuted),
             ),
             const SizedBox(height: 20),
-            Wrap(
-              spacing: 28,
-              runSpacing: 20,
-              children: [
-                for (final (libelle, d, t) in types)
-                  _JaugeType(
-                    libelle: libelle,
-                    disponibles: d,
-                    total: t,
-                    couleur: _couleur(d, t),
-                  ),
-              ],
+            // La bande prend toute la largeur : chaque type reçoit une part
+            // égale, et sa jauge grandit avec elle. Quand les parts tombent
+            // sous la taille minimale, les jauges passent à la ligne.
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final jauges = [
+                  for (final (libelle, d, t) in types)
+                    _JaugeType(
+                      libelle: libelle,
+                      disponibles: d,
+                      total: t,
+                      couleur: _couleur(d, t),
+                    ),
+                ];
+                final part = types.isEmpty
+                    ? 0.0
+                    : constraints.maxWidth / types.length;
+                if (part >= _JaugeType.largeurMin) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final j in jauges) Expanded(child: Center(child: j)),
+                    ],
+                  );
+                }
+                return Wrap(
+                  alignment: WrapAlignment.spaceEvenly,
+                  spacing: 16,
+                  runSpacing: 20,
+                  children: [
+                    for (final j in jauges)
+                      SizedBox(width: _JaugeType.largeurMin, child: j),
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -227,10 +250,21 @@ class _JaugeType extends StatelessWidget {
   final int total;
   final Color couleur;
 
-  static const double taille = 80;
+  /// La plus petite part de largeur où une jauge tient avec son libellé.
+  static const double largeurMin = 108;
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // La jauge grandit avec la part qu'on lui donne, sans démesure.
+        final taille = (constraints.maxWidth - 28).clamp(80.0, 128.0);
+        return _dessiner(taille);
+      },
+    );
+  }
+
+  Widget _dessiner(double taille) {
     return SizedBox(
       width: taille + 28,
       child: Column(
@@ -247,7 +281,7 @@ class _JaugeType extends StatelessWidget {
                   height: taille,
                   child: CircularProgressIndicator(
                     value: total == 0 ? 0 : disponibles / total,
-                    strokeWidth: 8,
+                    strokeWidth: taille / 10,
                     strokeCap: StrokeCap.round,
                     backgroundColor: couleur.withValues(alpha: 0.12),
                     valueColor: AlwaysStoppedAnimation(couleur),
@@ -258,9 +292,9 @@ class _JaugeType extends StatelessWidget {
                   children: [
                     Text(
                       '$disponibles/$total',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w800,
-                        fontSize: 15,
+                        fontSize: taille * 0.19,
                         color: AppColors.ink,
                       ),
                     ),
