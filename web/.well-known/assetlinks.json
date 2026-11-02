@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "ci.ensoa.sig_ensoa",
+      "sha256_cert_fingerprints": [
+        "21:FA:78:6D:4A:DB:37:76:00:2F:06:AB:B7:54:DB:D2:33:BF:DF:2A:51:55:6C:F7:41:37:D9:EE:28:DA:CD:D1"
+      ]
+    }
+  }
+]

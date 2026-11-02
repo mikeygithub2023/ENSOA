@@ -47,6 +47,33 @@ Trois choix équivalents, tous en HTTPS (obligatoire pour une PWA) :
   d'installation dans la barre d'adresse (ou menu → « Installer SIG ENSOA »).
   L'appli s'ouvre dans sa propre fenêtre, sans barre de navigateur.
 
+### Sans passer par le site : l'APK « TWA »
+
+Pour remettre un installable aux utilisateurs Android, sans qu'ils voient le
+site : `android-twa/` est une coquille Android (Trusted Web Activity) qui ouvre
+la PWA en plein écran, sans barre d'adresse. L'APK ne contient pas
+l'application, il la charge — il n'est donc **jamais à redistribuer** : les
+mises à jour passent par la PWA.
+
+Il porte le même identifiant (`ci.ensoa.sig_ensoa`) et la même clé que l'ancien
+APK Flutter — la clé de debug de ce poste, `~/.android/debug.keystore`. Il
+s'installe donc **par-dessus** l'ancienne application, comme une mise à jour.
+Perdre cette clé, c'est ne plus pouvoir mettre à jour les tablettes sans
+désinstallation : la sauvegarder.
+
+La barre d'adresse ne disparaît que si le site reconnaît l'APK :
+`web/.well-known/assetlinks.json` porte l'empreinte SHA-256 de la clé.
+
+Recompiler (rarement utile — seulement pour changer l'icône, le nom ou
+l'orientation) :
+
+```bash
+cd android-twa
+echo 'sdk.dir=C:/Users/<vous>/AppData/Local/Android/Sdk' > local.properties
+JAVA_HOME="/c/Program Files/Eclipse Adoptium/jdk-17.0.16.8-hotspot" ./gradlew assembleRelease
+# puis zipalign + apksigner avec ~/.android/debug.keystore, versionCode augmenté
+```
+
 ## 4. Mettre à jour
 
 C'est là tout l'intérêt du changement :
