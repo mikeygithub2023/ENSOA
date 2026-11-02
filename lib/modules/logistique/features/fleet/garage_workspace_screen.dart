@@ -5,6 +5,7 @@ import '../dashboard/dashboard_garage.dart';
 import 'demandes_reparation_tab.dart';
 import 'fleet_screen.dart';
 import 'ordres_mission_tab.dart';
+import 'reparations_tab.dart';
 
 /// L'espace de travail du Garage, à onglets.
 ///
@@ -32,7 +33,7 @@ class _GarageWorkspaceScreenState extends State<GarageWorkspaceScreen>
   @override
   void initState() {
     super.initState();
-    _onglets = TabController(length: 4, vsync: this);
+    _onglets = TabController(length: 5, vsync: this);
     _onglets.addListener(() {
       if (!_onglets.indexIsChanging) setState(() {});
     });
@@ -80,6 +81,8 @@ class _GarageWorkspaceScreenState extends State<GarageWorkspaceScreen>
               OrdresMissionTab(),
               // Les demandes de mise en réparation, et leur validation.
               DemandesReparationTab(),
+              // Les véhicules au garage, et la validation de leur retour.
+              ReparationsTab(),
             ],
           ),
         ),
@@ -117,6 +120,7 @@ class _BarreOnglets extends StatelessWidget {
           Tab(text: 'Liste des véhicules'),
           Tab(text: 'Ordres de mission'),
           Tab(text: 'Demandes de réparation'),
+          Tab(text: 'Réparations'),
         ],
       ),
     );

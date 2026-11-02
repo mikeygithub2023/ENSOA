@@ -52,6 +52,9 @@ Vehicule _vehiculeFromRow(Map<String, dynamic> row) {
     typeVehiculeId: row['type_vhl_id']?.toString() ?? '',
     kilometrageVidangeProchaine: row['kilometrage_vidange_prochaine'] as int,
     kilometrageVidangePrecedente: row['kilometrage_vidange_precedente'] as int?,
+    kilometrageCorrigeLe: row['kilometrage_corrige_le'] != null
+        ? DateTime.parse(row['kilometrage_corrige_le'] as String)
+        : null,
     marque: (marqueVhl?['marque'] as String?) ?? '—',
     modele: (modeleVhl?['modele'] as String?) ?? '—',
     typeVehicule: (typeVhl?['type'] as String?) ?? '—',
@@ -109,6 +112,10 @@ class VehiculesNotifier extends Notifier<List<Vehicule>> {
     String? positionActuelle,
     required String typeVehiculeId,
     required int kilometrageVidangeProchaine,
+
+    /// Le kilométrage corrigé, quand la fiche use de son unique correction ;
+    /// la base refuse une seconde correction.
+    int? kilometrageCorrige,
   }) async {
     await logistique
         .from('vehicule')
@@ -119,6 +126,10 @@ class VehiculesNotifier extends Notifier<List<Vehicule>> {
           'nbre_places': nbrePlaces,
           'type_vhl_id': int.parse(typeVehiculeId),
           'kilometrage_vidange_prochaine': kilometrageVidangeProchaine,
+          if (kilometrageCorrige != null) ...{
+            'kilometrage': kilometrageCorrige,
+            'kilometrage_corrige_le': DateTime.now().toIso8601String(),
+          },
         })
         .eq('id', int.parse(id));
     await refresh();

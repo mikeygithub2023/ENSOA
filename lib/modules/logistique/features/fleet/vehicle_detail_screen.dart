@@ -12,7 +12,7 @@ import '../../data/repositories/fleet_providers.dart';
 import '../../data/repositories/pannes_providers.dart';
 import '../../shared/widgets/skeleton.dart';
 import '../../shared/widgets/widgets.dart';
-import 'close_repair_dialog.dart';
+import 'retour_sur_base_dialog.dart';
 import 'demande_reparation_form_dialog.dart';
 import 'mouvement_form_dialog.dart';
 import 'panne_form_dialog.dart';
@@ -372,12 +372,12 @@ class _VehicleDetailScreenState extends ConsumerState<VehicleDetailScreen> {
                         : OutlinedButton(
                             onPressed: () => showDialog(
                               context: context,
-                              builder: (_) => CloseRepairDialog(
+                              builder: (_) => RetourSurBaseDialog(
                                 reparation: r,
                                 vehicule: current,
                               ),
                             ),
-                            child: const Text('Clôturer'),
+                            child: const Text('Retour sur base'),
                           ),
                   ),
                 ),

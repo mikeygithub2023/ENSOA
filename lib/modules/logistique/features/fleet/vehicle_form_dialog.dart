@@ -1,6 +1,7 @@
 import 'package:sig_ensoa/core/formulaire.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import 'package:sig_ensoa/modules/logistique/compat.dart';
 import 'package:sig_ensoa/core/theme.dart';
@@ -10,9 +11,12 @@ import '../../data/repositories/misc_providers.dart';
 import '../../shared/widgets/widgets.dart';
 import 'nouveau_type_vehicule_dialog.dart';
 
-/// Formulaire véhicule — création si [vehicule] est nul, modification sinon
-/// (le kilométrage reste en lecture seule à l'édition : il est piloté par
-/// les missions/le poste de police, pas saisi ici).
+/// Formulaire véhicule — création si [vehicule] est nul, modification sinon.
+///
+/// Le kilométrage est piloté par les missions et le poste de police, pas saisi
+/// ici. L'édition permet pourtant de le corriger UNE fois — une erreur de
+/// saisie à l'enregistrement ne doit pas fausser à jamais les vidanges. Après
+/// quoi le champ se verrouille, et la base refuse une seconde correction.
 class VehicleFormDialog extends ConsumerStatefulWidget {
   final Vehicule? vehicule;
   const VehicleFormDialog({super.key, this.vehicule});
@@ -46,6 +50,30 @@ class _VehicleFormDialogState extends ConsumerState<VehicleFormDialog> {
 
   bool get _edition => widget.vehicule != null;
 
+  /// Le champ kilométrage s'ouvre à la création, et à l'édition tant que
+  /// l'unique correction n'a pas été faite.
+  bool get _kmModifiable => !_edition || !widget.vehicule!.kilometrageCorrige;
+
+  /// Le kilométrage saisi diffère de celui enregistré : la correction aura
+  /// lieu à l'enregistrement.
+  bool get _kmCorrige =>
+      _edition &&
+      _kmModifiable &&
+      int.tryParse(_kmCtrl.text) != null &&
+      int.parse(_kmCtrl.text) != widget.vehicule!.kilometrage;
+
+  /// Le seuil de vidange. À la création, il part du kilométrage saisi. À
+  /// l'édition, il ne bouge pas — sauf si l'on corrige un kilométrage sur
+  /// lequel aucune vidange n'a encore été faite : le seuil reposait alors sur
+  /// la valeur erronée.
+  int get _seuilVidange {
+    final km = int.tryParse(_kmCtrl.text) ?? 0;
+    if (!_edition) return km + 5000;
+    final v = widget.vehicule!;
+    if (_kmCorrige && v.kilometrageVidangePrecedente == null) return km + 5000;
+    return v.kilometrageVidangeProchaine;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -73,7 +101,8 @@ class _VehicleFormDialogState extends ConsumerState<VehicleFormDialog> {
   @override
   Widget build(BuildContext context) {
     final typesRef = ref.watch(typesVehiculeRefProvider);
-    final seuilVidange = (int.tryParse(_kmCtrl.text) ?? 0) + 5000;
+    final seuilVidange = _seuilVidange;
+    final corrigeLe = widget.vehicule?.kilometrageCorrigeLe;
     return AlertDialog(
       scrollable: true,
       title: Text(_edition ? 'Modifier le véhicule' : 'Nouveau véhicule'),
@@ -129,14 +158,26 @@ class _VehicleFormDialogState extends ConsumerState<VehicleFormDialog> {
                   Expanded(
                     child: TextFormField(
                       controller: _kmCtrl,
-                      enabled: !_edition,
+                      enabled: _kmModifiable,
                       decoration: InputDecoration(
                         labelText: 'Kilométrage',
-                        helperText: _edition
-                            ? 'Mis à jour via les missions / le poste de police'
+                        helperMaxLines: 2,
+                        helperText: !_edition
+                            ? null
+                            : corrigeLe != null
+                            ? 'Déjà corrigé le '
+                                  '${DateFormat('dd/MM/yyyy').format(corrigeLe)}'
+                                  ' — suivi par les missions'
+                            : 'Correction possible une seule fois',
+                        helperStyle: _kmCorrige
+                            ? const TextStyle(color: AppColors.warning)
                             : null,
                       ),
                       keyboardType: TextInputType.number,
+                      validator: (v) =>
+                          _kmModifiable && int.tryParse(v ?? '') == null
+                          ? 'Nombre entier requis'
+                          : null,
                       onChanged: (_) => setState(() {}),
                     ),
                   ),
@@ -207,9 +248,35 @@ class _VehicleFormDialogState extends ConsumerState<VehicleFormDialog> {
 
   Future<void> _submit() async {
     if (!validerFormulaire(context, _formKey)) return;
+    // La correction est définitive : on la fait confirmer.
+    final kmCorrige = _kmCorrige ? int.parse(_kmCtrl.text) : null;
+    if (kmCorrige != null) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Corriger le kilométrage ?'),
+          content: Text(
+            '${widget.vehicule!.kilometrage} km → $kmCorrige km.\n\n'
+            'Cette correction ne peut se faire qu\'une fois : le kilométrage '
+            'ne sera plus modifiable depuis la fiche.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Annuler'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Corriger'),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
     setState(() => _envoi = true);
     final user = ref.read(sessionProvider)?.user;
-    final seuilVidange = (int.tryParse(_kmCtrl.text) ?? 0) + 5000;
+    final seuilVidange = _seuilVidange;
     try {
       if (_edition) {
         await ref
@@ -224,6 +291,7 @@ class _VehicleFormDialogState extends ConsumerState<VehicleFormDialog> {
                   : _positionCtrl.text.trim(),
               typeVehiculeId: _typeVehiculeId!,
               kilometrageVidangeProchaine: seuilVidange,
+              kilometrageCorrige: kmCorrige,
             );
         if (user != null) {
           ref
@@ -232,6 +300,10 @@ class _VehicleFormDialogState extends ConsumerState<VehicleFormDialog> {
                 auteurId: user.id,
                 action: 'VEHICULE_MODIFIE',
                 cible: _immatCtrl.text.trim(),
+                detail: kmCorrige == null
+                    ? null
+                    : 'Kilométrage corrigé : '
+                          '${widget.vehicule!.kilometrage} → $kmCorrige km',
               );
         }
       } else {

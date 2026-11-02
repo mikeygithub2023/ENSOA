@@ -40,7 +40,7 @@ class _DemandeReparationFormDialogState
 
   @override
   Widget build(BuildContext context) {
-    final pannes = ref.watch(pannesOuvertesProvider(widget.vehicule.id));
+    final pannes = ref.watch(pannesLibresProvider(widget.vehicule.id));
     final profil = ref.watch(profilCourantProvider).value;
     final demandeur = profil == null
         ? '—'
@@ -120,7 +120,7 @@ class _DemandeReparationFormDialogState
 
   Future<void> _submit() async {
     if (!validerFormulaire(context, _formKey)) return;
-    final pannes = ref.read(pannesOuvertesProvider(widget.vehicule.id));
+    final pannes = ref.read(pannesLibresProvider(widget.vehicule.id));
     if (pannes.isEmpty) return;
 
     setState(() => _envoi = true);
@@ -176,10 +176,7 @@ class _LigneInfo extends StatelessWidget {
             width: 150,
             child: Text(
               libelle,
-              style: const TextStyle(
-                color: AppColors.inkMuted,
-                fontSize: 13,
-              ),
+              style: const TextStyle(color: AppColors.inkMuted, fontSize: 13),
             ),
           ),
           Expanded(

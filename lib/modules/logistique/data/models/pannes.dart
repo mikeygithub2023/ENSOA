@@ -41,6 +41,10 @@ class Panne {
   final String? demandeId;
   final bool resolue;
 
+  /// La réparation pendant laquelle la panne a été décelée, quand elle n'a
+  /// pas été signalée avant.
+  final String? reparationId;
+
   const Panne({
     required this.id,
     required this.vehiculeId,
@@ -50,7 +54,17 @@ class Panne {
     required this.signaleParId,
     this.demandeId,
     this.resolue = false,
+    this.reparationId,
   });
+}
+
+/// Une panne décelée au garage et laissée en l'état, à consigner au retour
+/// sur base.
+class PanneDecelee {
+  final String description;
+  final GravitePanne gravite;
+
+  const PanneDecelee(this.description, this.gravite);
 }
 
 enum StatutDemandeReparation { demandee, validee, refusee }
@@ -69,11 +83,12 @@ extension StatutDemandeReparationInfos on StatutDemandeReparation {
   };
 }
 
-StatutDemandeReparation statutDemandeDepuisDb(String valeur) => switch (valeur) {
-  'validee' => StatutDemandeReparation.validee,
-  'refusee' => StatutDemandeReparation.refusee,
-  _ => StatutDemandeReparation.demandee,
-};
+StatutDemandeReparation statutDemandeDepuisDb(String valeur) =>
+    switch (valeur) {
+      'validee' => StatutDemandeReparation.validee,
+      'refusee' => StatutDemandeReparation.refusee,
+      _ => StatutDemandeReparation.demandee,
+    };
 
 class DemandeReparation {
   final String id;
