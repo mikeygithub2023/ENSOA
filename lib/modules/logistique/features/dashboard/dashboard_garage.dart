@@ -59,14 +59,18 @@ class DashboardGarage extends ConsumerWidget {
     final horsService = vehicules.length - enService.length;
     final ouvertes = reparations.where((r) => r.dateSortie == null).toList();
 
-    // Le parc par type : c'est ainsi qu'on demande un véhicule, et ainsi
-    // qu'on constate qu'il n'en reste plus d'une sorte.
-    final parType = <String, int>{};
+    // La disponibilité par type : c'est ainsi qu'on demande un véhicule, et
+    // ainsi qu'on constate qu'il n'en reste plus d'une sorte.
+    final parType = <String, (int, int)>{};
     for (final v in enService) {
-      parType[v.typeVehicule] = (parType[v.typeVehicule] ?? 0) + 1;
+      final (d, t) = parType[v.typeVehicule] ?? (0, 0);
+      parType[v.typeVehicule] =
+          (d + (v.etat == EtatVehicule.disponible ? 1 : 0), t + 1);
     }
-    final types = parType.entries.map((e) => (e.key, e.value)).toList()
-      ..sort((a, b) => b.$2.compareTo(a.$2));
+    final types = [
+      for (final MapEntry(key: type, value: (d, t)) in parType.entries)
+        (type, d, t),
+    ]..sort((a, b) => b.$3.compareTo(a.$3));
 
     void versParc() => context.go('/logistique/parc');
     void versActivites() => context.go('/logistique/activites');
@@ -95,49 +99,27 @@ class DashboardGarage extends ConsumerWidget {
     ];
 
     final contenu = <Widget>[
-      LayoutBuilder(
-        builder: (context, constraints) {
-          final large = constraints.maxWidth > 820;
-          final jauge = GaugeCard(
-            title: 'Disponibilité du parc',
-            subtitle: 'Disponibles sur l\'ensemble du parc enregistré',
-            progress: vehicules.isEmpty ? 0 : disponibles / vehicules.length,
-            centerValue: '$disponibles/${vehicules.length}',
-            centerLabel: 'dispo.',
-            color: AppColors.success,
-          );
-          final alerte = AlertesCard(alertes: alertes);
-          if (!large) {
-            return Column(
-              children: [jauge, const SizedBox(height: 16), alerte],
-            );
-          }
-          return IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(flex: 6, child: jauge),
-                const SizedBox(width: 16),
-                Expanded(flex: 5, child: alerte),
-              ],
-            ),
-          );
-        },
+      // Comptée sur le parc en service, comme le suivi plus bas : un véhicule
+      // hors service n'est disponible pour personne, et le compter dans le
+      // total ferait paraître vide un type qui ne l'est pas.
+      DisponibiliteParTypeCard(
+        title: 'Disponibilité par type',
+        subtitle: horsService == 0
+            ? 'Véhicules prêts sur le parc en service'
+            : 'Véhicules prêts sur le parc en service — '
+                  '$horsService hors service, non comptés',
+        ensemble: (disponibles, enService.length),
+        types: types,
       ),
       const SizedBox(height: 16),
-      // « Parc par type » et « Suivi du garage » tiennent sur une même ligne
-      // là où la largeur le permet, empilés sinon : deux lectures
-      // complémentaires du parc, qu'on embrasse d'un seul regard.
+      // Les alertes et le suivi du garage tiennent sur une même ligne là où
+      // la largeur le permet, empilés sinon : ce qui presse, et où en est
+      // le parc.
       LayoutBuilder(
         builder: (context, constraints) {
           final large = constraints.maxWidth > 820;
 
-          final parType = SoutesStockCard(
-            title: 'Parc par type',
-            total: enService.length,
-            soutes: types,
-            unite: 'vhl',
-          );
+          final alerte = AlertesCard(alertes: alertes);
 
           final suivi = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -205,13 +187,13 @@ class DashboardGarage extends ConsumerWidget {
           if (!large) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [parType, const SizedBox(height: 24), suivi],
+              children: [alerte, const SizedBox(height: 24), suivi],
             );
           }
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(child: parType),
+              Expanded(child: alerte),
               const SizedBox(width: 16),
               Expanded(child: suivi),
             ],

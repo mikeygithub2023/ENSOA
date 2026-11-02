@@ -146,6 +146,170 @@ class GaugeCard extends StatelessWidget {
   }
 }
 
+/// La disponibilité du parc, type par type, chacun sa jauge.
+///
+/// Un véhicule se demande par type — une ambulance, un bus — et c'est type
+/// par type qu'on constate qu'il n'en reste plus d'une sorte. Une jauge
+/// d'ensemble ouvre la rangée ; chaque type suit, avec la sienne, dont la
+/// couleur dit d'un coup d'œil s'il en reste : vert à partir de la moitié,
+/// orange en dessous, rouge à zéro.
+class DisponibiliteParTypeCard extends StatelessWidget {
+  const DisponibiliteParTypeCard({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.ensemble,
+    required this.types,
+  });
+
+  final String title;
+  final String subtitle;
+
+  /// Disponibles et total sur tout le parc compté.
+  final (int, int) ensemble;
+
+  /// Pour chaque type : son libellé, ses disponibles, son total.
+  final List<(String, int, int)> types;
+
+  static Color _couleur(int disponibles, int total) {
+    if (disponibles == 0) return AppColors.danger;
+    if (disponibles * 2 < total) return AppColors.warning;
+    return AppColors.success;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (dispo, total) = ensemble;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: AppColors.ink,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 12, color: AppColors.inkMuted),
+            ),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 28,
+              runSpacing: 20,
+              crossAxisAlignment: WrapCrossAlignment.end,
+              children: [
+                _JaugeType(
+                  libelle: 'ENSEMBLE',
+                  disponibles: dispo,
+                  total: total,
+                  couleur: total == 0 ? AppColors.success : _couleur(dispo, total),
+                  taille: 104,
+                  enAvant: true,
+                ),
+                for (final (libelle, d, t) in types)
+                  _JaugeType(
+                    libelle: libelle,
+                    disponibles: d,
+                    total: t,
+                    couleur: _couleur(d, t),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _JaugeType extends StatelessWidget {
+  const _JaugeType({
+    required this.libelle,
+    required this.disponibles,
+    required this.total,
+    required this.couleur,
+    this.taille = 80,
+    this.enAvant = false,
+  });
+
+  final String libelle;
+  final int disponibles;
+  final int total;
+  final Color couleur;
+  final double taille;
+
+  /// La jauge d'ensemble, plus grande et au libellé appuyé.
+  final bool enAvant;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: taille + 28,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: taille,
+            height: taille,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SizedBox(
+                  width: taille,
+                  height: taille,
+                  child: CircularProgressIndicator(
+                    value: total == 0 ? 0 : disponibles / total,
+                    strokeWidth: enAvant ? 10 : 8,
+                    strokeCap: StrokeCap.round,
+                    backgroundColor: couleur.withValues(alpha: 0.12),
+                    valueColor: AlwaysStoppedAnimation(couleur),
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$disponibles/$total',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: enAvant ? 18 : 15,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    const Text(
+                      'dispo.',
+                      style: TextStyle(fontSize: 10, color: AppColors.inkMuted),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            libelle,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: enAvant ? FontWeight.w800 : FontWeight.w600,
+              color: enAvant ? AppColors.navy : AppColors.ink,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Barre de progression avec étiquette flottante (équivalent "Weight Loss Plan").
 /// Ce que chaque soute porte réellement, en litres.
 ///
