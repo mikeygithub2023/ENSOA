@@ -22,7 +22,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="ci.ensoa.sig_ensoa">
 
-    
+    <!-- Pour vérifier que le serveur répond avant le tout premier chargement
+         (voir LauncherActivity). -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     
 

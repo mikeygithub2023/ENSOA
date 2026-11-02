@@ -153,7 +153,10 @@ class _VehicleFormDialogState extends ConsumerState<VehicleFormDialog> {
                 ],
               ),
               const SizedBox(height: 12),
+              // Alignés par le haut : l'aide sous le kilométrage, sur deux
+              // lignes, décentrerait sinon les deux champs l'un de l'autre.
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: TextFormField(

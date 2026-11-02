@@ -20,8 +20,8 @@
     "path": "~/.android/debug.keystore",
     "alias": "androiddebugkey"
   },
-  "appVersionName": "2.0.0",
-  "appVersionCode": 2,
+  "appVersionName": "3.0.0",
+  "appVersionCode": 3,
   "shortcuts": [],
   "generatorApp": "bubblewrap-core",
   "webManifestUrl": "https://sig-ensoa.pages.dev/manifest.json",
@@ -48,5 +48,5 @@
   "fileHandlers": [],
   "launchHandlerClientMode": "",
   "displayOverride": [],
-  "appVersion": "2.0.0"
+  "appVersion": "3.0.0"
 }
