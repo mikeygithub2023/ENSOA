@@ -74,6 +74,23 @@ JAVA_HOME="/c/Program Files/Eclipse Adoptium/jdk-17.0.16.8-hotspot" ./gradlew as
 # puis zipalign + apksigner avec ~/.android/debug.keystore, versionCode augmenté
 ```
 
+### Sur les postes Windows : l'application de bureau
+
+`windows-pwa/` est le pendant de l'APK pour le bureau : une petite application
+(C#, .NET Framework 4.8 livré avec Windows) qui ouvre la PWA dans sa propre
+fenêtre, avec le moteur d'Edge (WebView2) — sans barre d'adresse. Quand le
+serveur ne répond pas et que l'application n'est pas encore en cache, elle
+affiche un écran ENSOA « Connexion impossible » avec « Réessayer ».
+
+```powershell
+.\outils\installateur_bureau.ps1
+```
+
+produit `build\installateur\SIG-ENSOA-<version>-bureau.exe` (environ 2 Mo).
+Il reprend l'identifiant de l'ancien installateur Flutter : sur un poste qui
+l'avait, il le remplace et efface ses fichiers. Comme l'APK, il n'est plus à
+redistribuer : les mises à jour passent par la PWA.
+
 ## 4. Mettre à jour
 
 C'est là tout l'intérêt du changement :
