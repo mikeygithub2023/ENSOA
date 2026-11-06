@@ -115,15 +115,20 @@ class _ArmamentScreenState extends ConsumerState<ArmamentScreen>
             // sous-rubrique à l'autre. Le niveau haut se change au doigt sur
             // son bouton, le niveau bas au glissement.
             physics: const NeverScrollableScrollPhysics(),
-            children: const [
-              // Le tableau de bord se rend nu et défile dans son onglet.
+            children: [
+              // Le tableau de bord se rend nu et défile dans son onglet. Ses
+              // alertes mènent à la rubrique « Armement », à côté, au lieu de
+              // quitter la page pour y revenir.
               SingleChildScrollView(
-                padding: EdgeInsets.fromLTRB(4, 4, 4, 100),
-                child: DashboardArmurerie(sansCadre: true),
+                padding: const EdgeInsets.fromLTRB(4, 4, 4, 100),
+                child: DashboardArmurerie(
+                  sansCadre: true,
+                  versGestion: () => _rubriques.animateTo(1),
+                ),
               ),
-              _RubriqueArmement(),
-              _RubriqueStock(famille: FamilleArticle.munition),
-              _RubriqueStock(famille: FamilleArticle.equipement),
+              const _RubriqueArmement(),
+              const _RubriqueStock(famille: FamilleArticle.munition),
+              const _RubriqueStock(famille: FamilleArticle.equipement),
             ],
           ),
         ),

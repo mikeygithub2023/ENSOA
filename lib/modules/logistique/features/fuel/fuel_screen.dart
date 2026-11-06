@@ -138,17 +138,22 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
             Expanded(
               child: TabBarView(
                 controller: _tabController,
-                children: const [
+                children: [
                   // Le tableau de bord se rend nu et défile dans son onglet.
+                  // Ses alertes mènent à l'onglet « Soute », à côté, au lieu
+                  // de quitter la page pour y revenir.
                   SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(4, 4, 4, 100),
-                    child: DashboardCarburant(sansCadre: true),
+                    padding: const EdgeInsets.fromLTRB(4, 4, 4, 100),
+                    child: DashboardCarburant(
+                      sansCadre: true,
+                      versGestion: () => _tabController.animateTo(1),
+                    ),
                   ),
-                  SoutesTabContent(),
-                  DepotagesTabContent(),
-                  DepotagesInternesTabContent(),
-                  RepartitionsTabContent(),
-                  DistributionsTabContent(),
+                  const SoutesTabContent(),
+                  const DepotagesTabContent(),
+                  const DepotagesInternesTabContent(),
+                  const RepartitionsTabContent(),
+                  const DistributionsTabContent(),
                 ],
               ),
             ),

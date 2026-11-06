@@ -20,11 +20,23 @@ import 'alertes_card.dart';
 /// perdaient au milieu. Il a désormais le sien — les armes, les dotations,
 /// les munitions, les équipements de protection —, et rien d'autre.
 class DashboardArmurerie extends ConsumerWidget {
-  const DashboardArmurerie({super.key, this.sansCadre = false});
+  const DashboardArmurerie({
+    super.key,
+    this.sansCadre = false,
+    this.versGestion,
+  });
 
   /// Rendre le contenu nu, sans titre ni défilement propre : la page unifiée
   /// s'en charge.
   final bool sansCadre;
+
+  /// Ce que font les alertes et les cartes quand on les touche.
+  ///
+  /// Par défaut, elles mènent à `/logistique/armement`. Emboîté dans l'espace
+  /// de l'armurerie, ce chemin ferait sortir de la page pour y revenir : la
+  /// gestion est juste à côté, sous l'onglet voisin. Le parent passe alors de
+  /// quoi changer d'onglet.
+  final VoidCallback? versGestion;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -77,7 +89,13 @@ class DashboardArmurerie extends ConsumerWidget {
       ..sort((a, b) => b.$2.compareTo(a.$2));
     final totalMunitions = parCalibre.values.fold<int>(0, (s, q) => s + q);
 
-    void versArmement() => context.go('/logistique/armement');
+    void versArmement() {
+      if (versGestion != null) {
+        versGestion!();
+      } else {
+        context.go('/logistique/armement');
+      }
+    }
 
     final alertes = <Alerte>[
       for (final d in dotationsRetard)

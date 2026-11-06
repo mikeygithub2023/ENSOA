@@ -20,11 +20,23 @@ import 'alertes_card.dart';
 /// deux lignes sur douze. Il a désormais le sien — les soutes, les dépotages,
 /// les distributions —, et les tâches que l'Officier Adjoint lui confie.
 class DashboardCarburant extends ConsumerWidget {
-  const DashboardCarburant({super.key, this.sansCadre = false});
+  const DashboardCarburant({
+    super.key,
+    this.sansCadre = false,
+    this.versGestion,
+  });
 
   /// Rendre le contenu nu, sans titre ni défilement propre : la page unifiée
   /// s'en charge.
   final bool sansCadre;
+
+  /// Ce que font les alertes et les cartes quand on les touche.
+  ///
+  /// Par défaut, elles mènent à `/logistique/carburant`. Emboîté dans
+  /// l'espace du soutien pétrolier, ce chemin ferait sortir de la page pour y
+  /// revenir : la gestion est juste à côté, sous l'onglet voisin. Le parent
+  /// passe alors de quoi changer d'onglet.
+  final VoidCallback? versGestion;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -83,7 +95,13 @@ class DashboardCarburant extends ConsumerWidget {
         .where((j) => !j.entree)
         .fold<int>(0, (s, j) => s + j.quantite);
 
-    void versCarburant() => context.go('/logistique/carburant');
+    void versCarburant() {
+      if (versGestion != null) {
+        versGestion!();
+      } else {
+        context.go('/logistique/carburant');
+      }
+    }
     void versActivites() => context.go('/logistique/taches');
 
     final alertes = <Alerte>[
