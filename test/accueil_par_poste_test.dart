@@ -85,7 +85,9 @@ Future<void> _ouvrir(WidgetTester tester, RoleLogistique role) async {
           ),
         ),
       ],
-      child: const MaterialApp(home: Scaffold(body: AccueilScreen())),
+      child: const MaterialApp(
+        home: Scaffold(body: AccueilScreen(chiffresSeuls: true)),
+      ),
     ),
   );
   await tester.pumpAndSettle();

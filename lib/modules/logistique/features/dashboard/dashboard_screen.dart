@@ -15,11 +15,16 @@ import '../../shared/widgets/skeleton.dart';
 import '../../shared/widgets/widgets.dart';
 import 'alertes_card.dart';
 
+/// Le détail du soutien technique, sous les tuiles du tableau de bord.
+///
+/// Ce qui se lit déjà sur les tuiles — véhicules disponibles, litres en soute —
+/// n'est pas répété : on vient ici pour ce qui demande une décision d'abord
+/// (alertes et suivi), pour les mouvements et la répartition ensuite.
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key, this.sansCadre = false});
 
-  /// Rendre le contenu nu, sans titre ni défilement propre : la page unifiée
-  /// s'en charge quand elle réunit les deux domaines.
+  /// Rendre le contenu nu, sans titre ni défilement propre : le tableau de bord
+  /// qui l'accueille s'en charge.
   final bool sansCadre;
 
   @override
@@ -45,15 +50,14 @@ class DashboardScreen extends ConsumerWidget {
       'distributions',
     ]);
     if (!charge) {
-      return const ScreenScaffold(
-        title: 'Tableau de bord',
-        children: [SkeletonDashboard()],
-      );
+      return sansCadre
+          ? const SkeletonDashboard()
+          : const ScreenScaffold(
+              title: 'Tableau de bord',
+              children: [SkeletonDashboard()],
+            );
     }
 
-    final disponibles = vehicules
-        .where((v) => v.etat == EtatVehicule.disponible)
-        .length;
     final totalStock = soutesAvecStock.fold<int>(
       0,
       (s, x) => s + x.stock.quantiteTotale,
@@ -68,12 +72,39 @@ class DashboardScreen extends ConsumerWidget {
     final soutesParVolume =
         parSoute.entries.map((e) => (e.key, e.value)).toList()
           ..sort((a, b) => b.$2.compareTo(a.$2));
-    final entreesJour = journal
+
+    // Le journal porte tout l'historique : la carte annonce « du jour », elle
+    // ne doit compter que depuis minuit, heure du poste.
+    final maintenant = DateTime.now();
+    final minuit = DateTime(maintenant.year, maintenant.month, maintenant.day);
+    final duJour = journal.where((j) => !j.date.toLocal().isBefore(minuit));
+    final entreesJour = duJour
         .where((j) => j.entree)
         .fold<int>(0, (s, j) => s + j.quantite);
-    final sortiesJour = journal
+    final sortiesJour = duJour
         .where((j) => !j.entree)
         .fold<int>(0, (s, j) => s + j.quantite);
+    final solde = entreesJour - sortiesJour;
+
+    // Comme au garage : un véhicule hors service n'est disponible pour
+    // personne, et le compter ferait paraître vide un type qui ne l'est pas.
+    final parType = <String, (int, int)>{};
+    var horsService = 0;
+    for (final v in vehicules) {
+      if (v.etat == EtatVehicule.horsService) {
+        horsService++;
+        continue;
+      }
+      final (d, t) = parType[v.typeVehicule] ?? (0, 0);
+      parType[v.typeVehicule] = (
+        d + (v.etat == EtatVehicule.disponible ? 1 : 0),
+        t + 1,
+      );
+    }
+    final types = [
+      for (final MapEntry(key: type, value: (d, t)) in parType.entries)
+        (type, d, t),
+    ]..sort((a, b) => b.$3.compareTo(a.$3));
 
     final alertes = <Alerte>[
       for (final s in soutesAlerte)
@@ -105,135 +136,133 @@ class DashboardScreen extends ConsumerWidget {
         ),
     ];
 
-    final contenu = <Widget>[
-      LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth > 820;
-          final blob = FuelOverviewCard(
-            title: 'Aperçu carburant du jour',
-            subtitle: 'Entrées / sorties / stock total',
-            stockLabel: 'Stock total (toutes soutes)',
-            stockValue: '${formatMilliers(totalStock)} L',
-            entrees: entreesJour,
-            sorties: sortiesJour,
-          );
-          final darkCard = AlertesCard(alertes: alertes);
-          if (!wide) {
-            return Column(
-              children: [blob, const SizedBox(height: 16), darkCard],
-            );
-          }
-          return IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(flex: 6, child: blob),
-                const SizedBox(width: 16),
-                Expanded(flex: 5, child: darkCard),
-              ],
+    final suivi = Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Column(
+          children: [
+            DotProgressRow(
+              icon: Icons.local_gas_station_rounded,
+              iconColor: AppColors.blue,
+              title: 'Carburant',
+              subtitle: 'Soutes au-dessus du seuil critique',
+              completed: soutesAvecStock.length - soutesAlerte.length,
+              total: soutesAvecStock.length,
+              onTap: () => context.go('/logistique/carburant'),
             ),
-          );
-        },
+            const Divider(height: 1),
+            DotProgressRow(
+              icon: Icons.car_repair_rounded,
+              iconColor: AppColors.warning,
+              title: 'Maintenance',
+              subtitle: 'Véhicules sans vidange en attente',
+              completed: vehicules.length - vehiculesVidange.length,
+              total: vehicules.length,
+              onTap: () => context.go('/logistique/parc'),
+            ),
+            const Divider(height: 1),
+            DotProgressRow(
+              icon: Icons.assignment_ind_rounded,
+              iconColor: AppColors.navy,
+              title: 'Dotations armement',
+              subtitle: 'Retours dans les délais',
+              completed: dotationsRetard.isEmpty ? 1 : 0,
+              total: 1,
+              onTap: () => context.go('/logistique/armement'),
+            ),
+            const Divider(height: 1),
+            DotProgressRow(
+              iconWidget: const IconeArmeTeintee(
+                couleur: AppColors.success,
+                size: 22,
+              ),
+              iconColor: AppColors.success,
+              title: 'Inspections armes',
+              subtitle: 'Armes à jour de contrôle',
+              completed: armes.length - armesRetard.length,
+              total: armes.length,
+              onTap: () => context.go('/logistique/armement'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final contenu = <Widget>[
+      _Rangee(
+        gauche: AlertesCard(alertes: alertes),
+        droite: suivi,
       ),
       const SizedBox(height: 16),
-      LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth > 820;
-          final gauge = GaugeCard(
-            title: 'Disponibilité du parc',
-            subtitle: 'Véhicules prêts à l\'emploi',
-            progress: vehicules.isEmpty ? 0 : disponibles / vehicules.length,
-            centerValue: '$disponibles/${vehicules.length}',
-            centerLabel: 'dispo.',
-            color: AppColors.success,
-          );
-          final pill = SoutesStockCard(
-            title: 'Carburant en soute',
-            total: totalStock,
-            soutes: soutesParVolume,
-          );
-          if (!wide) {
-            return Column(children: [gauge, const SizedBox(height: 16), pill]);
-          }
-          // Côte à côte, deux cartes de hauteurs différentes donnent une
-          // ligne bancale : on leur impose la hauteur de la plus haute,
-          // calculée plutôt que mesurée — voir `hauteurPour`.
-          return SizedBox(
-            height: SoutesStockCard.hauteurPour(soutesParVolume.length),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: gauge),
-                const SizedBox(width: 16),
-                Expanded(child: pill),
-              ],
-            ),
-          );
-        },
-      ),
-      const SizedBox(height: 24),
-      const SectionHeader(title: 'Suivi par domaine'),
-      Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Column(
-            children: [
-              DotProgressRow(
-                icon: Icons.local_gas_station_rounded,
-                iconColor: AppColors.blue,
-                title: 'Carburant',
-                subtitle: 'Soutes au-dessus du seuil critique',
-                completed: soutesAvecStock.length - soutesAlerte.length,
-                total: soutesAvecStock.length,
-                onTap: () => context.go('/logistique/carburant'),
-              ),
-              const Divider(height: 1),
-              DotProgressRow(
-                icon: Icons.car_repair_rounded,
-                iconColor: AppColors.warning,
-                title: 'Maintenance',
-                subtitle: 'Véhicules sans vidange en attente',
-                completed: vehicules.length - vehiculesVidange.length,
-                total: vehicules.length,
-                onTap: () => context.go('/logistique/parc'),
-              ),
-              const Divider(height: 1),
-              DotProgressRow(
-                icon: Icons.assignment_ind_rounded,
-                iconColor: AppColors.navy,
-                title: 'Dotations armement',
-                subtitle: 'Retours dans les délais',
-                completed: dotationsRetard.isEmpty ? 1 : 0,
-                total: 1,
-                onTap: () => context.go('/logistique/armement'),
-              ),
-              const Divider(height: 1),
-              DotProgressRow(
-                iconWidget: const IconeArmeTeintee(
-                  couleur: AppColors.success,
-                  size: 22,
-                ),
-                iconColor: AppColors.success,
-                title: 'Inspections armes',
-                subtitle: 'Armes à jour de contrôle',
-                completed: armes.length - armesRetard.length,
-                total: armes.length,
-                onTap: () => context.go('/logistique/armement'),
-              ),
-            ],
-          ),
+      _Rangee(
+        gauche: FuelOverviewCard(
+          title: 'Carburant du jour',
+          subtitle: 'Entrées et sorties depuis minuit',
+          // Le stock se lit déjà sur sa tuile et sur la carte voisine ; ce que
+          // personne d'autre ne dit, c'est ce que la journée a changé.
+          stockLabel: 'Solde de la journée',
+          stockValue: '${solde > 0 ? '+' : ''}${formatMilliers(solde)} L',
+          entrees: entreesJour,
+          sorties: sortiesJour,
         ),
+        droite: SoutesStockCard(
+          title: 'Carburant en soute',
+          total: totalStock,
+          soutes: soutesParVolume,
+        ),
+      ),
+      const SizedBox(height: 16),
+      DisponibiliteParTypeCard(
+        title: 'Disponibilité par type',
+        subtitle: horsService == 0
+            ? 'Véhicules prêts sur le parc en service'
+            : 'Véhicules prêts sur le parc en service — '
+                  '$horsService hors service, non comptés',
+        types: types,
       ),
     ];
 
     // Sans cadre, le tableau rend sa suite de blocs telle quelle : c'est la
-    // page unifiée qui porte le titre et le défilement, pour que scolarité et
-    // soutien technique se lisent d'un seul mouvement.
+    // page d'accueil qui porte le titre et le défilement.
     return sansCadre
         ? Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: contenu,
           )
         : ScreenScaffold(title: 'Tableau de bord', children: contenu);
+  }
+}
+
+/// Deux cartes de même hauteur côte à côte, ou l'une sous l'autre quand la
+/// largeur manque. Aucune des deux ne doit contenir de `LayoutBuilder`, que
+/// `IntrinsicHeight` ne sait pas mesurer.
+class _Rangee extends StatelessWidget {
+  const _Rangee({required this.gauche, required this.droite});
+
+  final Widget gauche;
+  final Widget droite;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, contraintes) {
+        if (contraintes.maxWidth <= 820) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [gauche, const SizedBox(height: 16), droite],
+          );
+        }
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: gauche),
+              const SizedBox(width: 16),
+              Expanded(child: droite),
+            ],
+          ),
+        );
+      },
+    );
   }
 }

@@ -60,7 +60,9 @@ class ElementNav {
 const elementsNav = <ElementNav>[
   ElementNav(
     chemin: '/',
-    libelle: 'Accueil',
+    // Le tableau de bord, unique pour tous les postes : ouvert à tout compte
+    // affecté, il ne montre à chacun que ce dont il relève.
+    libelle: 'Tableau de bord',
     icone: Icons.grid_view_rounded,
     section: SectionNav.commun,
   ),
@@ -73,19 +75,6 @@ const elementsNav = <ElementNav>[
     libelle: 'Notifications',
     icone: Icons.notifications_rounded,
     section: SectionNav.commun,
-  ),
-
-  // Un seul tableau de bord pour les deux domaines : celui qui relève des
-  // deux bascule de l'un à l'autre à l'intérieur de l'écran.
-  ElementNav(
-    chemin: '/tableau-de-bord',
-    libelle: 'Tableau de bord',
-    icone: Icons.insights_rounded,
-    section: SectionNav.commun,
-    permissions: {
-      Permission.voirTableauBordScolarite,
-      Permission.voirTableauBordLogistique,
-    },
   ),
 
   // --- Scolarité ---

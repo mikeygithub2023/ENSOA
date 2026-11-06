@@ -107,31 +107,37 @@ class _AppShellState extends ConsumerState<AppShell>
   /// soutien technique, où le besoin est le plus net : le poste de police et
   /// le garage travaillent sur les mêmes véhicules.
   void _rafraichirPourModule(String chemin) {
-    // Revenir à l'accueil après avoir saisi quelque chose doit montrer le
-    // nouveau chiffre, pas celui du premier affichage.
+    // Revenir au tableau de bord après avoir saisi quelque chose doit montrer
+    // le nouveau chiffre, pas celui du premier affichage. Ses tuiles se lisent
+    // dans des providers qu'on invalide, son détail dans les notifiers ci-après.
     if (chemin == '/') {
       ref.invalidate(apercuScolariteProvider);
       ref.invalidate(apercuLogistiqueProvider);
-      return;
-    }
-
-    if (!chemin.startsWith('/logistique') &&
-        chemin != '/audit' &&
-        chemin != '/notifications' &&
-        chemin != '/tableau-de-bord') {
-      return;
-    }
-
-    // Le tableau de bord unifié lit les deux domaines : la scolarité par un
-    // provider qu'on invalide, le soutien technique par les notifiers ci-après.
-    if (chemin == '/tableau-de-bord') {
+      ref.invalidate(apercuArmurerieProvider);
+      ref.invalidate(apercuGarageProvider);
+      ref.invalidate(apercuCarburantProvider);
+      ref.invalidate(apercuSanteProvider);
+      ref.invalidate(apercuPoliceProvider);
+      ref.invalidate(apercuActivitesProvider);
       ref.invalidate(dashboardStatsProvider);
+      // Ceux qui n'ont que des tuiles n'ont rien de plus à recharger.
+      final profil = ref.read(profilCourantProvider).value;
+      if (profil == null || !profil.peut(Permission.voirTableauBordLogistique)) {
+        return;
+      }
+    }
+
+    if (chemin != '/' &&
+        !chemin.startsWith('/logistique') &&
+        chemin != '/audit' &&
+        chemin != '/notifications') {
+      return;
     }
 
     ref.read(notificationsProvider.notifier).refresh();
 
     switch (chemin) {
-      case '/tableau-de-bord':
+      case '/':
         // Un poste ne lit que son domaine, mais l'écran choisit lequel
         // après ce rafraîchissement : on les couvre tous. Une table qu'un
         // poste n'a pas le droit de lire lui revient vide, sans erreur.

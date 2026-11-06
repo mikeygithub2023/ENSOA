@@ -9,7 +9,6 @@ import '../features/auth/connexion_screen.dart';
 import '../features/auth/providers/auth_providers.dart';
 import '../features/shell/app_shell.dart';
 import '../features/shell/nav_items.dart';
-import '../features/tableau_de_bord/tableau_de_bord_screen.dart';
 import '../modules/logistique/data/models/armement.dart';
 import '../modules/logistique/data/models/oa.dart';
 import '../modules/logistique/data/models/vehicule.dart';
@@ -56,8 +55,6 @@ class _Rafraichisseur extends ChangeNotifier {
 /// se lit d'un coup d'œil.
 final _ecransPortes = <String, Widget Function()>{
   '/administration': () => const AdministrationScreen(),
-
-  '/tableau-de-bord': () => const TableauDeBordScreen(),
 
   // Scolarité
   '/scolarite/apprenants': () => const ApprenantsListScreen(),
@@ -146,6 +143,9 @@ final routeurProvider = Provider<GoRouter>((ref) {
             path: '/',
             builder: (context, state) => const AccueilScreen(),
           ),
+          // L'ancienne adresse du tableau de bord, fusionné dans le premier
+          // bouton : une PWA restée ouverte ou un lien conservé y mène encore.
+          GoRoute(path: '/tableau-de-bord', redirect: (_, _) => '/'),
 
           // Les fiches de la scolarité, désignées par identifiant. L'ordre
           // compte : `controles/:id` doit passer avant `:id`, sinon ce

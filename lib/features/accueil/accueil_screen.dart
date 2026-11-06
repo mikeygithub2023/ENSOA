@@ -7,20 +7,36 @@ import '../../core/roles.dart';
 import '../../core/theme.dart';
 import '../../modules/logistique/data/models/oa.dart';
 import '../../modules/logistique/data/repositories/oa_providers.dart';
+import '../../modules/logistique/features/dashboard/dashboard_activites.dart';
+import '../../modules/logistique/features/dashboard/dashboard_armurerie.dart';
+import '../../modules/logistique/features/dashboard/dashboard_carburant.dart';
+import '../../modules/logistique/features/dashboard/dashboard_garage.dart';
+import '../../modules/logistique/features/dashboard/dashboard_profil.dart';
+import '../../modules/logistique/features/dashboard/dashboard_screen.dart'
+    as soutien;
+import '../../modules/scolarite/features/dashboard/providers/dashboard_providers.dart';
 import '../../shared/widgets/icone_arme.dart';
 import '../../models/profil.dart';
 import '../auth/providers/auth_providers.dart';
 import 'providers/apercu_providers.dart';
 
-/// La vue d'ensemble de l'école — ce que l'agent doit savoir avant d'ouvrir
-/// quoi que ce soit, borné par ce qui le regarde.
+/// Le tableau de bord de l'école — un seul, derrière le premier bouton du menu.
+///
+/// Il y en avait deux : un accueil fait de chiffres, et un « tableau de bord »
+/// fait d'alertes et de jauges, qui se répétaient sans se recouper. Ils se
+/// lisent désormais d'un seul mouvement : les chiffres du domaine, puis, pour
+/// le poste qui en a l'usage, ce sur quoi il doit décider.
 ///
 /// Un instructeur n'y voit que la scolarité, un armurier que le soutien
 /// technique, un administrateur les deux. Les chiffres viennent de la base
 /// avec la RLS pour seul filtre : un commandant de division y lit l'effectif de sa
 /// division, pas celui de l'école.
 class AccueilScreen extends ConsumerWidget {
-  const AccueilScreen({super.key});
+  const AccueilScreen({super.key, this.chiffresSeuls = false});
+
+  /// Ne rendre que les tuiles, sans le détail du poste — lequel charge ses
+  /// propres données. Pour le banc d'essai, qui n'a pas de base.
+  final bool chiffresSeuls;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,6 +44,7 @@ class AccueilScreen extends ConsumerWidget {
     if (profil == null) return const SizedBox.shrink();
 
     final aujourdhui = DateFormat.yMMMMEEEEd('fr_FR').format(DateTime.now());
+    final detail = chiffresSeuls ? null : _detailDuPoste(profil);
 
     return SingleChildScrollView(
       child: Column(
@@ -35,10 +52,15 @@ class AccueilScreen extends ConsumerWidget {
         children: [
           _Bandeau(date: aujourdhui, profil: profil),
           if (profil.releveDeLaScolarite) ...[
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
             const _TitreSection('Scolarité'),
             const SizedBox(height: 14),
             const _BlocScolarite(),
+            // La répartition mêle les divisions : elle reste à ceux qui ont
+            // déjà le droit de lire toute l'école.
+            if (profil.peut(Permission.voirTableauBordScolarite) &&
+                !chiffresSeuls)
+              const _EffectifParDivision(),
           ],
           // Chaque poste du soutien technique a ses propres compteurs.
           //
@@ -48,16 +70,37 @@ class AccueilScreen extends ConsumerWidget {
           // plutôt que celui de ses munitions. Le chef du service garde la
           // vue d'ensemble : c'est la sienne.
           if (profil.releveDuSoutienTechnique) ...[
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
             _TitreSection(_sectionDuPoste(profil.roleLogistique)),
             const SizedBox(height: 14),
             _blocDuPoste(profil.roleLogistique),
+            if (detail != null) ...[const SizedBox(height: 16), detail],
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
         ],
       ),
     );
   }
+}
+
+/// Ce que le poste lit sous ses chiffres : ses alertes, son suivi, ses jauges.
+///
+/// Le Service de santé et le Poste de police n'en ont pas — leurs tuiles
+/// disent tout. La permission décide, jamais le seul rôle.
+Widget? _detailDuPoste(Profil profil) {
+  if (!profil.peut(Permission.voirTableauBordLogistique)) return null;
+  return switch (profil.roleLogistique) {
+    RoleLogistique.armurerie => const DashboardArmurerie(sansCadre: true),
+    RoleLogistique.garage => const DashboardGarage(sansCadre: true),
+    RoleLogistique.soutienPetrolier => const DashboardCarburant(
+      sansCadre: true,
+    ),
+    RoleLogistique.officierAdjoint => const DashboardActivites(sansCadre: true),
+    RoleLogistique.profilPersonnalise => const DashboardProfilPersonnalise(
+      sansCadre: true,
+    ),
+    _ => const soutien.DashboardScreen(sansCadre: true),
+  };
 }
 
 /// Les compteurs que ce poste doit lire.
@@ -105,13 +148,12 @@ class _Bandeau extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
       decoration: BoxDecoration(
         color: AppColors.contrastCard,
         borderRadius: BorderRadius.circular(AppRadii.card),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Column(
@@ -126,7 +168,7 @@ class _Bandeau extends StatelessWidget {
                     letterSpacing: 0.3,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 6),
                 const Text(
                   "École Nationale des Sous-Officiers d'Active",
                   style: TextStyle(
@@ -152,7 +194,7 @@ class _Bandeau extends StatelessWidget {
           const SizedBox(width: 24),
           Image.asset(
             'assets/images/icone_ensoa.png',
-            height: 78,
+            height: 64,
             errorBuilder: (_, _, _) => const SizedBox(),
           ),
         ],
@@ -171,13 +213,81 @@ class _TitreSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      texte.toUpperCase(),
-      style: const TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 1.2,
-        color: AppColors.inkMuted,
+    return Row(
+      children: [
+        Text(
+          texte.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.2,
+            color: AppColors.inkMuted,
+          ),
+        ),
+        const SizedBox(width: 12),
+        const Expanded(child: Divider(color: AppColors.border, height: 1)),
+      ],
+    );
+  }
+}
+
+/// L'effectif de chaque division, en pastilles sous les tuiles de la scolarité.
+///
+/// Chaque division prenait une grande carte, pour un seul chiffre. Si le
+/// chargement échoue, les tuiles disent déjà l'essentiel : on n'affiche rien.
+class _EffectifParDivision extends ConsumerWidget {
+  const _EffectifParDivision();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final divisions = ref.watch(dashboardStatsProvider).value?.parDivision;
+    if (divisions == null || divisions.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          for (final d in divisions)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.blueMist,
+                borderRadius: BorderRadius.circular(AppRadii.pill),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.account_tree_rounded,
+                    size: 15,
+                    color: AppColors.blueDeep,
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      d.division.nom,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${d.count}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -342,7 +452,7 @@ class _BlocLogistique extends ConsumerWidget {
               _Tuile(
                 iconeWidget: const IconeArmeTeintee(
                   couleur: AppColors.blueBright,
-                  size: 22,
+                  size: 30,
                 ),
                 valeur: '${a.armes}',
                 titre: 'Armes inventoriées',
@@ -389,7 +499,8 @@ String _milliers(int valeur) {
   return tampon.toString();
 }
 
-/// Tuile de chiffre : pastille d'icône teintée, valeur en gros, libellé.
+/// Tuile de chiffre : la pastille d'icône à gauche, le chiffre et son libellé à
+/// droite.
 class _Tuile extends StatelessWidget {
   const _Tuile({
     this.icone,
@@ -417,60 +528,78 @@ class _Tuile extends StatelessWidget {
   /// La même pour toutes : posées côte à côte, des hauteurs dictées par la
   /// longueur des légendes donnaient une rangée dentelée. Elle tient la plus
   /// bavarde d'entre elles — celle dont la légende passe sur deux lignes.
-  static const double hauteur = 196;
+  static const double hauteur = 116;
 
   @override
   Widget build(BuildContext context) {
+    final carte = Theme.of(context).cardTheme;
     return Container(
       height: hauteur,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(AppRadii.card),
-        border: Border.all(color: AppColors.border),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      // Le dessin des cartes du détail, en dessous : sur une même page, des
+      // tuiles blanches à côté de cartes bleutées se lisaient comme deux écrans
+      // collés.
+      decoration: ShapeDecoration(
+        color: carte.color,
+        shape:
+            carte.shape ??
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadii.card),
+            ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
+          // De taille fixe : le fusil, large et plat, l'étirait en un ovale.
           Container(
-            padding: const EdgeInsets.all(9),
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: couleur.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: iconeWidget ?? Icon(icone, color: couleur, size: 20),
+            child: iconeWidget ?? Icon(icone, color: couleur, size: 22),
           ),
-          // L'espace qui reste se met là, entre le pictogramme et le chiffre,
-          // plutôt qu'en bas de la tuile. Les chiffres s'alignent alors d'une
-          // tuile à l'autre, et la carte se remplit au lieu de sembler
-          // inachevée.
-          const Spacer(),
-          Text(
-            valeur,
-            style: const TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: AppColors.ink,
-              height: 1.1,
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  valeur,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.ink,
+                    height: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  titre,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.ink,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  legende,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.inkMuted,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            titre,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppColors.ink,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            legende,
-            style: const TextStyle(fontSize: 11, color: AppColors.inkMuted),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -630,7 +759,7 @@ class _BlocArmurerie extends ConsumerWidget {
               _Tuile(
                 iconeWidget: const IconeArmeTeintee(
                   couleur: AppColors.blueBright,
-                  size: 22,
+                  size: 30,
                 ),
                 valeur: '${a.armes}',
                 titre: 'Armes inventoriées',

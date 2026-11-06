@@ -651,7 +651,8 @@ class FuelOverviewCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.blueMist,
+                    // Sur le fond bleuté de la carte, blueMist ne se voyait pas.
+                    color: AppColors.navy.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: const Icon(

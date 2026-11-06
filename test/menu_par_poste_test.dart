@@ -23,7 +23,7 @@ void main() {
     test("s'ouvre à l'administrateur", () {
       expect(
         _chemins(RoleLogistique.administrateur),
-        contains('/tableau-de-bord'),
+        contains('/'),
       );
     });
 
@@ -38,7 +38,7 @@ void main() {
       RoleLogistique.officierAdjoint,
     ]) {
       test("s'ouvre à ${role.libelle}", () {
-        expect(_chemins(role), contains('/tableau-de-bord'));
+        expect(_chemins(role), contains('/'));
       });
     }
   });
@@ -92,7 +92,7 @@ void _profilPersonnalise() {
     final chemins = _chemins(RoleLogistique.profilPersonnalise);
 
     expect(chemins, contains('/logistique/mes-taches'));
-    expect(chemins, contains('/tableau-de-bord'));
+    expect(chemins, contains('/'));
 
     // Ce qui ne le regarde pas : les domaines de l'ERP.
     expect(chemins, isNot(contains('/logistique/parc')));
