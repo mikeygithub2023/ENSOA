@@ -11,7 +11,7 @@
 #define MonNom "SIG ENSOA"
 #define MonEditeur "Ecole Nationale des Sous-Officiers d'Active"
 #define MonExe "sig_ensoa.exe"
-#define MaVersion "2.0.0"
+#define MaVersion "2.1.0"
 
 [Setup]
 ; Le même AppId que l'installateur de l'application Flutter : c'est ce qui
