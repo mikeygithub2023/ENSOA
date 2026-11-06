@@ -68,7 +68,7 @@ class DashboardActivites extends ConsumerWidget {
     final restantes = parActeur.values.fold<int>(0, (s, n) => s + n);
 
     final jour = DateFormat('dd/MM');
-    void versActivites() => context.go('/logistique/activites');
+    void versActivites() => context.go('/logistique/taches?onglet=activites');
 
     final alertes = <Alerte>[
       for (final t in aValider)

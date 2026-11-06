@@ -10,12 +10,15 @@ class RubriqueAOnglets extends StatelessWidget {
     super.key,
     required this.titre,
     required this.onglets,
+    this.ongletInitial = 0,
   });
 
   final String titre;
 
   /// Le libellé de chaque onglet et ce qui construit son écran.
   final List<(String, Widget Function())> onglets;
+
+  final int ongletInitial;
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +27,7 @@ class RubriqueAOnglets extends StatelessWidget {
       // en exige un neuf.
       key: ValueKey(onglets.length),
       length: onglets.length,
+      initialIndex: ongletInitial,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -36,8 +40,11 @@ class RubriqueAOnglets extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          BarreOngletsPilule(libelles: [for (final (l, _) in onglets) l]),
-          const SizedBox(height: 16),
+          // Un bandeau à un seul onglet n'aurait rien à proposer.
+          if (onglets.length > 1) ...[
+            BarreOngletsPilule(libelles: [for (final (l, _) in onglets) l]),
+            const SizedBox(height: 16),
+          ],
           Expanded(
             child: TabBarView(
               // Certains écrans ont leurs propres onglets, et les listes leur

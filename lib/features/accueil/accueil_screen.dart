@@ -411,7 +411,7 @@ class _BlocActivites extends ConsumerWidget {
                   "Aucune activité n'est encore inscrite au programme. "
                   "Commencez par en créer une, puis répartissez ses tâches "
                   "entre les services.",
-              chemin: '/logistique/activites',
+              chemin: '/logistique/taches?onglet=activites',
               action: 'Ouvrir les activités',
             ),
           ],

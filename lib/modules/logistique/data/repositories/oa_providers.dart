@@ -287,6 +287,101 @@ final tachesEnAttenteValidationProvider = Provider<List<TacheActivite>>(
       .toList(),
 );
 
+TacheQuotidienne _quotidienneFromRow(Map<String, dynamic> row) =>
+    TacheQuotidienne(
+      id: row['id'].toString(),
+      description: row['description'] as String,
+      echeance: row['echeance'] != null
+          ? DateTime.parse(row['echeance'] as String)
+          : null,
+      priorite: PrioriteTache.values.firstWhere(
+        (p) => p.name == row['priorite'],
+        orElse: () => PrioriteTache.normale,
+      ),
+      assigneA: row['assigne_a'] as String,
+      creePar: row['cree_par'] as String?,
+      assigneNom: (row['assigne_nom'] as String?) ?? '',
+      creeParNom: (row['cree_par_nom'] as String?) ?? '',
+      termineeLe: row['terminee_le'] != null
+          ? DateTime.parse(row['terminee_le'] as String)
+          : null,
+    );
+
+/// Les tâches quotidiennes que la RLS laisse voir : les siennes, et celles
+/// qu'on a imputées. Les noms, l'auteur et les notifications sont l'affaire de
+/// la base.
+class TachesQuotidiennesNotifier extends Notifier<List<TacheQuotidienne>> {
+  @override
+  List<TacheQuotidienne> build() {
+    Future.microtask(refresh);
+    return [];
+  }
+
+  Future<void> refresh() async {
+    final rows = await logistique.from('tache_quotidienne').select();
+    state = (rows as List)
+        .map((r) => _quotidienneFromRow(r as Map<String, dynamic>))
+        .toList();
+    ref.read(chargementProvider.notifier).marquerCharge('taches_quotidiennes');
+  }
+
+  Future<void> creer({
+    required String description,
+    DateTime? echeance,
+    required PrioriteTache priorite,
+    required String assigneA,
+  }) async {
+    await logistique.from('tache_quotidienne').insert({
+      'description': description,
+      'echeance': echeance?.toUtc().toIso8601String(),
+      'priorite': priorite.name,
+      'assigne_a': assigneA,
+    });
+    await refresh();
+  }
+
+  Future<void> modifier({
+    required String id,
+    required String description,
+    DateTime? echeance,
+    required PrioriteTache priorite,
+    required String assigneA,
+  }) async {
+    await logistique
+        .from('tache_quotidienne')
+        .update({
+          'description': description,
+          'echeance': echeance?.toUtc().toIso8601String(),
+          'priorite': priorite.name,
+          'assigne_a': assigneA,
+        })
+        .eq('id', int.parse(id));
+    await refresh();
+  }
+
+  Future<void> cocher(String id, {required bool faite}) async {
+    await logistique
+        .from('tache_quotidienne')
+        .update({
+          'terminee_le': faite
+              ? DateTime.now().toUtc().toIso8601String()
+              : null,
+        })
+        .eq('id', int.parse(id));
+    await refresh();
+  }
+
+  Future<void> supprimer(String id) async {
+    await logistique.from('tache_quotidienne').delete().eq('id', int.parse(id));
+    await refresh();
+  }
+}
+
+final tachesQuotidiennesProvider =
+    NotifierProvider<TachesQuotidiennesNotifier, List<TacheQuotidienne>>(
+      TachesQuotidiennesNotifier.new,
+    );
+
 /// Tâches assignées à l'acteur correspondant au rôle actuellement connecté —
 /// null (donc liste vide) si ce rôle n'a pas d'acteur (ex. soutien pétrolier).
 final mesTachesProvider = Provider<List<TacheActivite>>((ref) {

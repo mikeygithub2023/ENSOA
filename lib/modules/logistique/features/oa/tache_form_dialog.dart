@@ -54,7 +54,11 @@ class _TacheFormDialogState extends ConsumerState<TacheFormDialog> {
   Future<void> _choisirDateLimite() async {
     final date = await showDatePicker(
       context: context,
-      initialDate: widget.activite.dateActivite,
+      // Une activité déjà commencée a sa date dans le passé, que le calendrier
+      // ne proposerait pas.
+      initialDate: widget.activite.dateActivite.isBefore(DateTime.now())
+          ? DateTime.now()
+          : widget.activite.dateActivite,
       firstDate: DateTime.now().subtract(const Duration(days: 1)),
       lastDate: DateTime.now().add(const Duration(days: 730)),
     );

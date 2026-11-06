@@ -84,7 +84,7 @@ class DashboardCarburant extends ConsumerWidget {
         .fold<int>(0, (s, j) => s + j.quantite);
 
     void versCarburant() => context.go('/logistique/carburant');
-    void versActivites() => context.go('/logistique/activites');
+    void versActivites() => context.go('/logistique/taches');
 
     final alertes = <Alerte>[
       for (final s in soutesAlerte)

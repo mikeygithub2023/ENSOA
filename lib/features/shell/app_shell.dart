@@ -178,13 +178,10 @@ class _AppShellState extends ConsumerState<AppShell>
       case '/audit':
         ref.read(auditProvider.notifier).refresh();
         ref.read(usersProvider.notifier).refresh();
-      case '/logistique/activites':
-        ref.read(activitesProvider.notifier).refresh();
-        ref.read(tachesProvider.notifier).refresh();
-      case '/logistique/mes-taches':
-      case '/logistique/taches-equipe':
+      case '/logistique/taches':
         ref.read(tachesProvider.notifier).refresh();
         ref.read(activitesProvider.notifier).refresh();
+        ref.read(tachesQuotidiennesProvider.notifier).refresh();
     }
   }
 

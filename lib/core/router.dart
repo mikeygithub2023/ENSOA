@@ -23,10 +23,8 @@ import '../modules/logistique/features/fleet/vehicle_detail_screen.dart';
 import '../modules/logistique/features/fuel/fuel_screen.dart';
 import '../modules/logistique/features/notifications/notifications_screen.dart';
 import '../modules/logistique/features/oa/activite_detail_screen.dart';
-import '../modules/logistique/features/oa/oa_screen.dart';
 import '../modules/logistique/features/police/police_screen.dart';
-import '../modules/logistique/features/tasks/mes_taches_screen.dart';
-import '../modules/logistique/features/tasks/taches_equipe_screen.dart';
+import '../modules/logistique/features/tasks/taches_screen.dart';
 import '../modules/scolarite/features/apprenants/apprenants_list_screen.dart';
 import '../modules/scolarite/features/apprenants/apprenant_detail_screen.dart';
 import '../modules/scolarite/features/apprenants/controle_detail_screen.dart';
@@ -83,9 +81,6 @@ final _ecransPortes = <String, Widget Function()>{
   '/logistique/carburant': () => const FuelScreen(),
   '/logistique/armement': () => const ArmamentScreen(),
   '/logistique/poste-police': () => const PoliceScreen(),
-  '/logistique/activites': () => const OaScreen(),
-  '/logistique/mes-taches': () => const MesTachesScreen(),
-  '/logistique/taches-equipe': () => const TachesEquipeScreen(),
 
   // Communs aux deux modules
   '/notifications': () => const NotificationsScreen(),
@@ -193,7 +188,31 @@ final routeurProvider = Provider<GoRouter>((ref) {
           // Chaque entrée du menu a sa route. Les écrans des deux modules
           // arrivent un par un ; d'ici là l'emplacement est tenu, plutôt
           // qu'un menu qui mènerait au vide.
-          for (final entree in elementsNav.where((e) => e.chemin != '/'))
+          // La rubrique des tâches, qui s'ouvre sur l'un de ses onglets selon le
+          // lien suivi. Les anciennes adresses y mènent encore : une PWA restée
+          // ouverte ou un lien conservé peuvent y conduire.
+          GoRoute(
+            path: '/logistique/taches',
+            builder: (context, state) => TachesRubriqueScreen(
+              surActivites: state.uri.queryParameters['onglet'] == 'activites',
+            ),
+          ),
+          GoRoute(
+            path: '/logistique/activites',
+            redirect: (_, _) => '/logistique/taches?onglet=activites',
+          ),
+          GoRoute(
+            path: '/logistique/mes-taches',
+            redirect: (_, _) => '/logistique/taches',
+          ),
+          GoRoute(
+            path: '/logistique/taches-equipe',
+            redirect: (_, _) => '/logistique/taches',
+          ),
+
+          for (final entree in elementsNav.where(
+            (e) => e.chemin != '/' && e.chemin != '/logistique/taches',
+          ))
             GoRoute(
               path: entree.chemin,
               builder: (context, state) =>

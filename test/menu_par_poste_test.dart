@@ -119,10 +119,35 @@ void _regroupementSuperAdmin() {
 /// Un service créé par l'administrateur ne tient aucun domaine de l'ERP : il
 /// reçoit du travail, et c'est tout.
 void _profilPersonnalise() {
+  test("chacun a sa liste de tâches, sauf l'élève qui a son espace", () {
+    for (final role in RoleLogistique.values) {
+      expect(_chemins(role), contains('/logistique/taches'));
+    }
+    final medecin = elementsPour(
+      const Profil(
+        id: 'p1',
+        nom: 'KOUAME',
+        prenom: 'Yao',
+        roleScolarite: RoleScolarite.medecin,
+      ),
+    ).map((e) => e.chemin);
+    expect(medecin, contains('/logistique/taches'));
+
+    final eleve = elementsPour(
+      const Profil(
+        id: 'p1',
+        nom: 'KOUAME',
+        prenom: 'Yao',
+        roleScolarite: RoleScolarite.eleveStagiaire,
+      ),
+    ).map((e) => e.chemin);
+    expect(eleve, isNot(contains('/logistique/taches')));
+  });
+
   test('un profil personnalisé ne voit que ses tâches', () {
     final chemins = _chemins(RoleLogistique.profilPersonnalise);
 
-    expect(chemins, contains('/logistique/mes-taches'));
+    expect(chemins, contains('/logistique/taches'));
     expect(chemins, contains('/'));
 
     // Ce qui ne le regarde pas : les domaines de l'ERP.

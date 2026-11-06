@@ -75,7 +75,7 @@ class DashboardGarage extends ConsumerWidget {
     ]..sort((a, b) => b.$3.compareTo(a.$3));
 
     void versParc() => context.go('/logistique/parc');
-    void versActivites() => context.go('/logistique/activites');
+    void versActivites() => context.go('/logistique/taches');
 
     final alertes = <Alerte>[
       for (final r in ouvertes)

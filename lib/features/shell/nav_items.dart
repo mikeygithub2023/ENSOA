@@ -218,26 +218,14 @@ const elementsNav = <ElementNav>[
     section: SectionNav.soutienTechnique,
     permissions: {Permission.gererPostePolice},
   ),
+  // Les tâches de chacun, et les activités pour qui les organise. Ouvert à tout
+  // compte : chacun y tient sa liste. L'élève a son propre espace.
   ElementNav(
-    chemin: '/logistique/activites',
-    libelle: 'Activités',
-    icone: Icons.event_note_rounded,
-    section: SectionNav.soutienTechnique,
-    permissions: {Permission.gererActivites},
-  ),
-  ElementNav(
-    chemin: '/logistique/mes-taches',
-    libelle: 'Mes tâches',
+    chemin: '/logistique/taches',
+    libelle: 'Tâches',
     icone: Icons.checklist_rounded,
-    section: SectionNav.soutienTechnique,
-    permissions: {Permission.voirMesTaches},
-  ),
-  ElementNav(
-    chemin: '/logistique/taches-equipe',
-    libelle: "Tâches de l'équipe",
-    icone: Icons.groups_2_rounded,
-    section: SectionNav.soutienTechnique,
-    permissions: {Permission.voirTachesEquipe},
+    section: SectionNav.commun,
+    masqueeSi: {Permission.voirSonEspaceEleve},
   ),
 
   ElementNav(
