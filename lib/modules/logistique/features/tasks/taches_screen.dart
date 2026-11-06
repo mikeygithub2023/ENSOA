@@ -416,8 +416,10 @@ class _TachesScreenState extends ConsumerState<TachesScreen> {
       }),
     );
 
+    final erreur = ref.watch(erreurTachesQuotidiennesProvider);
     final liste = charge
         ? _Liste(
+            erreur: erreur,
             sections: sections,
             maintenant: maintenant,
             enCours: _enCours,
@@ -925,6 +927,7 @@ class _Jour extends StatelessWidget {
 
 class _Liste extends StatelessWidget {
   const _Liste({
+    required this.erreur,
     required this.sections,
     required this.maintenant,
     required this.enCours,
@@ -934,6 +937,9 @@ class _Liste extends StatelessWidget {
     required this.jour,
   });
 
+  /// Les tâches quotidiennes n'ont pas pu être lues : on le dit, plutôt que de
+  /// laisser croire que la liste est vide.
+  final String? erreur;
   final List<(String, List<LigneTache>)> sections;
   final DateTime maintenant;
   final Set<String> enCours;
@@ -947,7 +953,36 @@ class _Liste extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (sections.isEmpty)
+        if (erreur != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.danger.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppRadii.control),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  color: AppColors.danger,
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Tâches quotidiennes indisponibles : $erreur',
+                    style: const TextStyle(
+                      color: AppColors.danger,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (sections.isEmpty && erreur == null)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: EmptyState(

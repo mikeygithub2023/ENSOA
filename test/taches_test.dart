@@ -309,6 +309,25 @@ void main() {
     expect(lignes, isEmpty);
   });
 
+  testWidgets("une erreur de lecture se dit, l'écran ne reste pas en attente", (
+    tester,
+  ) async {
+    await _ouvrir(tester, const Size(1680, 1000));
+    final conteneur = ProviderScope.containerOf(
+      tester.element(find.byType(TachesScreen)),
+    );
+    conteneur
+        .read(erreurTachesQuotidiennesProvider.notifier)
+        .retenir('table introuvable');
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Tâches quotidiennes indisponibles : table introuvable'),
+      findsOneWidget,
+    );
+    expect(find.text('Ajouter une tâche'), findsOneWidget);
+  });
+
   for (final (nom, taille) in [
     ('le poste de bureau', const Size(1680, 1000)),
     ('la tablette', const Size(1000, 800)),

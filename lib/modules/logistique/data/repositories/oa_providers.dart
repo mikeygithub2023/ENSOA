@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sig_ensoa/modules/logistique/compat.dart';
 import 'package:sig_ensoa/core/supabase_client.dart';
 import 'package:sig_ensoa/core/chargement.dart';
+import 'package:sig_ensoa/core/erreurs.dart';
 import 'package:sig_ensoa/features/auth/providers/auth_providers.dart';
 import '../models/oa.dart';
 
@@ -318,10 +319,19 @@ class TachesQuotidiennesNotifier extends Notifier<List<TacheQuotidienne>> {
   }
 
   Future<void> refresh() async {
-    final rows = await logistique.from('tache_quotidienne').select();
-    state = (rows as List)
-        .map((r) => _quotidienneFromRow(r as Map<String, dynamic>))
-        .toList();
+    // Un échec ne doit pas laisser l'écran attendre indéfiniment, ni priver
+    // les tâches d'activité, qui se chargent à part : il est retenu et affiché.
+    try {
+      final rows = await logistique.from('tache_quotidienne').select();
+      state = (rows as List)
+          .map((r) => _quotidienneFromRow(r as Map<String, dynamic>))
+          .toList();
+      ref.read(erreurTachesQuotidiennesProvider.notifier).retenir(null);
+    } catch (e) {
+      ref
+          .read(erreurTachesQuotidiennesProvider.notifier)
+          .retenir(messageErreur(e));
+    }
     ref.read(chargementProvider.notifier).marquerCharge('taches_quotidiennes');
   }
 
@@ -376,6 +386,19 @@ class TachesQuotidiennesNotifier extends Notifier<List<TacheQuotidienne>> {
     await refresh();
   }
 }
+
+class ErreurTachesQuotidiennes extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void retenir(String? message) => state = message;
+}
+
+/// Pourquoi les tâches quotidiennes n'ont pas pu être lues, s'il y a lieu.
+final erreurTachesQuotidiennesProvider =
+    NotifierProvider<ErreurTachesQuotidiennes, String?>(
+      ErreurTachesQuotidiennes.new,
+    );
 
 final tachesQuotidiennesProvider =
     NotifierProvider<TachesQuotidiennesNotifier, List<TacheQuotidienne>>(

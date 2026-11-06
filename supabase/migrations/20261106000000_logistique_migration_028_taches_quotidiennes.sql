@@ -152,3 +152,6 @@ create policy "tache quotidienne delete" on logistique.tache_quotidienne
     cree_par = auth.uid()
     or (socle.est_administrateur() and assigne_a is distinct from cree_par)
   );
+
+-- L'API ne voit une nouvelle table qu'une fois son cache rechargé.
+notify pgrst, 'reload schema';
