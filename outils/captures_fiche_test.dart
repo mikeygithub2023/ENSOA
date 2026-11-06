@@ -428,6 +428,72 @@ class _Mouvements extends MouvementsArticleNotifier {
 }
 
 /// Les doublures du soutien technique, communes aux trois services.
+/// Les doublures du tableau de bord : les mêmes chiffres servent à la
+/// capture de l'écran seul et à celle de la fenêtre entière.
+List<Override> _doublureAccueil(DateTime hier) => [
+        profilCourantProvider.overrideWith((ref) async => _profil),
+        apercuScolariteProvider.overrideWith(
+          (ref) async =>
+              const ApercuScolarite(apprenants: 203, promotions: 4, classes: 2, cours: 2),
+        ),
+        apercuLogistiqueProvider.overrideWith(
+          (ref) async => const ApercuLogistique(
+            vehicules: 22,
+            vehiculesDisponibles: 12,
+            litresEnSoute: 5620,
+            armes: 254,
+            armesEnDotation: 0,
+          ),
+        ),
+        dashboardStatsProvider.overrideWith(
+          (ref) async => DashboardStats(
+            total: 203,
+            parDivision: [
+              DivisionCount(
+                division: Division(
+                  id: 'd1',
+                  code: 'DFI',
+                  nom: 'Division de Formation Initiale',
+                ),
+                count: 203,
+              ),
+            ],
+          ),
+        ),
+        chargementProvider.overrideWith(_ChargeAccueil.new),
+        vehiculesProvider.overrideWith(_Vehicules.new),
+        armesProvider.overrideWith(_Armes.new),
+        soutesAvecStockProvider.overrideWith(
+          (ref) => [
+            _soute('BOUAKE', 4360),
+            _soute('ABIDJAN', 1000),
+            _soute('KATIOLA', 185),
+            _soute('DALOA', 75),
+          ],
+        ),
+        soutesEnAlerteProvider.overrideWith((ref) => []),
+        dotationsEnRetardProvider.overrideWith((ref) => []),
+        armesInspectionEnRetardProvider.overrideWith((ref) => []),
+        journalCarburantProvider.overrideWith(
+          (ref) => [
+            JournalCarburantEntry(
+              date: hier,
+              description: 'Dépotage',
+              quantite: 5520,
+              entree: true,
+              auteurId: 'a',
+            ),
+            JournalCarburantEntry(
+              date: DateTime.now(),
+              description: 'Distribution',
+              quantite: 500,
+              entree: false,
+              auteurId: 'a',
+            ),
+          ],
+        ),
+];
+
 List<Override> _doublureSoutien() => [
   profilCourantProvider.overrideWith((ref) async => _profil),
   chargementProvider.overrideWith(_ChargeSoutien.new),
@@ -600,71 +666,37 @@ void main() {
       tester,
       taille: const Size(1500, 1620),
       ecran: const AccueilScreen(),
-      doublures: [
-        profilCourantProvider.overrideWith((ref) async => _profil),
-        apercuScolariteProvider.overrideWith(
-          (ref) async =>
-              const ApercuScolarite(apprenants: 203, promotions: 4, classes: 2, cours: 2),
-        ),
-        apercuLogistiqueProvider.overrideWith(
-          (ref) async => const ApercuLogistique(
-            vehicules: 22,
-            vehiculesDisponibles: 12,
-            litresEnSoute: 5620,
-            armes: 254,
-            armesEnDotation: 0,
-          ),
-        ),
-        dashboardStatsProvider.overrideWith(
-          (ref) async => DashboardStats(
-            total: 203,
-            parDivision: [
-              DivisionCount(
-                division: Division(
-                  id: 'd1',
-                  code: 'DFI',
-                  nom: 'Division de Formation Initiale',
-                ),
-                count: 203,
-              ),
-            ],
-          ),
-        ),
-        chargementProvider.overrideWith(_ChargeAccueil.new),
-        vehiculesProvider.overrideWith(_Vehicules.new),
-        armesProvider.overrideWith(_Armes.new),
-        soutesAvecStockProvider.overrideWith(
-          (ref) => [
-            _soute('BOUAKE', 4360),
-            _soute('ABIDJAN', 1000),
-            _soute('KATIOLA', 185),
-            _soute('DALOA', 75),
-          ],
-        ),
-        soutesEnAlerteProvider.overrideWith((ref) => []),
-        dotationsEnRetardProvider.overrideWith((ref) => []),
-        armesInspectionEnRetardProvider.overrideWith((ref) => []),
-        journalCarburantProvider.overrideWith(
-          (ref) => [
-            JournalCarburantEntry(
-              date: hier,
-              description: 'Dépotage',
-              quantite: 5520,
-              entree: true,
-              auteurId: 'a',
-            ),
-            JournalCarburantEntry(
-              date: DateTime.now(),
-              description: 'Distribution',
-              quantite: 500,
-              entree: false,
-              auteurId: 'a',
-            ),
-          ],
-        ),
-      ],
+      doublures: _doublureAccueil(hier),
     );
     await _enregistrer('tableau-de-bord');
+  });
+
+  // La fenêtre entière — la barre à gauche, le tableau de bord à droite —
+  // telle qu'elle s'ouvre sur le poste du commandant. Le chemin « / » fait
+  // recharger les modules : on double donc aussi ce qu'ils vont lire.
+  testWidgets('fenêtre', (tester) async {
+    final hier = DateTime.now().subtract(const Duration(days: 1));
+    await _dessiner(
+      tester,
+      taille: const Size(1500, 1720),
+      ecran: const AppShell(location: '/', child: AccueilScreen()),
+      doublures: [
+        ..._doublureAccueil(hier),
+        notificationsProvider.overrideWith(_SansNotification.new),
+        reparationsProvider.overrideWith(_Reparations.new),
+        soutesProvider.overrideWith(_Soutes.new),
+        souteStocksProvider.overrideWith(_SouteStocks.new),
+        depotagesProvider.overrideWith(_Depotages.new),
+        distributionsProvider.overrideWith(_Distributions.new),
+        dotationsProvider.overrideWith(_SansDotation.new),
+        munitionsProvider.overrideWith(_Munitions.new),
+        equipementsProvider.overrideWith(_Equipements.new),
+        activitesProvider.overrideWith(_Activites.new),
+        tachesProvider.overrideWith(_Taches.new),
+      ],
+    );
+    tester.takeException();
+    await _enregistrer('fenetre');
   });
 
   testWidgets('tâches', (tester) async {

@@ -81,7 +81,70 @@ namespace SigEnsoa
                 if (e.TryGetWebMessageAsString() == "reessayer") Ouvrir();
             };
 
+            await ViderLeCacheAsync();
             Ouvrir();
+        }
+
+        /// <summary>
+        /// Vide le cache avant d'ouvrir la page, pour que le poste prenne
+        /// toujours la dernière version mise en ligne.
+        ///
+        /// Deux caches retiennent l'application : celui du moteur web
+        /// (DiskCache) et celui du service worker (CacheStorage). Tant qu'ils
+        /// gardent l'ancienne version, un déploiement passe inaperçu — c'est
+        /// ce qui est arrivé le 6 novembre 2026, où il a fallu les effacer à
+        /// la main sur le poste du commandant.
+        ///
+        /// On n'efface que ces deux-là : les cookies et le stockage local
+        /// restent, donc la session reste ouverte et l'on ne se reconnecte
+        /// pas à chaque lancement.
+        ///
+        /// Et l'on n'efface que si le serveur répond. Sans réseau, le cache
+        /// du service worker est tout ce qui permet encore d'ouvrir
+        /// l'application : l'effacer laisserait une fenêtre vide.
+        /// </summary>
+        private async System.Threading.Tasks.Task ViderLeCacheAsync()
+        {
+            if (!await ServeurJoignableAsync()) return;
+            try
+            {
+                await _web.CoreWebView2.Profile.ClearBrowsingDataAsync(
+                    CoreWebView2BrowsingDataKinds.DiskCache
+                    | CoreWebView2BrowsingDataKinds.CacheStorage);
+            }
+            catch (Exception)
+            {
+                // Un cache qu'on n'a pas pu vider n'empêche pas d'ouvrir
+                // l'application : au pire, elle s'ouvre sur la version
+                // précédente, comme avant ce correctif.
+            }
+        }
+
+        /// <summary>
+        /// Le serveur répond-il, en deux secondes ? On ne demande que les
+        /// en-têtes : rien à télécharger pour le savoir.
+        /// </summary>
+        private static async System.Threading.Tasks.Task<bool> ServeurJoignableAsync()
+        {
+            try
+            {
+                System.Net.ServicePointManager.SecurityProtocol =
+                    System.Net.SecurityProtocolType.Tls12;
+                using (var client = new System.Net.Http.HttpClient
+                {
+                    Timeout = TimeSpan.FromSeconds(2),
+                })
+                using (var demande = new System.Net.Http.HttpRequestMessage(
+                    System.Net.Http.HttpMethod.Head, Adresse))
+                using (var reponse = await client.SendAsync(demande))
+                {
+                    return reponse.IsSuccessStatusCode;
+                }
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         private void Ouvrir() => _web.CoreWebView2.Navigate(Adresse);

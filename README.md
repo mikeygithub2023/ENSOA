@@ -134,6 +134,28 @@ la marche, loin de ce à quoi elle sert. Le rail parcourt `elementsNav` dans
 l'ordre de déclaration : c'est en déplaçant la déclaration qu'on déplace le
 bouton.
 
+### L'application de bureau vide son cache avant d'ouvrir
+
+Deux caches retiennent la PWA sur le poste : celui du moteur web
+(`DiskCache`) et celui du service worker (`CacheStorage`). Tant qu'ils
+gardent l'ancienne version, un déploiement passe inaperçu — c'est ce qui est
+arrivé ce matin, où il a fallu les effacer à la main sur le poste du
+commandant.
+
+`windows-pwa/FenetrePrincipale.cs` les efface maintenant au lancement, avant
+de charger la page. Deux précautions :
+
+- **la session reste ouverte.** On n'efface que ces deux caches ; les cookies
+  et le stockage local — où vit la session Supabase — ne sont pas touchés.
+- **hors réseau, on n'efface rien.** Le cache du service worker est alors
+  tout ce qui permet encore d'ouvrir l'application. Un appel `HEAD` de deux
+  secondes dit si le serveur répond ; s'il ne répond pas, on ouvre sans
+  effacer.
+
+Le prix : environ 6 Mo retéléchargés à chaque lancement sur un poste
+connecté. Sur le réseau de l'école c'est une seconde ou deux, et cela vaut
+mieux qu'une version périmée qu'on ne voit pas.
+
 ### État à la fin de la journée
 
 - `flutter analyze` : aucun avertissement

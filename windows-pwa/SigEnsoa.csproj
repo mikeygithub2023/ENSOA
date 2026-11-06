@@ -18,7 +18,7 @@
     <AssemblyName>sig_ensoa</AssemblyName>
     <RootNamespace>SigEnsoa</RootNamespace>
     <ApplicationIcon>..\windows\runner\resources\app_icon.ico</ApplicationIcon>
-    <Version>2.0.0</Version>
+    <Version>2.1.0</Version>
     <Product>SIG ENSOA</Product>
     <Company>Ecole Nationale des Sous-Officiers d'Active</Company>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
@@ -26,6 +26,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+    <!-- Pour demander au serveur s'il repond avant de vider le cache. -->
+    <Reference Include="System.Net.Http" />
   </ItemGroup>
 
   <ItemGroup>
