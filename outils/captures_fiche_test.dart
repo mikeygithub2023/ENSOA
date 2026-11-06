@@ -746,8 +746,10 @@ void main() {
     await _dessiner(
       tester,
       taille: const Size(1300, 700),
+      // Un chemin qui ne recharge rien, et qui montre une entrée active : la
+      // pilule foncée fait partie de ce qu'on vient regarder.
       ecran: const AppShell(
-        location: '/scolarite/apprenants',
+        location: '/administration',
         child: SizedBox.shrink(),
       ),
       doublures: [

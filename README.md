@@ -122,6 +122,12 @@ pixels de large, chaque entrée écrit donc son nom à côté de son icône ; en
 dessous — téléphone, petite tablette — la barre se referme sur ses icônes et
 l'infobulle reprend son office : la place y vaut mieux au contenu.
 
+L'entrée ouverte se peint en pilule foncée, nom en blanc. Elle avait d'abord
+disparu : la pilule se dessinait avec `Ink`, dont la décoration va sur la
+couche d'encre du `Material` — c'est-à-dire **sous** le fond opaque de la
+barre. Texte blanc sur blanc. Elle se peint maintenant sur place, dans un
+`Container`, le `Material` transparent ne gardant que l'onde au toucher.
+
 L'entrée `/logistique/taches` s'appelle désormais **Activités** — le nom de ce
 qu'on y organise — et remonte juste avant le **Poste de Police**. Elle fermait
 la marche, loin de ce à quoi elle sert. Le rail parcourt `elementsNav` dans
@@ -131,7 +137,7 @@ bouton.
 ### État à la fin de la journée
 
 - `flutter analyze` : aucun avertissement
-- **142 tests** passent, dont quatre fichiers nés aujourd'hui :
+- **143 tests** passent, dont quatre fichiers nés aujourd'hui :
   `test/tableau_de_bord_test.dart`, `test/taches_test.dart`,
   `test/soutien_technique_onglets_test.dart` et
   `test/menu_libelles_test.dart`

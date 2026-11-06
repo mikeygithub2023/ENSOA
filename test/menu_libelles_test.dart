@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:sig_ensoa/core/roles.dart';
+import 'package:sig_ensoa/core/theme.dart';
 import 'package:sig_ensoa/features/auth/providers/auth_providers.dart';
 import 'package:sig_ensoa/features/shell/app_shell.dart';
 import 'package:sig_ensoa/models/profil.dart';
@@ -23,7 +24,11 @@ class _SansNotification extends NotificationsNotifier {
   List<AppNotification> build() => const [];
 }
 
-Future<void> _ouvrir(WidgetTester tester, Size taille) async {
+Future<void> _ouvrir(
+  WidgetTester tester,
+  Size taille, {
+  String location = '/scolarite/apprenants',
+}) async {
   tester.view.physicalSize = taille;
   tester.view.devicePixelRatio = 1.0;
   addTearDown(tester.view.reset);
@@ -41,12 +46,12 @@ Future<void> _ouvrir(WidgetTester tester, Size taille) async {
           ),
         ),
       ],
-      child: const MaterialApp(
+      child: MaterialApp(
         // Un chemin hors des modules : le cadre ne déclenche alors aucun
         // rechargement, et la barre se dessine seule.
         home: AppShell(
-          location: '/scolarite/apprenants',
-          child: SizedBox.shrink(),
+          location: location,
+          child: const SizedBox.shrink(),
         ),
       ),
     ),
@@ -80,6 +85,36 @@ void main() {
     await _ouvrir(tester, const Size(1600, 1200));
     expect(find.text('Activités'), findsOneWidget);
     expect(find.text('Tâches'), findsNothing);
+  });
+
+  // Une pilule peinte avec Ink se dessinait sous le fond opaque de la barre :
+  // l'entrée active disparaissait, texte blanc sur blanc. On vérifie donc les
+  // deux moitiés du contraste — la pilule foncée, et le texte clair dessus.
+  testWidgets("l'entrée active se voit : pilule foncée, texte clair", (
+    tester,
+  ) async {
+    await _ouvrir(tester, const Size(1600, 1200), location: '/administration');
+
+    final texte = tester.widget<Text>(find.text('Administration'));
+    expect(
+      texte.style?.color,
+      Colors.white,
+      reason: "le nom de l'entrée active s'écrit en clair",
+    );
+
+    final pilule = tester.widgetList<Container>(
+      find.ancestor(
+        of: find.text('Administration'),
+        matching: find.byType(Container),
+      ),
+    );
+    expect(
+      pilule.any(
+        (c) => (c.decoration as BoxDecoration?)?.color == AppColors.navy,
+      ),
+      isTrue,
+      reason: 'la pilule foncée doit se peindre derrière le nom',
+    );
   });
 
   testWidgets('sur un écran étroit, la barre se referme sur ses icônes', (

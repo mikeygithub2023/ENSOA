@@ -555,32 +555,42 @@ class _Icone extends StatelessWidget {
       );
     }
 
-    return InkWell(
-      borderRadius: BorderRadius.circular(AppRadii.pill),
-      onTap: onTap,
-      child: Ink(
-        decoration: BoxDecoration(
-          color: actif ? AppColors.navy : Colors.transparent,
+    // La pilule se peint ici même, dans un Container, et non avec Ink : la
+    // barre est posée sur un fond opaque, et une décoration d'encre se
+    // dessine sous ce fond — l'entrée active devenait alors invisible, texte
+    // blanc sur blanc. Le Material transparent garde l'onde au toucher.
+    return Container(
+      decoration: BoxDecoration(
+        color: actif ? AppColors.navy : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadii.pill),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
           borderRadius: BorderRadius.circular(AppRadii.pill),
-        ),
-        padding: const EdgeInsets.only(right: 14),
-        child: Row(
-          children: [
-            pastille,
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                libelle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: actif ? Colors.white : AppColors.ink,
-                  fontSize: 13.5,
-                  fontWeight: actif ? FontWeight.w800 : FontWeight.w600,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.only(right: 14),
+            child: Row(
+              children: [
+                pastille,
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    libelle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: actif ? Colors.white : AppColors.ink,
+                      fontSize: 13.5,
+                      fontWeight: actif ? FontWeight.w800 : FontWeight.w600,
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
