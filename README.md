@@ -156,13 +156,31 @@ Le prix : environ 6 Mo retéléchargés à chaque lancement sur un poste
 connecté. Sur le réseau de l'école c'est une seconde ou deux, et cela vaut
 mieux qu'une version périmée qu'on ne voit pas.
 
+### Le sport dit la performance, pas seulement la note
+
+La fiche de l'apprenant n'affichait que « 14 / 20 » par séance. Or cette note
+est une lecture du barème : elle donne le rang, pas ce qui a été fait. Chaque
+séance porte maintenant la performance sous son nom, dans l'unité de son
+activité — `12′30″` pour un chrono, `12 rép.` pour une traction. Le calcul
+de la note ne change pas.
+
+Séance et performance ne se rejoignent par aucune clé étrangère : toutes deux
+pendent du sous-module. `SportRepository.fetchPerformancesApprenant` les
+rapproche en deux requêtes, et `performancesParSeance` met en forme —
+fonction pure, donc vérifiable sans base (`test/sport_performance_test.dart`).
+Une séance dont l'activité a disparu du catalogue est laissée de côté : sans
+unité, un nombre nu induirait en erreur.
+
+L'élève voit la même chose sur son propre profil : `MonProfilScreen` réutilise
+`ApprenantDetailView`.
+
 ### État à la fin de la journée
 
 - `flutter analyze` : aucun avertissement
-- **143 tests** passent, dont quatre fichiers nés aujourd'hui :
+- **147 tests** passent, dont cinq fichiers nés aujourd'hui :
   `test/tableau_de_bord_test.dart`, `test/taches_test.dart`,
-  `test/soutien_technique_onglets_test.dart` et
-  `test/menu_libelles_test.dart`
+  `test/soutien_technique_onglets_test.dart`, `test/menu_libelles_test.dart`
+  et `test/sport_performance_test.dart`
 - Les captures de la fiche se prennent avec `outils/captures_fiche_test.dart`,
   qui dessine les écrans réels sous le harnais de test
 - **Poussé sur `migration-pwa`** : GitHub Actions reconstruit la PWA et la
