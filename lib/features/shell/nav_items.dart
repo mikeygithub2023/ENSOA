@@ -78,12 +78,24 @@ const elementsNav = <ElementNav>[
   ),
 
   // --- Scolarité ---
+
+  // Comme « Soutien technique » plus bas : pour qui administre la plateforme,
+  // les quatre rubriques de la scolarité sous une seule entrée à onglets, à la
+  // place des quatre entrées séparées, masquées ci-dessous pour ce même profil.
+  ElementNav(
+    chemin: '/scolarite/rubrique',
+    libelle: 'Scolarité',
+    icone: Icons.school_rounded,
+    section: SectionNav.scolarite,
+    permissions: {Permission.administrerPlateforme},
+  ),
   ElementNav(
     chemin: '/scolarite/apprenants',
     libelle: 'Élèves & Stagiaires',
     icone: Icons.groups_rounded,
     section: SectionNav.scolarite,
     permissions: {Permission.consulterApprenants},
+    masqueeSi: {Permission.administrerPlateforme},
   ),
   ElementNav(
     chemin: '/scolarite/cours',
@@ -91,6 +103,7 @@ const elementsNav = <ElementNav>[
     icone: Icons.school_rounded,
     section: SectionNav.scolarite,
     permissions: {Permission.gererCours, Permission.suivreCours},
+    masqueeSi: {Permission.administrerPlateforme},
   ),
   ElementNav(
     chemin: '/scolarite/matieres',
@@ -98,6 +111,7 @@ const elementsNav = <ElementNav>[
     icone: Icons.menu_book_rounded,
     section: SectionNav.scolarite,
     permissions: {Permission.gererMatieres},
+    masqueeSi: {Permission.administrerPlateforme},
   ),
   ElementNav(
     chemin: '/scolarite/bulletins',
@@ -105,6 +119,7 @@ const elementsNav = <ElementNav>[
     icone: Icons.assignment_turned_in_rounded,
     section: SectionNav.scolarite,
     permissions: {Permission.editerBulletins},
+    masqueeSi: {Permission.administrerPlateforme},
   ),
   ElementNav(
     chemin: '/scolarite/consultations',

@@ -68,6 +68,22 @@ void _regroupementSuperAdmin() {
       expect(chemins, isNot(contains('/logistique/soutien-technique')));
     });
 
+    // Le commandant de division n'administre pas la plateforme : il garde ses
+    // entrées, comme le chef de garage garde la sienne.
+    test('ne change rien au commandant de division', () {
+      final chemins = elementsPour(
+        const Profil(
+          id: 'p1',
+          nom: 'KOUAME',
+          prenom: 'Yao',
+          roleScolarite: RoleScolarite.chefDivision,
+        ),
+      ).map((e) => e.chemin).toList();
+
+      expect(chemins, contains('/scolarite/apprenants'));
+      expect(chemins, isNot(contains('/scolarite/rubrique')));
+    });
+
     test("ne concerne pas l'armurier ni le soutien pétrolier", () {
       expect(
         _chemins(RoleLogistique.armurerie),

@@ -12,6 +12,7 @@
 // rester ouverte, et masquer une rubrique sans la regrouper la lui fermerait
 // en douce. Le second test tient cette garde.
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sig_ensoa/modules/scolarite/features/scolarite_screen.dart';
 
 import 'package:sig_ensoa/core/postes.dart';
 import 'package:sig_ensoa/core/roles.dart';
@@ -64,7 +65,7 @@ void main() {
     expect(chemins, isNot(contains('/logistique/carburant')));
     expect(chemins, isNot(contains('/logistique/armement')));
 
-    // La garde : on ne lui masque que ces trois-là. Masquer une autre rubrique
+    // La garde : on ne lui masque que celles-là. Masquer une autre rubrique
     // sans la regrouper la lui fermerait sans que rien ne le signale.
     final masquees = elementsNav
         .where((e) => e.masqueeSi.any(_administrateur.peut))
@@ -74,7 +75,27 @@ void main() {
       '/logistique/parc',
       '/logistique/carburant',
       '/logistique/armement',
+      '/scolarite/apprenants',
+      '/scolarite/cours',
+      '/scolarite/matieres',
+      '/scolarite/bulletins',
     });
+  });
+
+  test('la scolarité lui est regroupée, sans rien perdre', () {
+    final chemins = elementsPour(_administrateur).map((e) => e.chemin).toSet();
+
+    expect(chemins, contains('/scolarite/rubrique'));
+    expect(chemins, isNot(contains('/scolarite/apprenants')));
+    // Ce qui ne fait pas partie du regroupement reste à sa place.
+    expect(chemins, contains('/scolarite/consultations'));
+
+    expect(ongletsScolarite(_administrateur).map((o) => o.$1), [
+      'Élèves & Stagiaires',
+      'Cours',
+      'Matières',
+      'Bulletins',
+    ]);
   });
 
   test('il détient toute permission, hors vues personnelles', () {

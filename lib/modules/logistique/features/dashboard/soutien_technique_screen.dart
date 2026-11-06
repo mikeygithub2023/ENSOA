@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:sig_ensoa/core/theme.dart';
+import 'package:sig_ensoa/shared/widgets/barre_onglets_pilule.dart';
 import '../fleet/garage_workspace_screen.dart';
 import 'dashboard_armurerie.dart';
 import 'dashboard_carburant.dart';
@@ -57,7 +58,10 @@ class _SoutienTechniqueScreenState extends State<SoutienTechniqueScreen>
           ),
         ),
         const SizedBox(height: 16),
-        _BarreOnglets(controller: _onglets),
+        BarreOngletsPilule(
+          controller: _onglets,
+          libelles: const ['Garage', 'Soutien pétrolier', 'Armurerie'],
+        ),
         const SizedBox(height: 12),
         Expanded(
           child: TabBarView(
@@ -93,44 +97,6 @@ class _OngletDashboard extends StatelessWidget {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(4, 4, 4, 100),
       child: child,
-    );
-  }
-}
-
-/// Les trois domaines en bandeau segmenté, dans le style des grandes
-/// rubriques de l'armement : indicateur plein sur fond clair.
-class _BarreOnglets extends StatelessWidget {
-  const _BarreOnglets({required this.controller});
-
-  final TabController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppColors.blueMist,
-        borderRadius: BorderRadius.circular(AppRadii.pill),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: TabBar(
-        controller: controller,
-        indicator: BoxDecoration(
-          color: AppColors.navy,
-          borderRadius: BorderRadius.circular(AppRadii.pill),
-        ),
-        indicatorSize: TabBarIndicatorSize.tab,
-        dividerColor: Colors.transparent,
-        labelColor: Colors.white,
-        unselectedLabelColor: AppColors.inkMuted,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w800),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
-        tabs: const [
-          Tab(text: 'Garage'),
-          Tab(text: 'Soutien pétrolier'),
-          Tab(text: 'Armurerie'),
-        ],
-      ),
     );
   }
 }
