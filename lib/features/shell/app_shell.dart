@@ -364,16 +364,25 @@ class _BarreState extends ConsumerState<_Barre> {
         .where((n) => !n.lue)
         .length;
 
+    // Le nom de chaque entrée s'écrit à côté de son icône dès que la fenêtre
+    // en a la place. Une icône seule se devine ; elle ne se lit pas, et
+    // l'infobulle demande de s'arrêter dessus. Sous 900 pixels de large —
+    // téléphone, petite tablette —, la barre se referme sur ses icônes :
+    // la place y vaut mieux au contenu.
+    final etendu = MediaQuery.of(context).size.width > 900;
+    final largeur = etendu ? 236.0 : 72.0;
+    final rayon = etendu ? AppRadii.shell : AppRadii.pill;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Flexible(
           child: Container(
-            width: 72,
-            padding: const EdgeInsets.symmetric(vertical: 20),
+            width: largeur,
+            padding: EdgeInsets.symmetric(vertical: 20, horizontal: etendu ? 14 : 0),
             decoration: BoxDecoration(
               color: AppColors.pillBg,
-              borderRadius: BorderRadius.circular(AppRadii.pill),
+              borderRadius: BorderRadius.circular(rayon),
             ),
             // Défilante : les deux modules réunis, un administrateur peut
             // avoir plus d'icônes que la hauteur d'une tablette.
@@ -386,6 +395,7 @@ class _BarreState extends ConsumerState<_Barre> {
                       icone: e.icone,
                       iconeArme: e.iconeArme,
                       libelle: e.libelle,
+                      etendu: etendu,
                       actif: e.chemin == '/'
                           ? widget.location == '/'
                           : widget.location.startsWith(e.chemin),
@@ -394,13 +404,14 @@ class _BarreState extends ConsumerState<_Barre> {
                       badge: e.chemin == '/notifications' ? nonLues : 0,
                       onTap: () => context.go(e.chemin),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 6),
                   ],
                   if (widget.voitAudit) ...[
                     const SizedBox(height: 8),
                     _Icone(
                       icone: Icons.fact_check_rounded,
                       libelle: "Journal d'audit",
+                      etendu: etendu,
                       actif: widget.location.startsWith('/audit'),
                       onTap: () => context.go('/audit'),
                     ),
@@ -412,30 +423,24 @@ class _BarreState extends ConsumerState<_Barre> {
         ),
         const SizedBox(height: 14),
         Container(
-          width: 72,
-          height: 72,
+          width: largeur,
+          padding: EdgeInsets.symmetric(
+            vertical: etendu ? 14 : 0,
+            horizontal: etendu ? 14 : 0,
+          ),
+          height: etendu ? null : 72,
           decoration: BoxDecoration(
             color: AppColors.pillBg,
-            borderRadius: BorderRadius.circular(AppRadii.pill),
+            borderRadius: BorderRadius.circular(rayon),
           ),
           alignment: Alignment.center,
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: _deconnexionEnCours ? null : _confirmerDeconnexion,
-            child: _deconnexionEnCours
-                ? const SizedBox(
-                    height: 22,
-                    width: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.4,
-                      color: AppColors.navy,
-                    ),
-                  )
-                : const Icon(
-                    Icons.logout_rounded,
-                    color: AppColors.navy,
-                    size: 24,
-                  ),
+          child: _Icone(
+            icone: Icons.logout_rounded,
+            libelle: 'Déconnexion',
+            etendu: etendu,
+            actif: false,
+            chargement: _deconnexionEnCours,
+            onTap: _deconnexionEnCours ? () {} : _confirmerDeconnexion,
           ),
         ),
       ],
@@ -450,6 +455,8 @@ class _Icone extends StatelessWidget {
     required this.libelle,
     required this.actif,
     required this.onTap,
+    this.etendu = false,
+    this.chargement = false,
     this.badge = 0,
   });
 
@@ -459,74 +466,120 @@ class _Icone extends StatelessWidget {
   final bool actif;
   final VoidCallback onTap;
 
+  /// Le nom s'écrit à côté de l'icône. Sinon, l'icône seule et son infobulle.
+  final bool etendu;
+
+  /// Une roue à la place de l'icône, le temps d'une action.
+  final bool chargement;
+
   /// Combien attendent une réponse. Zéro : rien ne s'affiche.
   final int badge;
 
   @override
   Widget build(BuildContext context) {
-    // L'infobulle est la seule addition : la barre ne porte que des icônes, et
-    // elle en porte désormais celles de deux modules.
-    return Tooltip(
-      message: badge > 0 ? '$libelle ($badge non lue(s))' : libelle,
-      child: InkWell(
-        customBorder: const CircleBorder(),
-        onTap: onTap,
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              alignment: Alignment.center,
+    final teinte = actif ? Colors.white : AppColors.inkMuted;
+
+    final pastille = Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            // Étendue, la ligne entière se colore : le cercle derrière
+            // l'icône ferait double emploi avec elle.
+            color: actif && !etendu ? AppColors.navy : Colors.transparent,
+            shape: BoxShape.circle,
+          ),
+          child: chargement
+              ? const SizedBox(
+                  height: 22,
+                  width: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.4,
+                    color: AppColors.navy,
+                  ),
+                )
+              : iconeArme
+              ? ColorFiltered(
+                  colorFilter: ColorFilter.mode(teinte, BlendMode.srcIn),
+                  child: const IconeArme(size: 30),
+                )
+              : Icon(icone, color: teinte, size: 22),
+        ),
+        // La pastille déborde du cercle, en haut à droite, pour rester
+        // lisible sur une icône de 44 pixels. Au-delà de neuf, le chiffre
+        // exact importe moins que le fait qu'il y en ait beaucoup.
+        if (badge > 0)
+          Positioned(
+            top: -2,
+            right: -2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              constraints: const BoxConstraints(minWidth: 18),
               decoration: BoxDecoration(
-                color: actif ? AppColors.navy : Colors.transparent,
-                shape: BoxShape.circle,
-              ),
-              child: iconeArme
-                  ? ColorFiltered(
-                      colorFilter: ColorFilter.mode(
-                        actif ? Colors.white : AppColors.inkMuted,
-                        BlendMode.srcIn,
-                      ),
-                      child: const IconeArme(size: 30),
-                    )
-                  : Icon(
-                      icone,
-                      color: actif ? Colors.white : AppColors.inkMuted,
-                      size: 22,
-                    ),
-            ),
-            // La pastille déborde du cercle, en haut à droite, pour rester
-            // lisible sur une icône de 44 pixels. Au-delà de neuf, le chiffre
-            // exact importe moins que le fait qu'il y en ait beaucoup.
-            if (badge > 0)
-              Positioned(
-                top: -2,
-                right: -2,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 5,
-                    vertical: 2,
-                  ),
-                  constraints: const BoxConstraints(minWidth: 18),
-                  decoration: BoxDecoration(
-                    color: AppColors.danger,
-                    shape: BoxShape.rectangle,
-                    borderRadius: BorderRadius.circular(9),
-                    border: Border.all(color: AppColors.pillBg, width: 2),
-                  ),
-                  child: Text(
-                    badge > 9 ? '9+' : '$badge',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                      height: 1.2,
-                    ),
-                  ),
+                color: AppColors.danger,
+                shape: BoxShape.rectangle,
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                  color: actif && etendu ? AppColors.navy : AppColors.pillBg,
+                  width: 2,
                 ),
               ),
+              child: Text(
+                badge > 9 ? '9+' : '$badge',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  height: 1.2,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+
+    if (!etendu) {
+      // Repliée, la barre ne porte que des icônes : l'infobulle est alors le
+      // seul moyen de savoir ce qu'on touche.
+      return Tooltip(
+        message: badge > 0 ? '$libelle ($badge non lue(s))' : libelle,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: pastille,
+        ),
+      );
+    }
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppRadii.pill),
+      onTap: onTap,
+      child: Ink(
+        decoration: BoxDecoration(
+          color: actif ? AppColors.navy : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadii.pill),
+        ),
+        padding: const EdgeInsets.only(right: 14),
+        child: Row(
+          children: [
+            pastille,
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                libelle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: actif ? Colors.white : AppColors.ink,
+                  fontSize: 13.5,
+                  fontWeight: actif ? FontWeight.w800 : FontWeight.w600,
+                ),
+              ),
+            ),
           ],
         ),
       ),

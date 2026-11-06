@@ -34,7 +34,8 @@ class TachesRubriqueScreen extends ConsumerWidget {
 
     final activites = profil.peut(Permission.gererActivites);
     return RubriqueAOnglets(
-      titre: 'Tâches',
+      // Le titre suit l'entrée de menu, qui dit « Activités ».
+      titre: 'Activités',
       ongletInitial: surActivites && activites ? 1 : 0,
       onglets: [
         ('Tâches', () => const TachesScreen()),

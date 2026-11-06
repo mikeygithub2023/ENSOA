@@ -211,21 +211,24 @@ const elementsNav = <ElementNav>[
     permissions: {Permission.gererArmement},
     masqueeSi: {Permission.administrerPlateforme},
   ),
+  // Les activités de l'école, et les tâches que chacun en tire. Ouvert à tout
+  // compte : chacun y tient sa liste. L'élève a son propre espace.
+  //
+  // L'entrée se tient ici, juste avant le Poste de Police, et non en bas avec
+  // le reste du général : c'est au soutien technique qu'elle sert d'abord.
+  ElementNav(
+    chemin: '/logistique/taches',
+    libelle: 'Activités',
+    icone: Icons.checklist_rounded,
+    section: SectionNav.commun,
+    masqueeSi: {Permission.voirSonEspaceEleve},
+  ),
   ElementNav(
     chemin: '/logistique/poste-police',
     libelle: 'Poste de Police',
     icone: Icons.local_police_rounded,
     section: SectionNav.soutienTechnique,
     permissions: {Permission.gererPostePolice},
-  ),
-  // Les tâches de chacun, et les activités pour qui les organise. Ouvert à tout
-  // compte : chacun y tient sa liste. L'élève a son propre espace.
-  ElementNav(
-    chemin: '/logistique/taches',
-    libelle: 'Tâches',
-    icone: Icons.checklist_rounded,
-    section: SectionNav.commun,
-    masqueeSi: {Permission.voirSonEspaceEleve},
   ),
 
   ElementNav(

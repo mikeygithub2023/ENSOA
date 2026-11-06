@@ -144,6 +144,26 @@ void _profilPersonnalise() {
     expect(eleve, isNot(contains('/logistique/taches')));
   });
 
+  group("l'entrée des activités", () {
+    // Elle s'appelait « Tâches » et fermait la marche du menu. Elle porte le
+    // nom de ce qu'on y organise, et se tient là où l'on s'en sert.
+    ElementNav entree(String chemin) => elementsNav.firstWhere(
+      (e) => e.chemin == chemin,
+    );
+
+    test('porte le nom « Activités »', () {
+      expect(entree('/logistique/taches').libelle, 'Activités');
+    });
+
+    test('se tient juste avant le Poste de Police', () {
+      final chemins = elementsNav.map((e) => e.chemin).toList();
+      expect(
+        chemins.indexOf('/logistique/taches') + 1,
+        chemins.indexOf('/logistique/poste-police'),
+      );
+    });
+  });
+
   test('un profil personnalisé ne voit que ses tâches', () {
     final chemins = _chemins(RoleLogistique.profilPersonnalise);
 

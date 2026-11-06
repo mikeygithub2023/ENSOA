@@ -114,11 +114,29 @@ soulignés plus menus et bleus. L'armement bascule du bandeau-pilule aux
 onglets soulignés quand il est emboîté : le niveau le plus haut est déjà pris
 par les trois services.
 
+### Le menu dit son nom
+
+Une icône seule se devine ; elle ne se lit pas. L'infobulle, elle, oblige à
+s'arrêter dessus et ne paraît jamais au doigt. Dès que la fenêtre dépasse 900
+pixels de large, chaque entrée écrit donc son nom à côté de son icône ; en
+dessous — téléphone, petite tablette — la barre se referme sur ses icônes et
+l'infobulle reprend son office : la place y vaut mieux au contenu.
+
+L'entrée `/logistique/taches` s'appelle désormais **Activités** — le nom de ce
+qu'on y organise — et remonte juste avant le **Poste de Police**. Elle fermait
+la marche, loin de ce à quoi elle sert. Le rail parcourt `elementsNav` dans
+l'ordre de déclaration : c'est en déplaçant la déclaration qu'on déplace le
+bouton.
+
 ### État à la fin de la journée
 
 - `flutter analyze` : aucun avertissement
-- **137 tests** passent, dont trois fichiers nés aujourd'hui :
-  `test/tableau_de_bord_test.dart`, `test/taches_test.dart` et
-  `test/soutien_technique_onglets_test.dart`
+- **142 tests** passent, dont quatre fichiers nés aujourd'hui :
+  `test/tableau_de_bord_test.dart`, `test/taches_test.dart`,
+  `test/soutien_technique_onglets_test.dart` et
+  `test/menu_libelles_test.dart`
 - Les captures de la fiche se prennent avec `outils/captures_fiche_test.dart`,
   qui dessine les écrans réels sous le harnais de test
+- **Poussé sur `migration-pwa`** : GitHub Actions reconstruit la PWA et la
+  publie sur Cloudflare Pages ; les appareils installés prennent la nouvelle
+  version à leur prochain lancement (voir [DEPLOIEMENT.md](DEPLOIEMENT.md))
