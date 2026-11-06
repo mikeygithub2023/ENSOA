@@ -5,6 +5,7 @@ import 'package:sig_ensoa/core/roles.dart';
 import 'package:sig_ensoa/modules/logistique/compat.dart';
 import 'package:sig_ensoa/core/theme.dart';
 import '../../data/repositories/fuel_providers.dart';
+import '../dashboard/dashboard_carburant.dart';
 import 'depotage_form_dialog.dart';
 import 'depotage_interne_form_dialog.dart';
 import 'depotages_tab.dart';
@@ -14,8 +15,20 @@ import 'repartitions_screen.dart';
 import 'soute_form_dialog.dart';
 import 'soutes_tab.dart';
 
+/// L'espace de travail du soutien pétrolier, à onglets.
+///
+/// Son tableau de bord ouvre la série, comme au Garage : on arrive sur l'état
+/// des soutes, puis on descend dans le détail — la soute, les dépotages, la
+/// ventilation, les répartitions, les distributions. Avant, le tableau de bord
+/// se tenait ailleurs, et l'administrateur qui l'atteignait par la rubrique
+/// « Soutien technique » n'avait que lui : la gestion du carburant lui était
+/// fermée, son entrée de menu étant masquée au profit du regroupement.
 class FuelScreen extends ConsumerStatefulWidget {
-  const FuelScreen({super.key});
+  const FuelScreen({super.key, this.sansCadre = false});
+
+  /// Rendu nu, sans titre : la vue groupée du commandant (« Soutien
+  /// technique ») porte déjà le sien et n'a pas à en empiler un second.
+  final bool sansCadre;
 
   @override
   ConsumerState<FuelScreen> createState() => _FuelScreenState();
@@ -28,7 +41,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() {});
@@ -50,20 +63,26 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
   void _rafraichirOnglet(int index) {
     switch (index) {
       case 0:
+        // Le tableau de bord lit les niveaux et les mouvements du jour.
         ref.read(soutesProvider.notifier).refresh();
         ref.read(souteStocksProvider.notifier).refresh();
-      case 1:
         ref.read(depotagesProvider.notifier).refresh();
+        ref.read(distributionsProvider.notifier).refresh();
+      case 1:
+        ref.read(soutesProvider.notifier).refresh();
+        ref.read(souteStocksProvider.notifier).refresh();
       case 2:
+        ref.read(depotagesProvider.notifier).refresh();
+      case 3:
         // La ventilation lit les trois : les transferts, les niveaux
         // qu'ils déplacent, et les répartitions qu'ils servent.
         ref.read(souteStocksProvider.notifier).refresh();
         ref.read(repartitionsProvider.notifier).refresh();
         ref.read(depotagesInternesProvider.notifier).refresh();
-      case 3:
+      case 4:
         ref.read(repartitionsProvider.notifier).refresh();
         ref.read(souteStocksProvider.notifier).refresh();
-      case 4:
+      case 5:
         ref.read(distributionsProvider.notifier).refresh();
     }
   }
@@ -84,15 +103,17 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Gestion du carburant',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: AppColors.ink,
+            if (!widget.sansCadre) ...[
+              const Text(
+                'Gestion du carburant',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.ink,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
+            ],
             TabBar(
               controller: _tabController,
               isScrollable: true,
@@ -100,8 +121,12 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
               labelColor: AppColors.navy,
               unselectedLabelColor: AppColors.inkMuted,
               indicatorColor: AppColors.navy,
-              labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+              indicatorWeight: 3,
+              dividerColor: AppColors.border,
+              labelStyle: const TextStyle(fontWeight: FontWeight.w800),
+              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
               tabs: const [
+                Tab(text: 'Tableau de bord'),
                 Tab(text: 'Soute'),
                 Tab(text: 'Dépotage'),
                 Tab(text: 'Ventilation'),
@@ -114,6 +139,11 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
               child: TabBarView(
                 controller: _tabController,
                 children: const [
+                  // Le tableau de bord se rend nu et défile dans son onglet.
+                  SingleChildScrollView(
+                    padding: EdgeInsets.fromLTRB(4, 4, 4, 100),
+                    child: DashboardCarburant(sansCadre: true),
+                  ),
                   SoutesTabContent(),
                   DepotagesTabContent(),
                   DepotagesInternesTabContent(),
@@ -135,7 +165,8 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
 
   Widget? _fab(bool estChef, bool estSoutier) {
     switch (_tabController.index) {
-      case 0:
+      // Rien à créer depuis le tableau de bord : il se lit, il ne s'écrit pas.
+      case 1:
         if (!estChef) return null;
         return FloatingActionButton.extended(
           onPressed: () => showDialog(
@@ -145,7 +176,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
           icon: const Icon(Icons.add_business_outlined),
           label: const Text('Nouvelle soute'),
         );
-      case 1:
+      case 2:
         if (!estChef) return null;
         return FloatingActionButton.extended(
           onPressed: () => showDialog(
@@ -155,7 +186,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
           icon: const Icon(Icons.add_circle_outline),
           label: const Text('Dépotage'),
         );
-      case 2:
+      case 3:
         // La ventilation revient au soutien pétrolier autant qu'au chef :
         // c'est lui qui tient la soute, et la base l'y autorise déjà.
         if (!estChef && !estSoutier) return null;
@@ -167,7 +198,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
           icon: const Icon(Icons.call_split_rounded),
           label: const Text('Ventiler'),
         );
-      case 3:
+      case 4:
         if (!estChef) return null;
         return FloatingActionButton.extended(
           onPressed: () => showDialog(
@@ -177,7 +208,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
           icon: const Icon(Icons.add),
           label: const Text('Nouvelle répartition'),
         );
-      case 4:
+      case 5:
         return FloatingActionButton.extended(
           onPressed: () => showDialog(
             context: context,

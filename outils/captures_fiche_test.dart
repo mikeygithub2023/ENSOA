@@ -1,0 +1,446 @@
+// Prend les captures d'écran de la fiche de mises à jour.
+//
+// Ce n'est pas un test : c'est un outil, rangé hors de `test/` pour que
+// `flutter test` ne le ramasse pas. Il s'exécute sous le harnais de test
+// parce que c'est le seul endroit où l'on peut dessiner un écran réel sans
+// base de données derrière — les mêmes doublures que les tests, les mêmes
+// polices, et une image en sortie.
+//
+//   flutter test outils/captures_fiche_test.dart
+//
+// Les images vont dans `docs/captures/`.
+import 'dart:async';
+import 'dart:io';
+import 'dart:ui' as ui;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+// `Override` n'est pas dans l'export principal de Riverpod 3.
+import 'package:flutter_riverpod/misc.dart' show Override;
+import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
+
+import 'package:sig_ensoa/core/chargement.dart';
+import 'package:sig_ensoa/core/roles.dart';
+import 'package:sig_ensoa/core/theme.dart';
+import 'package:sig_ensoa/features/accueil/accueil_screen.dart';
+import 'package:sig_ensoa/features/accueil/providers/apercu_providers.dart';
+import 'package:sig_ensoa/features/auth/providers/auth_providers.dart';
+import 'package:sig_ensoa/models/profil.dart';
+import 'package:sig_ensoa/modules/logistique/data/models/armement.dart';
+import 'package:sig_ensoa/modules/logistique/data/models/carburant.dart';
+import 'package:sig_ensoa/modules/logistique/data/models/oa.dart';
+import 'package:sig_ensoa/modules/logistique/data/models/vehicule.dart';
+import 'package:sig_ensoa/modules/logistique/data/repositories/armament_providers.dart';
+import 'package:sig_ensoa/modules/logistique/data/repositories/fleet_providers.dart';
+import 'package:sig_ensoa/modules/logistique/data/repositories/fuel_providers.dart';
+import 'package:sig_ensoa/modules/logistique/data/repositories/oa_providers.dart';
+import 'package:sig_ensoa/modules/logistique/features/tasks/taches_screen.dart';
+import 'package:sig_ensoa/modules/scolarite/features/dashboard/providers/dashboard_providers.dart';
+import 'package:sig_ensoa/modules/scolarite/features/sante_screen.dart';
+import 'package:sig_ensoa/modules/scolarite/features/scolarite_screen.dart';
+import 'package:sig_ensoa/modules/scolarite/models/division.dart';
+
+const _dossier = 'docs/captures';
+final _cadre = GlobalKey();
+
+const _profil = Profil(
+  id: 'p1',
+  nom: 'DJAMA',
+  prenom: 'Yannick',
+  roleScolarite: RoleScolarite.admin,
+  roleLogistique: RoleLogistique.administrateur,
+);
+
+// --- Les doublures, reprises des tests de chaque écran ---------------------
+
+class _Vehicules extends VehiculesNotifier {
+  @override
+  List<Vehicule> build() => [
+    for (var i = 0; i < 22; i++)
+      Vehicule(
+        id: '$i',
+        chassis: 'C$i',
+        immatriculation: 'I$i',
+        kilometrage: 1000,
+        etat: i < 12
+            ? EtatVehicule.disponible
+            : (i < 18 ? EtatVehicule.enMission : EtatVehicule.enReparation),
+        typeVehiculeId: 't${i % 4}',
+        kilometrageVidangeProchaine: i < 2 ? 900 : 9000,
+        marque: 'TOYOTA',
+        modele: 'HILUX',
+        typeVehicule: const ['Pick-up', 'Bus', 'Camion', 'Ambulance'][i % 4],
+      ),
+  ];
+
+  @override
+  Future<void> refresh() async {}
+}
+
+class _Armes extends ArmesNotifier {
+  @override
+  List<Arme> build() => const [];
+
+  @override
+  Future<void> refresh() async {}
+}
+
+class _ChargeAccueil extends ChargementNotifier {
+  @override
+  Set<String> build() => {
+    'vehicules',
+    'soutes',
+    'soute_stocks',
+    'depotages',
+    'distributions',
+  };
+}
+
+SouteVue _soute(String nom, int litres) => SouteVue(
+  soute: Soute(id: nom, libelle: nom),
+  stock: SouteStock(
+    id: nom,
+    souteId: nom,
+    typeStockId: 't',
+    repartitionId: 'r',
+    repartitionLibelle: 'r',
+    qteGasoil: litres,
+    qteSuper: 0,
+    seuilNominal: 0,
+    seuilCritique: 0,
+  ),
+);
+
+class _Taches extends TachesNotifier {
+  @override
+  List<TacheActivite> build() => [
+    TacheActivite(
+      id: '1',
+      activiteId: 'a1',
+      acteur: ActeurTache.garage,
+      description: 'Préparer les véhicules du défilé',
+      dateLimite: DateTime.now().add(const Duration(days: 4)),
+    ),
+    TacheActivite(
+      id: '2',
+      activiteId: 'a1',
+      acteur: ActeurTache.armurerie,
+      description: 'Contrôler les armes de la garde',
+      dateLimite: DateTime.now().subtract(const Duration(days: 2)),
+    ),
+    TacheActivite(
+      id: '3',
+      activiteId: 'a1',
+      acteur: ActeurTache.st,
+      description: 'Livrer le carburant',
+      dateLimite: DateTime.now().add(const Duration(days: 1)),
+      statut: StatutTache.terminee,
+    ),
+  ];
+
+  @override
+  Future<void> refresh() async {}
+}
+
+class _Activites extends ActivitesNotifier {
+  @override
+  List<Activite> build() => [
+    Activite(
+      id: 'a1',
+      titre: "Fête de l'école",
+      dateActivite: DateTime.now().add(const Duration(days: 8)),
+      creePar: 'p1',
+      creeLe: DateTime.now(),
+    ),
+  ];
+
+  @override
+  Future<void> refresh() async {}
+}
+
+class _Quotidiennes extends TachesQuotidiennesNotifier {
+  @override
+  List<TacheQuotidienne> build() => [
+    TacheQuotidienne(
+      id: '10',
+      description: 'Signer le rapport hebdomadaire',
+      echeance: DateTime.now(),
+      priorite: PrioriteTache.urgente,
+      assigneA: 'p1',
+      creePar: 'p1',
+      assigneNom: 'LCL DJAMA Yannick',
+    ),
+    TacheQuotidienne(
+      id: '11',
+      description: 'Relire le planning des gardes',
+      priorite: PrioriteTache.importante,
+      assigneA: 'p2',
+      creePar: 'p1',
+      assigneNom: 'CNE KOUAME Yao',
+      creeParNom: 'LCL DJAMA Yannick',
+    ),
+    TacheQuotidienne(
+      id: '12',
+      description: 'Appeler le service de santé',
+      assigneA: 'p1',
+      creePar: 'p1',
+      assigneNom: 'LCL DJAMA Yannick',
+      termineeLe: DateTime.now(),
+    ),
+  ];
+
+  @override
+  Future<void> refresh() async {}
+}
+
+class _ChargeTaches extends ChargementNotifier {
+  @override
+  Set<String> build() => {'taches', 'activites', 'taches_quotidiennes'};
+}
+
+// --- Le harnais ------------------------------------------------------------
+
+/// Le thème de l'application, tel que `main.dart` le pose : une capture qui
+/// ne porterait pas les mêmes couleurs ne montrerait pas l'application.
+ThemeData _theme() => ThemeData(
+  fontFamily: 'Roboto',
+  scaffoldBackgroundColor: AppColors.cardBg,
+  cardTheme: CardThemeData(
+    elevation: 0,
+    margin: EdgeInsets.zero,
+    color: AppColors.blueMist,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(AppRadii.card),
+      side: const BorderSide(color: AppColors.border),
+    ),
+  ),
+);
+
+Future<void> _dessiner(
+  WidgetTester tester, {
+  required Size taille,
+  required List<Override> doublures,
+  required Widget ecran,
+}) async {
+  tester.view.physicalSize = taille;
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(tester.view.reset);
+
+  await _prechargerImages(tester);
+
+  await tester.pumpWidget(
+    RepaintBoundary(
+      key: _cadre,
+      child: ProviderScope(
+        overrides: doublures,
+        child: MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: _theme(),
+          home: Scaffold(
+            backgroundColor: Colors.white,
+            body: Padding(padding: const EdgeInsets.all(28), child: ecran),
+          ),
+        ),
+      ),
+    ),
+  );
+  // Des pompes bornées plutôt que `pumpAndSettle` : un scintillement de
+  // chargement ou une animation qui se rejoue indéfiniment ne rend jamais la
+  // main, et la capture n'arriverait pas.
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 400));
+  await tester.pump(const Duration(seconds: 1));
+}
+
+/// Les images d'`assets/` se décodent de façon asynchrone, et le harnais de
+/// test ne fait pas tourner la vraie boucle d'évènements : sans cela, l'icône
+/// du fusil — un dessin, non une police — n'arrive jamais et laisse un vide.
+/// On la décode donc à l'avance, dans `runAsync`, pour que le cache d'images
+/// la rende d'un seul coup à la première image dessinée.
+Future<void> _prechargerImages(WidgetTester tester) async {
+  await tester.runAsync(() async {
+    for (final chemin in const ['assets/images/fusil_assaut.png']) {
+      final fini = Completer<void>();
+      final flux = AssetImage(chemin).resolve(ImageConfiguration.empty);
+      late ImageStreamListener ecouteur;
+      void termine() {
+        flux.removeListener(ecouteur);
+        if (!fini.isCompleted) fini.complete();
+      }
+
+      ecouteur = ImageStreamListener(
+        (_, _) => termine(),
+        onError: (erreur, _) {
+          stderr.writeln('image $chemin introuvable : $erreur');
+          termine();
+        },
+      );
+      flux.addListener(ecouteur);
+      await fini.future;
+    }
+  });
+}
+
+/// Enregistre ce qui est dessiné. [hauteurUtile] coupe l'image en bas : pour
+/// les rubriques à onglets, seul le bandeau nous intéresse — le corps de
+/// l'onglet est un écran que la fiche montre ailleurs.
+Future<void> _enregistrer(String nom, {double? hauteurUtile}) async {
+  final limite =
+      _cadre.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+  final image = await limite.toImage(pixelRatio: 2);
+  final octets = await image.toByteData(format: ui.ImageByteFormat.png);
+  final fichier = File('$_dossier/$nom.png');
+  fichier.parent.createSync(recursive: true);
+  fichier.writeAsBytesSync(octets!.buffer.asUint8List());
+  // La hauteur utile est écrite à côté : le découpage se fait à la
+  // composition de la fiche, qui sait déjà manipuler des images.
+  if (hauteurUtile != null) {
+    File('$_dossier/$nom.coupe').writeAsStringSync('${hauteurUtile * 2}');
+  }
+  stdout.writeln('capture $nom : ${image.width}x${image.height}');
+}
+
+/// Le harnais de test ne charge pas la police des icones Material : sans
+/// elle, chaque icone se dessine en carre vide, et la capture ne montre plus
+/// l'application. On la lit dans le SDK, a cote du dart qui nous execute.
+Future<void> _chargerIconesMaterial() async {
+  var dossier = File(Platform.resolvedExecutable).parent; // .../dart-sdk/bin
+  for (var i = 0; i < 3; i++) {
+    dossier = dossier.parent; // -> .../bin/cache
+  }
+  final fichier = File(
+    '${dossier.path}/artifacts/material_fonts/materialicons-regular.otf',
+  );
+  if (!fichier.existsSync()) {
+    stderr.writeln('police des icones introuvable : ${fichier.path}');
+    return;
+  }
+  final octets = ByteData.sublistView(fichier.readAsBytesSync());
+  await (FontLoader('MaterialIcons')..addFont(Future.value(octets))).load();
+}
+
+void main() {
+  setUpAll(() async {
+    await initializeDateFormatting('fr_FR');
+    final police = FontLoader('Roboto')
+      ..addFont(rootBundle.load('assets/fonts/roboto-regular.ttf'))
+      ..addFont(rootBundle.load('assets/fonts/roboto-bold.ttf'));
+    await police.load();
+    await _chargerIconesMaterial();
+  });
+
+  testWidgets('tableau de bord', (tester) async {
+    final hier = DateTime.now().subtract(const Duration(days: 1));
+    await _dessiner(
+      tester,
+      taille: const Size(1500, 1620),
+      ecran: const AccueilScreen(),
+      doublures: [
+        profilCourantProvider.overrideWith((ref) async => _profil),
+        apercuScolariteProvider.overrideWith(
+          (ref) async =>
+              const ApercuScolarite(apprenants: 203, promotions: 4, classes: 2, cours: 2),
+        ),
+        apercuLogistiqueProvider.overrideWith(
+          (ref) async => const ApercuLogistique(
+            vehicules: 22,
+            vehiculesDisponibles: 12,
+            litresEnSoute: 5620,
+            armes: 254,
+            armesEnDotation: 0,
+          ),
+        ),
+        dashboardStatsProvider.overrideWith(
+          (ref) async => DashboardStats(
+            total: 203,
+            parDivision: [
+              DivisionCount(
+                division: Division(
+                  id: 'd1',
+                  code: 'DFI',
+                  nom: 'Division de Formation Initiale',
+                ),
+                count: 203,
+              ),
+            ],
+          ),
+        ),
+        chargementProvider.overrideWith(_ChargeAccueil.new),
+        vehiculesProvider.overrideWith(_Vehicules.new),
+        armesProvider.overrideWith(_Armes.new),
+        soutesAvecStockProvider.overrideWith(
+          (ref) => [
+            _soute('BOUAKE', 4360),
+            _soute('ABIDJAN', 1000),
+            _soute('KATIOLA', 185),
+            _soute('DALOA', 75),
+          ],
+        ),
+        soutesEnAlerteProvider.overrideWith((ref) => []),
+        dotationsEnRetardProvider.overrideWith((ref) => []),
+        armesInspectionEnRetardProvider.overrideWith((ref) => []),
+        journalCarburantProvider.overrideWith(
+          (ref) => [
+            JournalCarburantEntry(
+              date: hier,
+              description: 'Dépotage',
+              quantite: 5520,
+              entree: true,
+              auteurId: 'a',
+            ),
+            JournalCarburantEntry(
+              date: DateTime.now(),
+              description: 'Distribution',
+              quantite: 500,
+              entree: false,
+              auteurId: 'a',
+            ),
+          ],
+        ),
+      ],
+    );
+    await _enregistrer('tableau-de-bord');
+  });
+
+  testWidgets('tâches', (tester) async {
+    await _dessiner(
+      tester,
+      taille: const Size(1500, 1020),
+      ecran: const TachesScreen(),
+      doublures: [
+        profilCourantProvider.overrideWith((ref) async => _profil),
+        chargementProvider.overrideWith(_ChargeTaches.new),
+        tachesProvider.overrideWith(_Taches.new),
+        activitesProvider.overrideWith(_Activites.new),
+        tachesQuotidiennesProvider.overrideWith(_Quotidiennes.new),
+      ],
+    );
+    await _enregistrer('taches');
+  });
+
+  // Les deux rubriques regroupées : c'est le bandeau d'onglets qui porte le
+  // changement, le corps de chaque onglet étant l'écran d'avant, repris tel
+  // quel. On dessine la rubrique réelle et l'on ne garde que son bandeau.
+  for (final (nom, ecran) in <(String, Widget)>[
+    ('scolarite', ScolariteScreen()),
+    ('sante', SanteScreen()),
+  ]) {
+    testWidgets('rubrique $nom', (tester) async {
+      await _dessiner(
+        tester,
+        taille: const Size(1500, 700),
+        ecran: ecran,
+        doublures: [
+          profilCourantProvider.overrideWith((ref) async => _profil),
+        ],
+      );
+      // Le corps de l'onglet cherche sa base ; on ne le montre pas, et son
+      // échec ne doit pas faire tomber la capture du bandeau.
+      tester.takeException();
+      await _enregistrer('rubrique-$nom', hauteurUtile: 137.5);
+    });
+  }
+}
