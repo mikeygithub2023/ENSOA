@@ -121,12 +121,22 @@ const elementsNav = <ElementNav>[
     permissions: {Permission.editerBulletins},
     masqueeSi: {Permission.administrerPlateforme},
   ),
+  // De même pour la santé : une seule entrée à onglets pour qui administre la
+  // plateforme, le médecin gardant les siennes.
+  ElementNav(
+    chemin: '/scolarite/sante',
+    libelle: 'Santé',
+    icone: Icons.local_hospital_rounded,
+    section: SectionNav.scolarite,
+    permissions: {Permission.administrerPlateforme},
+  ),
   ElementNav(
     chemin: '/scolarite/consultations',
     libelle: 'Consultations',
     icone: Icons.medical_services_rounded,
     section: SectionNav.scolarite,
     permissions: {Permission.gererConsultations},
+    masqueeSi: {Permission.administrerPlateforme},
   ),
   ElementNav(
     chemin: '/scolarite/visites-medicales',
@@ -134,6 +144,7 @@ const elementsNav = <ElementNav>[
     icone: Icons.event_available_rounded,
     section: SectionNav.scolarite,
     permissions: {Permission.gererVisitesMedicales},
+    masqueeSi: {Permission.administrerPlateforme},
   ),
   ElementNav(
     chemin: '/scolarite/pharmacie',
@@ -141,6 +152,7 @@ const elementsNav = <ElementNav>[
     icone: Icons.medication_rounded,
     section: SectionNav.scolarite,
     permissions: {Permission.gererPharmacie},
+    masqueeSi: {Permission.administrerPlateforme},
   ),
   ElementNav(
     chemin: '/scolarite/depenses',
@@ -148,6 +160,7 @@ const elementsNav = <ElementNav>[
     icone: Icons.receipt_long_rounded,
     section: SectionNav.scolarite,
     permissions: {Permission.gererDepensesSante},
+    masqueeSi: {Permission.administrerPlateforme},
   ),
   ElementNav(
     chemin: '/scolarite/mon-espace',

@@ -16,6 +16,7 @@ import '../modules/logistique/features/armament/armament_screen.dart';
 import '../modules/logistique/features/armament/weapon_detail_screen.dart';
 import '../modules/logistique/features/audit/audit_screen.dart';
 import '../modules/logistique/features/dashboard/soutien_technique_screen.dart';
+import '../modules/scolarite/features/sante_screen.dart';
 import '../modules/scolarite/features/scolarite_screen.dart';
 import '../modules/logistique/features/fleet/garage_workspace_screen.dart';
 import '../modules/logistique/features/fleet/vehicle_detail_screen.dart';
@@ -64,6 +65,7 @@ final _ecransPortes = <String, Widget Function()>{
   '/scolarite/cours': () => const CoursScreen(),
   '/scolarite/matieres': () => const MatieresScreen(),
   '/scolarite/bulletins': () => const BulletinsScreen(),
+  '/scolarite/sante': () => const SanteScreen(),
   '/scolarite/consultations': () => const ConsultationsScreen(),
   '/scolarite/visites-medicales': () => const VisitesMedicalesScreen(),
   '/scolarite/pharmacie': () => const MedicamentsScreen(),

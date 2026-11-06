@@ -84,6 +84,21 @@ void _regroupementSuperAdmin() {
       expect(chemins, isNot(contains('/scolarite/rubrique')));
     });
 
+    // Le médecin garde ses entrées : le regroupement n'est pas pour lui.
+    test('ne change rien au médecin', () {
+      final chemins = elementsPour(
+        const Profil(
+          id: 'p1',
+          nom: 'KOUAME',
+          prenom: 'Yao',
+          roleScolarite: RoleScolarite.medecin,
+        ),
+      ).map((e) => e.chemin).toList();
+
+      expect(chemins, contains('/scolarite/consultations'));
+      expect(chemins, isNot(contains('/scolarite/sante')));
+    });
+
     test("ne concerne pas l'armurier ni le soutien pétrolier", () {
       expect(
         _chemins(RoleLogistique.armurerie),

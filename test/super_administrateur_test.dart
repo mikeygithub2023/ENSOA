@@ -12,6 +12,7 @@
 // rester ouverte, et masquer une rubrique sans la regrouper la lui fermerait
 // en douce. Le second test tient cette garde.
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sig_ensoa/modules/scolarite/features/sante_screen.dart';
 import 'package:sig_ensoa/modules/scolarite/features/scolarite_screen.dart';
 
 import 'package:sig_ensoa/core/postes.dart';
@@ -79,6 +80,10 @@ void main() {
       '/scolarite/cours',
       '/scolarite/matieres',
       '/scolarite/bulletins',
+      '/scolarite/consultations',
+      '/scolarite/visites-medicales',
+      '/scolarite/pharmacie',
+      '/scolarite/depenses',
     });
   });
 
@@ -87,14 +92,26 @@ void main() {
 
     expect(chemins, contains('/scolarite/rubrique'));
     expect(chemins, isNot(contains('/scolarite/apprenants')));
-    // Ce qui ne fait pas partie du regroupement reste à sa place.
-    expect(chemins, contains('/scolarite/consultations'));
 
     expect(ongletsScolarite(_administrateur).map((o) => o.$1), [
       'Élèves & Stagiaires',
       'Cours',
       'Matières',
       'Bulletins',
+    ]);
+  });
+
+  test('la santé lui est regroupée, sans rien perdre', () {
+    final chemins = elementsPour(_administrateur).map((e) => e.chemin).toSet();
+
+    expect(chemins, contains('/scolarite/sante'));
+    expect(chemins, isNot(contains('/scolarite/consultations')));
+
+    expect(ongletsSante(_administrateur).map((o) => o.$1), [
+      'Consultations',
+      'Visites médicales',
+      'Pharmacie',
+      'Dépenses santé',
     ]);
   });
 
