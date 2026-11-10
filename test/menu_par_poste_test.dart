@@ -81,7 +81,7 @@ void _regroupementSuperAdmin() {
       ).map((e) => e.chemin).toList();
 
       expect(chemins, contains('/scolarite/apprenants'));
-      expect(chemins, isNot(contains('/scolarite/rubrique')));
+      expect(chemins, isNot(contains('/instruction')));
     });
 
     // Le médecin garde ses entrées : le regroupement n'est pas pour lui.

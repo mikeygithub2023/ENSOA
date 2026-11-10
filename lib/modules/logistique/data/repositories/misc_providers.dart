@@ -401,7 +401,6 @@ class NotificationsNotifier extends Notifier<List<AppNotification>> {
   /// que `notifications_insert` interdit depuis le durcissement du
   /// 10 septembre : dans le canal officiel de l'école, un message adressé à
   /// une unité par n'importe quel compte est un hameçonnage crédible.
-
 }
 
 String _roleToDb(RoleLogistique role) {

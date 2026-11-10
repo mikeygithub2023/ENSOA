@@ -30,12 +30,13 @@ class OrdresMissionTab extends ConsumerWidget {
 
     // Les missions en cours passent devant ; au sein de chaque groupe, la plus
     // récente d'abord.
-    final tries = [...mouvements]..sort((a, b) {
-      final ac = a.etat == EtatMouvement.enCours;
-      final bc = b.etat == EtatMouvement.enCours;
-      if (ac != bc) return ac ? -1 : 1;
-      return b.dateDepart.compareTo(a.dateDepart);
-    });
+    final tries = [...mouvements]
+      ..sort((a, b) {
+        final ac = a.etat == EtatMouvement.enCours;
+        final bc = b.etat == EtatMouvement.enCours;
+        if (ac != bc) return ac ? -1 : 1;
+        return b.dateDepart.compareTo(a.dateDepart);
+      });
 
     final enCours = tries.where((m) => m.etat == EtatMouvement.enCours).length;
 
@@ -67,7 +68,8 @@ class OrdresMissionTab extends ConsumerWidget {
                 )
               else if (tries.isEmpty)
                 const EmptyState(
-                  message: 'Aucun ordre de mission. Appuyez sur « Nouvel ordre '
+                  message:
+                      'Aucun ordre de mission. Appuyez sur « Nouvel ordre '
                       'de mission » pour en créer un.',
                   icon: Icons.assignment_outlined,
                 )
@@ -184,10 +186,7 @@ class _CarteOrdreMission extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 10),
-            _Ligne(
-              icone: Icons.flag_outlined,
-              texte: mouvement.objet,
-            ),
+            _Ligne(icone: Icons.flag_outlined, texte: mouvement.objet),
             _Ligne(
               icone: Icons.place_outlined,
               texte: 'Destination : ${mouvement.destination}',
@@ -196,14 +195,14 @@ class _CarteOrdreMission extends ConsumerWidget {
               icone: Icons.person_outline,
               texte:
                   'Conducteur : ${mouvement.gradeChefBord} ${mouvement.nomChefBord}'
-                  .trim(),
+                      .trim(),
             ),
             if (mouvement.nomChefDeBord.isNotEmpty)
               _Ligne(
                 icone: Icons.military_tech_outlined,
                 texte:
                     'Chef de bord : ${mouvement.gradeChefDeBord} ${mouvement.nomChefDeBord}'
-                    .trim(),
+                        .trim(),
               ),
             _Ligne(
               icone: Icons.schedule_rounded,
@@ -272,7 +271,9 @@ class _CarteOrdreMission extends ConsumerWidget {
             .read(vehiculesProvider.notifier)
             .updateEtat(v.id, EtatVehicule.disponible);
       }
-      await ref.read(mouvementsVehiculeProvider.notifier).supprimer(mouvement.id);
+      await ref
+          .read(mouvementsVehiculeProvider.notifier)
+          .supprimer(mouvement.id);
       if (context.mounted) {
         showSuccessSnackBar(context, 'Ordre de mission supprimé.');
       }
@@ -297,9 +298,7 @@ class _Ligne extends StatelessWidget {
         children: [
           Icon(icone, size: 16, color: AppColors.inkMuted),
           const SizedBox(width: 8),
-          Expanded(
-            child: Text(texte, style: const TextStyle(fontSize: 13)),
-          ),
+          Expanded(child: Text(texte, style: const TextStyle(fontSize: 13))),
         ],
       ),
     );

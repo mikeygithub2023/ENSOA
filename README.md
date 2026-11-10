@@ -229,10 +229,46 @@ compris. La division tranche désormais, dans l'application comme dans la base
 (migration `20261110000000`), et la migration corrige au passage les élèves
 déjà enregistrés sous le mauvais grade.
 
+### La scolarité se partage entre deux bureaux
+
+Proposition faite au commandement, et portée dans l'application : la scolarité
+n'est pas un bureau mais deux.
+
+- **Instruction** tient la notation — cours, matières, modules, contrôle
+  continu, examens, bulletins, et les **résultats** qui s'en déduisent.
+- **Ressources humaines** tiennent la personne — situation de prise d'armes,
+  statistiques de l'effectif **sans les notes**, consultations, permissions,
+  absences.
+
+L'écran de l'effectif portait sept onglets pour tout le monde ; chacun n'y
+avait affaire qu'à trois ou quatre. C'est le même écran, le même choix de
+portée et la même liste nominative — qui reste aux deux bureaux, car c'est par
+elle qu'on ouvre la fiche d'un élève —, mais le jeu d'onglets suit désormais le
+bureau où l'on se trouve (`bureaux.dart`). Rien n'est retiré à personne : les
+permissions ne bougent pas, seul le rangement change.
+
+Le service **Santé** sort du même mouvement. Ses quatre écrans étaient logés
+sous « Scolarité » faute de section à eux, alors qu'ils ne relèvent ni de l'un
+ni de l'autre bureau. L'onglet « Consultations médicales » des RH reste la
+lecture de ce que le service y a saisi.
+
+La barre de gauche annonce enfin ses sections par un intertitre — jusqu'ici
+`SectionNav` n'existait qu'en commentaire, sans rien afficher. Un intertitre ne
+paraît qu'à la première entrée de sa section et jamais deux fois : « Activités »
+relève du général mais se tient au milieu du soutien technique, qui sans cette
+règle se serait annoncé une seconde fois juste après elle. Barre repliée (sous
+900 pixels), les intertitres s'effacent avec les noms.
+
+Chemins : `/instruction` (la rubrique groupée de l'administrateur, ex
+`/scolarite/rubrique`) et `/ressources-humaines`. `/scolarite/apprenants` ne
+bouge pas : il porte les fiches élèves et les contrôles en sous-routes.
+
 ### État à la fin de la journée
 
 - `flutter analyze` : aucun avertissement
-- **147 tests** passent, dont cinq fichiers nés aujourd'hui :
+- **178 tests** passent, dont `test/bureaux_scolarite_test.dart`, né de ce
+  découpage
+- **147 tests** passaient dans la journée, dont cinq fichiers nés aujourd'hui :
   `test/tableau_de_bord_test.dart`, `test/taches_test.dart`,
   `test/soutien_technique_onglets_test.dart`, `test/menu_libelles_test.dart`
   et `test/sport_performance_test.dart`

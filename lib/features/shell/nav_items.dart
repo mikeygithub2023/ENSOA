@@ -3,17 +3,45 @@ import 'package:flutter/material.dart';
 import '../../core/roles.dart';
 import '../../models/profil.dart';
 
-/// Les trois sections du menu. Un agent ne voit que celles où il a quelque
-/// chose à faire : un armurier ne voit pas « Scolarité », un instructeur ne
-/// voit pas « Soutien technique », et l'infirmerie voit les deux.
-enum SectionNav { scolarite, soutienTechnique, commun }
+/// Les sections du menu. Un agent ne voit que celles où il a quelque chose à
+/// faire : un armurier ne voit pas « Instruction », un instructeur ne voit pas
+/// « Soutien technique », et l'administrateur voit tout.
+///
+/// La scolarité n'en fait plus une mais deux, parce que ce sont deux bureaux
+/// distincts à l'école :
+///
+///  - **Instruction** tient la notation — les cours, les matières, les
+///    modules, les contrôles, les examens, les bulletins ;
+///  - **Ressources humaines** tient la personne — la situation de prise
+///    d'armes, l'effectif, les consultations, les permissions, les absences.
+///
+/// Le service **Santé** sort du même mouvement : ses quatre écrans étaient
+/// rangés sous « Scolarité » faute de section à eux, alors qu'ils ne relèvent
+/// ni de l'instruction ni des ressources humaines. L'onglet « Consultations
+/// médicales » des RH reste la lecture de ce que le service y a saisi.
+enum SectionNav {
+  instruction,
+  ressourcesHumaines,
+  sante,
+  soutienTechnique,
+  commun,
+}
 
 extension SectionNavLibelle on SectionNav {
   String get libelle => switch (this) {
-    SectionNav.scolarite => 'Scolarité',
+    SectionNav.instruction => 'Instruction',
+    SectionNav.ressourcesHumaines => 'Ressources humaines',
+    SectionNav.sante => 'Santé',
     SectionNav.soutienTechnique => 'Soutien technique',
     SectionNav.commun => 'Général',
   };
+
+  /// La section s'annonce-t-elle par un intertitre dans la barre ?
+  ///
+  /// « Général » ne s'annonce pas : ses entrées encadrent les autres — le
+  /// tableau de bord et les notifications en haut, l'administration en bas —
+  /// et un intertitre n'y nommerait qu'un fourre-tout.
+  bool get porteUnIntertitre => this != SectionNav.commun;
 }
 
 class ElementNav {
@@ -77,23 +105,28 @@ const elementsNav = <ElementNav>[
     section: SectionNav.commun,
   ),
 
-  // --- Scolarité ---
+  // --- Instruction ---
 
   // Comme « Soutien technique » plus bas : pour qui administre la plateforme,
-  // les quatre rubriques de la scolarité sous une seule entrée à onglets, à la
+  // les quatre rubriques de l'instruction sous une seule entrée à onglets, à la
   // place des quatre entrées séparées, masquées ci-dessous pour ce même profil.
   ElementNav(
-    chemin: '/scolarite/rubrique',
-    libelle: 'Scolarité',
+    chemin: '/instruction',
+    libelle: 'Instruction',
     icone: Icons.school_rounded,
-    section: SectionNav.scolarite,
+    section: SectionNav.instruction,
     permissions: {Permission.administrerPlateforme},
   ),
+  // La liste nominative sert aux deux bureaux : l'instruction y entre pour les
+  // notes, les ressources humaines pour le dossier. C'est le même écran et la
+  // même liste, avec autour le jeu d'onglets du bureau où l'on se trouve —
+  // voir `bureaux.dart`. Le chemin ne change pas : il porte les fiches élèves
+  // et les contrôles en sous-routes, et les liens déjà en circulation.
   ElementNav(
     chemin: '/scolarite/apprenants',
     libelle: 'Élèves & Stagiaires',
     icone: Icons.groups_rounded,
-    section: SectionNav.scolarite,
+    section: SectionNav.instruction,
     permissions: {Permission.consulterApprenants},
     masqueeSi: {Permission.administrerPlateforme},
   ),
@@ -101,7 +134,7 @@ const elementsNav = <ElementNav>[
     chemin: '/scolarite/cours',
     libelle: 'Cours',
     icone: Icons.school_rounded,
-    section: SectionNav.scolarite,
+    section: SectionNav.instruction,
     permissions: {Permission.gererCours, Permission.suivreCours},
     masqueeSi: {Permission.administrerPlateforme},
   ),
@@ -109,7 +142,7 @@ const elementsNav = <ElementNav>[
     chemin: '/scolarite/matieres',
     libelle: 'Matières',
     icone: Icons.menu_book_rounded,
-    section: SectionNav.scolarite,
+    section: SectionNav.instruction,
     permissions: {Permission.gererMatieres},
     masqueeSi: {Permission.administrerPlateforme},
   ),
@@ -117,24 +150,42 @@ const elementsNav = <ElementNav>[
     chemin: '/scolarite/bulletins',
     libelle: 'Bulletins',
     icone: Icons.assignment_turned_in_rounded,
-    section: SectionNav.scolarite,
+    section: SectionNav.instruction,
     permissions: {Permission.editerBulletins},
     masqueeSi: {Permission.administrerPlateforme},
   ),
-  // De même pour la santé : une seule entrée à onglets pour qui administre la
+
+  // --- Ressources humaines ---
+
+  // Une seule entrée, parce que le bureau tient un seul écran : l'effectif
+  // choisi en haut, et au-dessous ce qui le concerne — prise d'armes,
+  // statistiques, consultations, permissions, absences. Elle n'est pas masquée
+  // pour l'administrateur : c'est déjà une rubrique à onglets, il n'y a rien à
+  // regrouper.
+  ElementNav(
+    chemin: '/ressources-humaines',
+    libelle: 'Ressources humaines',
+    icone: Icons.badge_rounded,
+    section: SectionNav.ressourcesHumaines,
+    permissions: {Permission.consulterApprenants},
+  ),
+
+  // --- Santé ---
+
+  // Comme l'instruction : une seule entrée à onglets pour qui administre la
   // plateforme, le médecin gardant les siennes.
   ElementNav(
     chemin: '/scolarite/sante',
     libelle: 'Santé',
     icone: Icons.local_hospital_rounded,
-    section: SectionNav.scolarite,
+    section: SectionNav.sante,
     permissions: {Permission.administrerPlateforme},
   ),
   ElementNav(
     chemin: '/scolarite/consultations',
     libelle: 'Consultations',
     icone: Icons.medical_services_rounded,
-    section: SectionNav.scolarite,
+    section: SectionNav.sante,
     permissions: {Permission.gererConsultations},
     masqueeSi: {Permission.administrerPlateforme},
   ),
@@ -142,7 +193,7 @@ const elementsNav = <ElementNav>[
     chemin: '/scolarite/visites-medicales',
     libelle: 'Visites médicales',
     icone: Icons.event_available_rounded,
-    section: SectionNav.scolarite,
+    section: SectionNav.sante,
     permissions: {Permission.gererVisitesMedicales},
     masqueeSi: {Permission.administrerPlateforme},
   ),
@@ -150,7 +201,7 @@ const elementsNav = <ElementNav>[
     chemin: '/scolarite/pharmacie',
     libelle: 'Pharmacie',
     icone: Icons.medication_rounded,
-    section: SectionNav.scolarite,
+    section: SectionNav.sante,
     permissions: {Permission.gererPharmacie},
     masqueeSi: {Permission.administrerPlateforme},
   ),
@@ -158,15 +209,19 @@ const elementsNav = <ElementNav>[
     chemin: '/scolarite/depenses',
     libelle: 'Dépenses santé',
     icone: Icons.receipt_long_rounded,
-    section: SectionNav.scolarite,
+    section: SectionNav.sante,
     permissions: {Permission.gererDepensesSante},
     masqueeSi: {Permission.administrerPlateforme},
   ),
+
+  // Le dossier de l'élève, vu par l'élève. Ce n'est pas une rubrique de
+  // l'école mais une vue personnelle, comme « Mes tâches » au soutien
+  // technique : elle reste au général.
   ElementNav(
     chemin: '/scolarite/mon-espace',
     libelle: 'Mon espace',
-    icone: Icons.badge_rounded,
-    section: SectionNav.scolarite,
+    icone: Icons.account_box_rounded,
+    section: SectionNav.commun,
     permissions: {Permission.voirSonEspaceEleve},
   ),
 
@@ -254,3 +309,30 @@ const elementsNav = <ElementNav>[
 /// Les entrées visibles pour ce profil, dans l'ordre de déclaration.
 List<ElementNav> elementsPour(Profil profil) =>
     elementsNav.where((e) => e.ouvertA(profil)).toList();
+
+/// Les lignes de la barre : chaque entrée, précédée au besoin de l'intertitre
+/// de sa section.
+///
+/// L'intertitre ne paraît qu'à la **première** entrée de sa section, et jamais
+/// deux fois. C'est volontaire : « Activités » relève du général mais se tient
+/// au milieu du soutien technique, là où elle sert ; sans cette règle, le
+/// soutien technique s'annoncerait une seconde fois juste après elle, comme si
+/// une autre section commençait.
+///
+/// Une section dont l'agent ne voit aucune entrée ne s'annonce pas : la
+/// fonction ne lit que ce qu'on lui passe, déjà filtré par les permissions.
+List<({SectionNav? intertitre, ElementNav element})> lignesNav(
+  List<ElementNav> entrees,
+) {
+  final annoncees = <SectionNav>{};
+  return [
+    for (final element in entrees)
+      (
+        intertitre:
+            element.section.porteUnIntertitre && annoncees.add(element.section)
+            ? element.section
+            : null,
+        element: element,
+      ),
+  ];
+}

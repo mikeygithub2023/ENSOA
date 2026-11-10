@@ -29,13 +29,15 @@ String? defaultGradeForClasse(String classeNom, {String? divisionCode}) {
   final specialiste = divisionCode == codeDivisionSpecialistes;
 
   return switch (cle) {
-    'FCB' || 'CA1' => specialiste
-        ? "Elève sous-officier spécialiste de première année"
-        : "Elève sous-officier d'active de première année",
+    'FCB' || 'CA1' =>
+      specialiste
+          ? "Elève sous-officier spécialiste de première année"
+          : "Elève sous-officier d'active de première année",
     'ESOA1' => "Elève sous-officier d'active de première année",
-    'CA2' => specialiste
-        ? "Elève sous-officier spécialiste de deuxième année"
-        : "Elève sous-officier d'active de deuxième année",
+    'CA2' =>
+      specialiste
+          ? "Elève sous-officier spécialiste de deuxième année"
+          : "Elève sous-officier d'active de deuxième année",
     'ESOA2' => "Elève sous-officier d'active de deuxième année",
     'ESOS1' => "Elève sous-officier spécialiste de première année",
     'ESOS2' => "Elève sous-officier spécialiste de deuxième année",

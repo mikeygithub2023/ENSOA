@@ -17,7 +17,7 @@ import '../modules/logistique/features/armament/weapon_detail_screen.dart';
 import '../modules/logistique/features/audit/audit_screen.dart';
 import '../modules/logistique/features/dashboard/soutien_technique_screen.dart';
 import '../modules/scolarite/features/sante_screen.dart';
-import '../modules/scolarite/features/scolarite_screen.dart';
+import '../modules/scolarite/features/instruction_screen.dart';
 import '../modules/logistique/features/fleet/garage_workspace_screen.dart';
 import '../modules/logistique/features/fleet/vehicle_detail_screen.dart';
 import '../modules/logistique/features/fuel/fuel_screen.dart';
@@ -26,6 +26,7 @@ import '../modules/logistique/features/oa/activite_detail_screen.dart';
 import '../modules/logistique/features/police/police_screen.dart';
 import '../modules/logistique/features/tasks/taches_screen.dart';
 import '../modules/scolarite/features/apprenants/apprenants_list_screen.dart';
+import '../modules/scolarite/features/apprenants/bureaux.dart';
 import '../modules/scolarite/features/apprenants/apprenant_detail_screen.dart';
 import '../modules/scolarite/features/apprenants/controle_detail_screen.dart';
 import '../modules/scolarite/features/apprenants/mon_profil_screen.dart';
@@ -56,10 +57,19 @@ class _Rafraichisseur extends ChangeNotifier {
 final _ecransPortes = <String, Widget Function()>{
   '/administration': () => const AdministrationScreen(),
 
-  // Scolarité
+  // Instruction
   // Le regroupement du super administrateur, comme « Soutien technique ».
-  '/scolarite/rubrique': () => const ScolariteScreen(),
-  '/scolarite/apprenants': () => const ApprenantsListScreen(),
+  '/instruction': () => const InstructionScreen(),
+  // Le même écran sous ses deux bureaux : l'instruction y voit la notation,
+  // les ressources humaines la situation de l'effectif. Le chemin de
+  // l'instruction ne change pas — il porte les fiches élèves et les contrôles
+  // en sous-routes.
+  '/scolarite/apprenants': () =>
+      const ApprenantsListScreen(bureau: Bureau.instruction),
+
+  // Ressources humaines
+  '/ressources-humaines': () =>
+      const ApprenantsListScreen(bureau: Bureau.ressourcesHumaines),
   '/scolarite/cours': () => const CoursScreen(),
   '/scolarite/matieres': () => const MatieresScreen(),
   '/scolarite/bulletins': () => const BulletinsScreen(),

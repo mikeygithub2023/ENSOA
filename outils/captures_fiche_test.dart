@@ -45,7 +45,7 @@ import 'package:sig_ensoa/modules/logistique/features/dashboard/soutien_techniqu
 import 'package:sig_ensoa/modules/logistique/features/tasks/taches_screen.dart';
 import 'package:sig_ensoa/modules/scolarite/features/dashboard/providers/dashboard_providers.dart';
 import 'package:sig_ensoa/modules/scolarite/features/sante_screen.dart';
-import 'package:sig_ensoa/modules/scolarite/features/scolarite_screen.dart';
+import 'package:sig_ensoa/modules/scolarite/features/instruction_screen.dart';
 import 'package:sig_ensoa/modules/scolarite/models/division.dart';
 
 const _dossier = 'docs/captures';
@@ -719,7 +719,7 @@ void main() {
   // changement, le corps de chaque onglet étant l'écran d'avant, repris tel
   // quel. On dessine la rubrique réelle et l'on ne garde que son bandeau.
   for (final (nom, ecran) in <(String, Widget)>[
-    ('scolarite', ScolariteScreen()),
+    ('scolarite', InstructionScreen()),
     ('sante', SanteScreen()),
   ]) {
     testWidgets('rubrique $nom', (tester) async {
@@ -777,7 +777,7 @@ void main() {
   testWidgets('menu', (tester) async {
     await _dessiner(
       tester,
-      taille: const Size(1300, 700),
+      taille: const Size(1300, 940),
       // Un chemin qui ne recharge rien, et qui montre une entrée active : la
       // pilule foncée fait partie de ce qu'on vient regarder.
       ecran: const AppShell(

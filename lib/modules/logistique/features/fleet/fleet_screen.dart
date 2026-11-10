@@ -81,171 +81,169 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
           );
 
     final corps = <Widget>[
-        if (_selection)
-          _BarreSelection(
-            coches: cochesVisibles.length,
-            total: filtres.length,
-            suppressionEnCours: _suppression,
-            onToutCocher: () => setState(() => _coches.addAll(visibles)),
-            onToutDecocher: () =>
-                setState(() => _coches.removeAll(visibles.toList())),
-            onSupprimer: () => _supprimerSelection(filtres, cochesVisibles),
-            onQuitter: _suppression ? null : _quitterSelection,
-          )
-        else
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            children: [
-              OutlinedButton.icon(
-                onPressed: () => afficherImportVehicules(context),
-                icon: const Icon(Icons.upload_file_outlined, size: 18),
-                label: const Text('Importer depuis Excel'),
-              ),
-              if (peutSupprimer && vehicules.isNotEmpty)
-                OutlinedButton.icon(
-                  onPressed: () => setState(() => _selection = true),
-                  icon: const Icon(Icons.checklist_rounded, size: 18),
-                  label: const Text('Sélectionner'),
-                ),
-            ],
-          ),
-        const SizedBox(height: 16),
+      if (_selection)
+        _BarreSelection(
+          coches: cochesVisibles.length,
+          total: filtres.length,
+          suppressionEnCours: _suppression,
+          onToutCocher: () => setState(() => _coches.addAll(visibles)),
+          onToutDecocher: () =>
+              setState(() => _coches.removeAll(visibles.toList())),
+          onSupprimer: () => _supprimerSelection(filtres, cochesVisibles),
+          onQuitter: _suppression ? null : _quitterSelection,
+        )
+      else
         Wrap(
-          spacing: 8,
+          spacing: 12,
+          runSpacing: 8,
           children: [
-            FilterChipPill(
-              label: 'Tous',
-              selected: _filtre == null,
-              onTap: () => setState(() => _filtre = null),
+            OutlinedButton.icon(
+              onPressed: () => afficherImportVehicules(context),
+              icon: const Icon(Icons.upload_file_outlined, size: 18),
+              label: const Text('Importer depuis Excel'),
             ),
-            for (final e in EtatVehicule.values)
-              FilterChipPill(
-                label: e.label,
-                selected: _filtre == e,
-                onTap: () => setState(() => _filtre = e),
+            if (peutSupprimer && vehicules.isNotEmpty)
+              OutlinedButton.icon(
+                onPressed: () => setState(() => _selection = true),
+                icon: const Icon(Icons.checklist_rounded, size: 18),
+                label: const Text('Sélectionner'),
               ),
           ],
         ),
-        const SizedBox(height: 20),
-        if (!charge)
-          const SkeletonGrid(
-            itemCount: 6,
+      const SizedBox(height: 16),
+      Wrap(
+        spacing: 8,
+        children: [
+          FilterChipPill(
+            label: 'Tous',
+            selected: _filtre == null,
+            onTap: () => setState(() => _filtre = null),
+          ),
+          for (final e in EtatVehicule.values)
+            FilterChipPill(
+              label: e.label,
+              selected: _filtre == e,
+              onTap: () => setState(() => _filtre = e),
+            ),
+        ],
+      ),
+      const SizedBox(height: 20),
+      if (!charge)
+        const SkeletonGrid(
+          itemCount: 6,
+          maxCrossAxisExtent: 340,
+          mainAxisExtent: 160,
+        ),
+      if (charge && filtres.isEmpty)
+        const EmptyState(message: 'Aucun véhicule pour ce filtre'),
+      if (charge)
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: filtres.length,
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: 340,
             mainAxisExtent: 160,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
           ),
-        if (charge && filtres.isEmpty)
-          const EmptyState(message: 'Aucun véhicule pour ce filtre'),
-        if (charge)
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: filtres.length,
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 340,
-              mainAxisExtent: 160,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-            ),
-            itemBuilder: (context, i) {
-              final v = filtres[i];
-              final coche = _coches.contains(v.id);
-              return Card(
-                color: coche
-                    ? AppColors.ivoryOrange.withValues(alpha: 0.10)
-                    : null,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: _selection
-                      ? () => setState(() {
-                          if (!_coches.remove(v.id)) _coches.add(v.id);
-                        })
-                      : () => context.go('/logistique/parc/detail', extra: v),
-                  // Un appui long entre en sélection depuis n'importe quelle
-                  // carte, et la coche au passage : c'est le geste qu'on
-                  // tente d'instinct sur une tablette.
-                  onLongPress: _selection
-                      ? null
-                      : () => setState(() {
-                          _selection = true;
-                          _coches.add(v.id);
-                        }),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            if (_selection)
-                              Padding(
-                                padding: const EdgeInsets.only(right: 4),
-                                child: SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: Checkbox(
-                                    value: coche,
-                                    visualDensity: VisualDensity.compact,
-                                    onChanged: (_) => setState(() {
-                                      if (!_coches.remove(v.id)) {
-                                        _coches.add(v.id);
-                                      }
-                                    }),
-                                  ),
+          itemBuilder: (context, i) {
+            final v = filtres[i];
+            final coche = _coches.contains(v.id);
+            return Card(
+              color: coche
+                  ? AppColors.ivoryOrange.withValues(alpha: 0.10)
+                  : null,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: _selection
+                    ? () => setState(() {
+                        if (!_coches.remove(v.id)) _coches.add(v.id);
+                      })
+                    : () => context.go('/logistique/parc/detail', extra: v),
+                // Un appui long entre en sélection depuis n'importe quelle
+                // carte, et la coche au passage : c'est le geste qu'on
+                // tente d'instinct sur une tablette.
+                onLongPress: _selection
+                    ? null
+                    : () => setState(() {
+                        _selection = true;
+                        _coches.add(v.id);
+                      }),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (_selection)
+                            Padding(
+                              padding: const EdgeInsets.only(right: 4),
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: Checkbox(
+                                  value: coche,
+                                  visualDensity: VisualDensity.compact,
+                                  onChanged: (_) => setState(() {
+                                    if (!_coches.remove(v.id)) {
+                                      _coches.add(v.id);
+                                    }
+                                  }),
                                 ),
                               ),
+                            ),
+                          Expanded(
+                            child: Text(
+                              '${v.marque} ${v.modele}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          StatusChip(
+                            label: v.etat.label,
+                            level: _levelFor(v.etat),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        v.immatriculation,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const Spacer(),
+                      Row(
+                        children: [
+                          const Icon(Icons.speed, size: 16),
+                          const SizedBox(width: 4),
+                          Text('${v.kilometrage} km'),
+                          const SizedBox(width: 16),
+                          if (v.positionActuelle != null) ...[
+                            const Icon(Icons.groups_outlined, size: 16),
+                            const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                '${v.marque} ${v.modele}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
+                                v.positionActuelle!,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            StatusChip(
-                              label: v.etat.label,
-                              level: _levelFor(v.etat),
-                            ),
                           ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          v.immatriculation,
-                          style: TextStyle(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const Spacer(),
-                        Row(
-                          children: [
-                            const Icon(Icons.speed, size: 16),
-                            const SizedBox(width: 4),
-                            Text('${v.kilometrage} km'),
-                            const SizedBox(width: 16),
-                            if (v.positionActuelle != null) ...[
-                              const Icon(Icons.groups_outlined, size: 16),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  v.positionActuelle!,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
+        ),
     ];
 
     if (widget.sansCadre) {
@@ -261,8 +259,7 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
               children: corps,
             ),
           ),
-          if (fab != null)
-            Positioned(right: 4, bottom: 12, child: fab),
+          if (fab != null) Positioned(right: 4, bottom: 12, child: fab),
         ],
       );
     }
@@ -319,10 +316,7 @@ class _FleetScreenState extends ConsumerState<FleetScreen> {
             if (choisis.length > 12)
               Text(
                 '… et ${choisis.length - 12} autre(s).',
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.inkMuted,
-                ),
+                style: const TextStyle(fontSize: 13, color: AppColors.inkMuted),
               ),
           ],
         ),

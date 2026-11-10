@@ -33,15 +33,15 @@ class DemandesReparationTab extends ConsumerWidget {
     final pannes = ref.watch(pannesProvider);
     final parId = {for (final v in vehicules) v.id: v};
     final estAdmin =
-        ref.watch(sessionProvider)?.user.role ==
-        RoleLogistique.administrateur;
+        ref.watch(sessionProvider)?.user.role == RoleLogistique.administrateur;
 
-    final tries = [...demandes]..sort((a, b) {
-      final ad = a.statut == StatutDemandeReparation.demandee;
-      final bd = b.statut == StatutDemandeReparation.demandee;
-      if (ad != bd) return ad ? -1 : 1;
-      return b.dateDemande.compareTo(a.dateDemande);
-    });
+    final tries = [...demandes]
+      ..sort((a, b) {
+        final ad = a.statut == StatutDemandeReparation.demandee;
+        final bd = b.statut == StatutDemandeReparation.demandee;
+        if (ad != bd) return ad ? -1 : 1;
+        return b.dateDemande.compareTo(a.dateDemande);
+      });
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(4, 4, 4, 100),
@@ -55,7 +55,8 @@ class DemandesReparationTab extends ConsumerWidget {
             )
           else if (tries.isEmpty)
             const EmptyState(
-              message: 'Aucune demande de mise en réparation. Elles se créent '
+              message:
+                  'Aucune demande de mise en réparation. Elles se créent '
                   'depuis la fiche d\'un véhicule, au vu de ses pannes.',
               icon: Icons.build_outlined,
             )
@@ -66,9 +67,7 @@ class DemandesReparationTab extends ConsumerWidget {
                 child: _CarteDemande(
                   demande: d,
                   vehicule: parId[d.vehiculeId],
-                  pannes: pannes
-                      .where((p) => p.demandeId == d.id)
-                      .toList(),
+                  pannes: pannes.where((p) => p.demandeId == d.id).toList(),
                   estAdmin: estAdmin,
                 ),
               ),

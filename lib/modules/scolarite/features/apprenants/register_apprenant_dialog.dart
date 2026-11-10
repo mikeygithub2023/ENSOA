@@ -1,7 +1,8 @@
 import 'package:sig_ensoa/core/formulaire.dart';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';

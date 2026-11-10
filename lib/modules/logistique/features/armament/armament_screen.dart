@@ -102,10 +102,7 @@ class _ArmamentScreenState extends ConsumerState<ArmamentScreen>
           ),
           const SizedBox(height: 16),
         ],
-        _BarreRubriques(
-          controller: _rubriques,
-          pilules: !widget.sansCadre,
-        ),
+        _BarreRubriques(controller: _rubriques, pilules: !widget.sansCadre),
         const SizedBox(height: 12),
         Expanded(
           child: TabBarView(
@@ -285,8 +282,7 @@ class _RubriqueState extends ConsumerState<_Rubrique>
             ),
           ],
         ),
-        if (fab != null)
-          Positioned(right: 4, bottom: 12, child: fab),
+        if (fab != null) Positioned(right: 4, bottom: 12, child: fab),
       ],
     );
   }
@@ -359,20 +355,20 @@ class _RubriqueStock extends StatelessWidget {
                     required quantiteInitiale,
                     required seuilCritique,
                   }) => munitions
-                      ? ref
-                            .read(munitionsProvider.notifier)
-                            .creer(
-                              calibre: libelle,
-                              quantiteInitiale: quantiteInitiale,
-                              seuilCritique: seuilCritique,
-                            )
-                      : ref
-                            .read(equipementsProvider.notifier)
-                            .creer(
-                              libelle: libelle,
-                              quantiteInitiale: quantiteInitiale,
-                              seuilCritique: seuilCritique,
-                            ),
+                  ? ref
+                        .read(munitionsProvider.notifier)
+                        .creer(
+                          calibre: libelle,
+                          quantiteInitiale: quantiteInitiale,
+                          seuilCritique: seuilCritique,
+                        )
+                  : ref
+                        .read(equipementsProvider.notifier)
+                        .creer(
+                          libelle: libelle,
+                          quantiteInitiale: quantiteInitiale,
+                          seuilCritique: seuilCritique,
+                        ),
             ),
           ),
           icon: const Icon(Icons.add),

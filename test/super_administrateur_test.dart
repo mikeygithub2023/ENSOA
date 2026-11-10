@@ -13,7 +13,7 @@
 // en douce. Le second test tient cette garde.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sig_ensoa/modules/scolarite/features/sante_screen.dart';
-import 'package:sig_ensoa/modules/scolarite/features/scolarite_screen.dart';
+import 'package:sig_ensoa/modules/scolarite/features/instruction_screen.dart';
 
 import 'package:sig_ensoa/core/postes.dart';
 import 'package:sig_ensoa/core/roles.dart';
@@ -87,13 +87,13 @@ void main() {
     });
   });
 
-  test('la scolarité lui est regroupée, sans rien perdre', () {
+  test("l'instruction lui est regroupée, sans rien perdre", () {
     final chemins = elementsPour(_administrateur).map((e) => e.chemin).toSet();
 
-    expect(chemins, contains('/scolarite/rubrique'));
+    expect(chemins, contains('/instruction'));
     expect(chemins, isNot(contains('/scolarite/apprenants')));
 
-    expect(ongletsScolarite(_administrateur).map((o) => o.$1), [
+    expect(ongletsInstruction(_administrateur).map((o) => o.$1), [
       'Élèves & Stagiaires',
       'Cours',
       'Matières',

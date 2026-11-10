@@ -43,7 +43,12 @@ const colonnesVehicule = <ColonneVehicule>[
     'Disponible, En mission, En réparation, Hors service — Disponible si vide',
     'Disponible',
   ),
-  ColonneVehicule('position', 'Position actuelle', 'Libre, facultatif', 'ENSOA'),
+  ColonneVehicule(
+    'position',
+    'Position actuelle',
+    'Libre, facultatif',
+    'ENSOA',
+  ),
   ColonneVehicule('observations', 'Observations', 'Libre, facultatif', ''),
 ];
 
@@ -153,11 +158,20 @@ int? lireNombre(String brut) {
 }
 
 const _accents = {
-  'à': 'a', 'â': 'a', 'ä': 'a',
-  'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
-  'î': 'i', 'ï': 'i',
-  'ô': 'o', 'ö': 'o',
-  'ù': 'u', 'û': 'u', 'ü': 'u',
+  'à': 'a',
+  'â': 'a',
+  'ä': 'a',
+  'é': 'e',
+  'è': 'e',
+  'ê': 'e',
+  'ë': 'e',
+  'î': 'i',
+  'ï': 'i',
+  'ô': 'o',
+  'ö': 'o',
+  'ù': 'u',
+  'û': 'u',
+  'ü': 'u',
   'ç': 'c',
 };
 
@@ -202,7 +216,8 @@ List<LigneVehicule> analyserLignes({
   int numeroPremiereLigne = 2,
 }) {
   final parParc = {
-    for (final v in parcExistant) normaliserImmatriculation(v.immatriculation): v,
+    for (final v in parcExistant)
+      normaliserImmatriculation(v.immatriculation): v,
   };
   final parRetire = {
     for (final v in parcRetire) normaliserImmatriculation(v.immatriculation): v,
@@ -270,8 +285,10 @@ List<String> _controler(List<String> valeurs) {
     if (brut.isEmpty) continue;
     final n = lireNombre(brut);
     if (n == null) {
-      erreurs.add('${colonnesVehicule[indiceColonne(c)].libelle} : '
-          '« $brut » n\'est pas un nombre');
+      erreurs.add(
+        '${colonnesVehicule[indiceColonne(c)].libelle} : '
+        '« $brut » n\'est pas un nombre',
+      );
     } else if (n < 0) {
       erreurs.add('${colonnesVehicule[indiceColonne(c)].libelle} négatif');
     }

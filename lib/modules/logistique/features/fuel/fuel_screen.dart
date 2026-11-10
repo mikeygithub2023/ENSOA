@@ -124,7 +124,9 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
               indicatorWeight: 3,
               dividerColor: AppColors.border,
               labelStyle: const TextStyle(fontWeight: FontWeight.w800),
-              unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w700,
+              ),
               tabs: const [
                 Tab(text: 'Tableau de bord'),
                 Tab(text: 'Soute'),

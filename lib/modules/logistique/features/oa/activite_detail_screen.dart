@@ -99,7 +99,8 @@ class ActiviteDetailScreen extends ConsumerWidget {
                 Row(
                   children: [
                     IconButton(
-                      onPressed: () => context.go('/logistique/taches?onglet=activites'),
+                      onPressed: () =>
+                          context.go('/logistique/taches?onglet=activites'),
                       icon: const Icon(Icons.arrow_back),
                     ),
                     const SizedBox(width: 8),

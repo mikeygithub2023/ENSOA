@@ -135,12 +135,7 @@ List<_TemplateColumn> _templateColumnsFor(ClasseType type) {
   );
   // Un seul par ligne : c'est ce que portent les fiches de renseignement.
   // Un diplôme absent du catalogue s'y ajoute à l'enregistrement.
-  const diplome = _TemplateColumn(
-    'diplome',
-    'Diplôme',
-    'Texte libre',
-    'BAC D',
-  );
+  const diplome = _TemplateColumn('diplome', 'Diplôme', 'Texte libre', 'BAC D');
 
   const fiche = [
     situationMatrimoniale,

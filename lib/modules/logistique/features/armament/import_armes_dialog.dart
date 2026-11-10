@@ -61,14 +61,10 @@ class _ImportArmesDialogState extends ConsumerState<_ImportArmesDialog> {
   Future<void> _telechargerModele() async {
     final classeur = Excel.createExcel();
     final feuille = classeur[classeur.sheets.keys.first];
-    feuille.appendRow([
-      for (final c in colonnesArme) TextCellValue(c.libelle),
-    ]);
+    feuille.appendRow([for (final c in colonnesArme) TextCellValue(c.libelle)]);
     // Une ligne d'exemple : un modèle vide laisse deviner le format, une
     // ligne remplie le montre.
-    feuille.appendRow([
-      for (final c in colonnesArme) TextCellValue(c.exemple),
-    ]);
+    feuille.appendRow([for (final c in colonnesArme) TextCellValue(c.exemple)]);
     final octets = classeur.encode();
     if (octets == null) return;
 
@@ -330,12 +326,7 @@ class _ImportArmesDialogState extends ConsumerState<_ImportArmesDialog> {
                       _rienAFaire
                           ? 'Rien à verser : tout ce que porte ce fichier est '
                                 'déjà au registre, ou reste à corriger.'
-                          : '${[
-                              if (_aCreer.isNotEmpty)
-                                '${_aCreer.length} arme(s) seront créées',
-                              if (_aRetablir.isNotEmpty)
-                                '${_aRetablir.length} rétablie(s)',
-                            ].join(', ')}. Les autres lignes sont laissées '
+                          : '${[if (_aCreer.isNotEmpty) '${_aCreer.length} arme(s) seront créées', if (_aRetablir.isNotEmpty) '${_aRetablir.length} rétablie(s)'].join(', ')}. Les autres lignes sont laissées '
                                 'de côté.',
                       style: const TextStyle(
                         color: AppColors.inkMuted,

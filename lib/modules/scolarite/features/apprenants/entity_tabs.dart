@@ -4,30 +4,71 @@ import 'package:sig_ensoa/core/theme.dart' hide AlertLevel, AlertLevelColor;
 import '../../models/classe.dart';
 import '../../models/division.dart';
 import 'absences_tab_view.dart';
+import 'bureaux.dart';
 import 'consultations_medicales_tab_view.dart';
 import 'controles_tab_view.dart';
 import 'permissions_tab_view.dart';
 import 'situation_prise_armes_tab_view.dart';
 import 'statistiques_classe_tab_view.dart';
 
+/// Les onglets que peut porter l'écran d'un effectif, tous bureaux confondus.
+enum OngletEffectif {
+  priseArmes,
+  effectif,
+  resultats,
+  statistiques,
+  controles,
+  consultations,
+  permissions,
+  absences,
+}
+
+/// Les onglets d'un bureau, dans l'ordre où ils se présentent.
+///
+/// Deux d'entre eux ne paraissent que sur une phase ou un stage précis — les
+/// résultats et les contrôles côté instruction, les statistiques côté
+/// ressources humaines : sous « toutes phases / stages », ces rubriques
+/// n'auraient pas de portée définie. Les autres se cumulent sans peine sur une
+/// promotion ou une division entière.
+///
+/// « Effectif » — la liste nominative — figure dans les deux : c'est par elle
+/// qu'on ouvre la fiche d'un élève, et les deux bureaux en ont besoin.
+List<OngletEffectif> ongletsDuBureau(
+  Bureau bureau, {
+  required bool avecClasse,
+}) {
+  return switch (bureau) {
+    Bureau.instruction => [
+      OngletEffectif.effectif,
+      if (avecClasse) ...[OngletEffectif.resultats, OngletEffectif.controles],
+    ],
+    Bureau.ressourcesHumaines => [
+      OngletEffectif.priseArmes,
+      OngletEffectif.effectif,
+      if (avecClasse) OngletEffectif.statistiques,
+      OngletEffectif.consultations,
+      OngletEffectif.permissions,
+      OngletEffectif.absences,
+    ],
+  };
+}
+
 /// Onglets affichés une fois une division (et éventuellement une classe/stage)
-/// sélectionnée sur l'écran Élèves & Stagiaires. "Élèves/Stagiaires",
-/// "Consultations médicales", "Permissions", "Absences" et "Contrôle continu
-/// / Contrôle intermédiaire" sont branchés sur les données réelles ; les
-/// autres sont de simples emplacements en attendant l'implémentation de
-/// chaque module. "Statistiques générales" et "Contrôle continu / Contrôle
-/// intermédiaire" ne s'affichent que pour une classe/stage précis(e) — pas
-/// sous "Toutes phases / stages", où ces rubriques n'auraient pas de portée
-/// définie.
+/// sélectionnée, sous le bureau où l'on se trouve. Tous sont branchés sur les
+/// données réelles.
 class EntityTabsView extends StatefulWidget {
   const EntityTabsView({
     super.key,
+    required this.bureau,
     required this.division,
     required this.classe,
     required this.elevesStagiairesTab,
     this.classesRetenues,
     this.sousPromotion = false,
   });
+
+  /// Le bureau dont on tient l'écran : c'est lui qui décide des onglets.
+  final Bureau bureau;
 
   /// Nulle sous « Toutes » : les onglets cumulent alors les divisions que
   /// l'utilisateur a le droit de voir.
@@ -48,15 +89,12 @@ class EntityTabsView extends StatefulWidget {
   State<EntityTabsView> createState() => _EntityTabsViewState();
 }
 
-class _TabDef {
-  const _TabDef(this.label, this.icon);
-  final String label;
-  final IconData icon;
-}
-
 class _EntityTabsViewState extends State<EntityTabsView>
     with TickerProviderStateMixin {
   late TabController _controller;
+
+  List<OngletEffectif> get _onglets =>
+      ongletsDuBureau(widget.bureau, avecClasse: widget.classe != null);
 
   /// Le mot suit la portée : une promotion et ses phases ne contiennent
   /// que des élèves, un stage que des stagiaires. « Élèves/Stagiaires » ne
@@ -75,30 +113,79 @@ class _EntityTabsViewState extends State<EntityTabsView>
     null => 'Contrôle continu / Examen',
   };
 
-  List<_TabDef> get _tabs => [
-    const _TabDef('Situation de Prise d\'Armes', Icons.groups_outlined),
-    _TabDef(_elevesStagiairesLabel, Icons.school_outlined),
-    if (widget.classe != null) ...[
-      const _TabDef('Statistiques générales', Icons.bar_chart_outlined),
-      _TabDef(_controlesTabLabel, Icons.grading_outlined),
-    ],
-    const _TabDef('Consultations médicales', Icons.medical_services_outlined),
-    const _TabDef('Permissions', Icons.assignment_turned_in_outlined),
-    const _TabDef('Absences', Icons.event_busy_outlined),
-  ];
+  String _libelle(OngletEffectif onglet) => switch (onglet) {
+    OngletEffectif.priseArmes => 'Situation de Prise d\'Armes',
+    OngletEffectif.effectif => _elevesStagiairesLabel,
+    OngletEffectif.resultats => 'Résultats',
+    OngletEffectif.statistiques => 'Statistiques générales',
+    OngletEffectif.controles => _controlesTabLabel,
+    OngletEffectif.consultations => 'Consultations médicales',
+    OngletEffectif.permissions => 'Permissions',
+    OngletEffectif.absences => 'Absences',
+  };
+
+  IconData _icone(OngletEffectif onglet) => switch (onglet) {
+    OngletEffectif.priseArmes => Icons.groups_outlined,
+    OngletEffectif.effectif => Icons.school_outlined,
+    OngletEffectif.resultats => Icons.insights_outlined,
+    OngletEffectif.statistiques => Icons.bar_chart_outlined,
+    OngletEffectif.controles => Icons.grading_outlined,
+    OngletEffectif.consultations => Icons.medical_services_outlined,
+    OngletEffectif.permissions => Icons.assignment_turned_in_outlined,
+    OngletEffectif.absences => Icons.event_busy_outlined,
+  };
+
+  Widget _vue(OngletEffectif onglet) => switch (onglet) {
+    OngletEffectif.priseArmes => SituationPriseArmesTabView(
+      division: widget.division,
+      classe: widget.classe,
+      classesRetenues: widget.classesRetenues,
+    ),
+    OngletEffectif.effectif => widget.elevesStagiairesTab,
+    // Les deux voient le même écran, chacun son volet : les résultats pour
+    // l'instruction, l'effectif et sa disponibilité pour les RH.
+    OngletEffectif.resultats => StatistiquesClasseTabView(
+      classe: widget.classe!,
+      bureau: Bureau.instruction,
+    ),
+    OngletEffectif.statistiques => StatistiquesClasseTabView(
+      classe: widget.classe!,
+      bureau: Bureau.ressourcesHumaines,
+    ),
+    OngletEffectif.controles => ControlesTabView(
+      // Une classe est retenue : sa division l'est donc aussi.
+      division: widget.division!,
+      classe: widget.classe,
+    ),
+    OngletEffectif.consultations => ConsultationsMedicalesTabView(
+      division: widget.division,
+      classe: widget.classe,
+      classesRetenues: widget.classesRetenues,
+    ),
+    OngletEffectif.permissions => PermissionsTabView(
+      division: widget.division,
+      classe: widget.classe,
+      classesRetenues: widget.classesRetenues,
+    ),
+    OngletEffectif.absences => AbsencesTabView(
+      division: widget.division,
+      classe: widget.classe,
+      classesRetenues: widget.classesRetenues,
+    ),
+  };
 
   @override
   void initState() {
     super.initState();
-    _controller = TabController(length: _tabs.length, vsync: this);
+    _controller = TabController(length: _onglets.length, vsync: this);
   }
 
   @override
   void didUpdateWidget(covariant EntityTabsView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (_controller.length != _tabs.length) {
+    if (_controller.length != _onglets.length) {
       final oldController = _controller;
-      _controller = TabController(length: _tabs.length, vsync: this);
+      _controller = TabController(length: _onglets.length, vsync: this);
       oldController.dispose();
     } else if (oldWidget.division?.id != widget.division?.id ||
         oldWidget.classe?.id != widget.classe?.id) {
@@ -114,6 +201,7 @@ class _EntityTabsViewState extends State<EntityTabsView>
 
   @override
   Widget build(BuildContext context) {
+    final onglets = _onglets;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -140,10 +228,10 @@ class _EntityTabsViewState extends State<EntityTabsView>
               fontSize: 13,
             ),
             tabs: [
-              for (final tab in _tabs)
+              for (final onglet in onglets)
                 Tab(
-                  icon: Icon(tab.icon, size: 18),
-                  text: tab.label,
+                  icon: Icon(_icone(onglet), size: 18),
+                  text: _libelle(onglet),
                   iconMargin: const EdgeInsets.only(bottom: 4),
                 ),
             ],
@@ -153,37 +241,7 @@ class _EntityTabsViewState extends State<EntityTabsView>
         Expanded(
           child: TabBarView(
             controller: _controller,
-            children: [
-              SituationPriseArmesTabView(
-                division: widget.division,
-                classe: widget.classe,
-                classesRetenues: widget.classesRetenues,
-              ),
-              widget.elevesStagiairesTab,
-              if (widget.classe != null) ...[
-                StatistiquesClasseTabView(classe: widget.classe!),
-                ControlesTabView(
-                  // Une classe est retenue : sa division l'est donc aussi.
-                  division: widget.division!,
-                  classe: widget.classe,
-                ),
-              ],
-              ConsultationsMedicalesTabView(
-                division: widget.division,
-                classe: widget.classe,
-                classesRetenues: widget.classesRetenues,
-              ),
-              PermissionsTabView(
-                division: widget.division,
-                classe: widget.classe,
-                classesRetenues: widget.classesRetenues,
-              ),
-              AbsencesTabView(
-                division: widget.division,
-                classe: widget.classe,
-                classesRetenues: widget.classesRetenues,
-              ),
-            ],
+            children: [for (final onglet in onglets) _vue(onglet)],
           ),
         ),
       ],

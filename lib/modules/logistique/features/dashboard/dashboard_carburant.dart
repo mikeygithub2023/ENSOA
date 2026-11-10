@@ -102,6 +102,7 @@ class DashboardCarburant extends ConsumerWidget {
         context.go('/logistique/carburant');
       }
     }
+
     void versActivites() => context.go('/logistique/taches');
 
     final alertes = <Alerte>[

@@ -179,8 +179,7 @@ SouteStock _souteStockFromRow(Map<String, dynamic> row) {
   );
 }
 
-const _selectSouteStockAvecRepartition =
-    '*, repartition(libelle, supprime_le)';
+const _selectSouteStockAvecRepartition = '*, repartition(libelle, supprime_le)';
 
 class SouteStocksNotifier extends Notifier<List<SouteStock>> {
   @override
