@@ -777,7 +777,7 @@ void main() {
   testWidgets('menu', (tester) async {
     await _dessiner(
       tester,
-      taille: const Size(1300, 940),
+      taille: const Size(1300, 790),
       // Un chemin qui ne recharge rien, et qui montre une entrée active : la
       // pilule foncée fait partie de ce qu'on vient regarder.
       ecran: const AppShell(
@@ -790,6 +790,6 @@ void main() {
       ],
     );
     tester.takeException();
-    await _enregistrer('menu', largeurUtile: 300, hauteurUtile: 700);
+    await _enregistrer('menu', largeurUtile: 300, hauteurUtile: 782);
   });
 }

@@ -394,15 +394,7 @@ class _BarreState extends ConsumerState<_Barre> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  for (final (:intertitre, element: e) in lignesNav(
-                    widget.entrees,
-                  )) ...[
-                    // L'intertitre ne paraît que barre déployée : repliée sur
-                    // 72 pixels, « Ressources humaines » ne tiendrait pas, et
-                    // une abréviation ne dirait rien de plus que les icônes
-                    // qu'elle coifferait.
-                    if (etendu && intertitre != null)
-                      _Intertitre(libelle: intertitre.libelle),
+                  for (final e in widget.entrees) ...[
                     _Icone(
                       icone: e.icone,
                       iconeArme: e.iconeArme,
@@ -456,36 +448,6 @@ class _BarreState extends ConsumerState<_Barre> {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Le nom d'une section, au-dessus de ses entrées.
-///
-/// Discret à dessein : la barre sert à ouvrir un écran, pas à lire une
-/// organigramme. L'intertitre ne fait que dire de quel bureau relève ce qui
-/// suit — ce qui importe depuis que la scolarité se partage entre
-/// l'instruction et les ressources humaines.
-class _Intertitre extends StatelessWidget {
-  const _Intertitre({required this.libelle});
-
-  final String libelle;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 12, top: 10, bottom: 6, right: 4),
-      child: Text(
-        libelle.toUpperCase(),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: AppColors.inkMuted,
-          fontSize: 10.5,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.9,
-        ),
-      ),
     );
   }
 }

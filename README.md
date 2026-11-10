@@ -252,12 +252,13 @@ sous « Scolarité » faute de section à eux, alors qu'ils ne relèvent ni de l
 ni de l'autre bureau. L'onglet « Consultations médicales » des RH reste la
 lecture de ce que le service y a saisi.
 
-La barre de gauche annonce enfin ses sections par un intertitre — jusqu'ici
-`SectionNav` n'existait qu'en commentaire, sans rien afficher. Un intertitre ne
-paraît qu'à la première entrée de sa section et jamais deux fois : « Activités »
-relève du général mais se tient au milieu du soutien technique, qui sans cette
-règle se serait annoncé une seconde fois juste après elle. Barre repliée (sous
-900 pixels), les intertitres s'effacent avec les noms.
+La barre de gauche, elle, ne change pas d'allure. On avait essayé d'y écrire le
+nom de chaque section au-dessus de ses entrées — `SectionNav` n'existait
+jusqu'ici qu'en commentaire, sans rien afficher. Essayé et retiré : les
+intertitres hachaient la lecture plus qu'ils n'éclairaient, et une colonne
+d'icônes et de noms n'est pas un organigramme. La section reste la vérité de
+rangement du menu, et `sectionsVues` permet de la vérifier en test plutôt qu'à
+l'œil.
 
 Chemins : `/instruction` (la rubrique groupée de l'administrateur, ex
 `/scolarite/rubrique`) et `/ressources-humaines`. `/scolarite/apprenants` ne
@@ -266,7 +267,7 @@ bouge pas : il porte les fiches élèves et les contrôles en sous-routes.
 ### État à la fin de la journée
 
 - `flutter analyze` : aucun avertissement
-- **178 tests** passent, dont `test/bureaux_scolarite_test.dart`, né de ce
+- **177 tests** passent, dont `test/bureaux_scolarite_test.dart`, né de ce
   découpage
 - **147 tests** passaient dans la journée, dont cinq fichiers nés aujourd'hui :
   `test/tableau_de_bord_test.dart`, `test/taches_test.dart`,

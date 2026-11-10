@@ -35,13 +35,6 @@ extension SectionNavLibelle on SectionNav {
     SectionNav.soutienTechnique => 'Soutien technique',
     SectionNav.commun => 'Général',
   };
-
-  /// La section s'annonce-t-elle par un intertitre dans la barre ?
-  ///
-  /// « Général » ne s'annonce pas : ses entrées encadrent les autres — le
-  /// tableau de bord et les notifications en haut, l'administration en bas —
-  /// et un intertitre n'y nommerait qu'un fourre-tout.
-  bool get porteUnIntertitre => this != SectionNav.commun;
 }
 
 class ElementNav {
@@ -310,29 +303,16 @@ const elementsNav = <ElementNav>[
 List<ElementNav> elementsPour(Profil profil) =>
     elementsNav.where((e) => e.ouvertA(profil)).toList();
 
-/// Les lignes de la barre : chaque entrée, précédée au besoin de l'intertitre
-/// de sa section.
+/// Les sections qu'un profil voit, dans l'ordre où ses entrées se présentent.
 ///
-/// L'intertitre ne paraît qu'à la **première** entrée de sa section, et jamais
-/// deux fois. C'est volontaire : « Activités » relève du général mais se tient
-/// au milieu du soutien technique, là où elle sert ; sans cette règle, le
-/// soutien technique s'annoncerait une seconde fois juste après elle, comme si
-/// une autre section commençait.
-///
-/// Une section dont l'agent ne voit aucune entrée ne s'annonce pas : la
-/// fonction ne lit que ce qu'on lui passe, déjà filtré par les permissions.
-List<({SectionNav? intertitre, ElementNav element})> lignesNav(
-  List<ElementNav> entrees,
-) {
-  final annoncees = <SectionNav>{};
-  return [
-    for (final element in entrees)
-      (
-        intertitre:
-            element.section.porteUnIntertitre && annoncees.add(element.section)
-            ? element.section
-            : null,
-        element: element,
-      ),
-  ];
+/// La barre ne les écrit pas : elle est une colonne d'icônes et de noms, pas
+/// un organigramme — on a essayé d'y poser des intertitres, et ils hachaient
+/// la lecture plus qu'ils n'éclairaient. La section reste la vérité de
+/// rangement du menu, et se vérifie ici plutôt qu'à l'œil.
+List<SectionNav> sectionsVues(List<ElementNav> entrees) {
+  final vues = <SectionNav>[];
+  for (final element in entrees) {
+    if (!vues.contains(element.section)) vues.add(element.section);
+  }
+  return vues;
 }
