@@ -719,7 +719,7 @@ void main() {
   // changement, le corps de chaque onglet étant l'écran d'avant, repris tel
   // quel. On dessine la rubrique réelle et l'on ne garde que son bandeau.
   for (final (nom, ecran) in <(String, Widget)>[
-    ('scolarite', InstructionScreen()),
+    ('instruction', InstructionScreen()),
     ('sante', SanteScreen()),
   ]) {
     testWidgets('rubrique $nom', (tester) async {
@@ -790,6 +790,6 @@ void main() {
       ],
     );
     tester.takeException();
-    await _enregistrer('menu', largeurUtile: 300);
+    await _enregistrer('menu', largeurUtile: 300, hauteurUtile: 700);
   });
 }
