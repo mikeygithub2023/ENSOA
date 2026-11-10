@@ -153,7 +153,12 @@ class _RegisterApprenantDialogState
     final existing = widget.existing;
     if (existing == null) {
       if (widget.classe.type == ClasseType.phase) {
-        _gradeCtrl.text = defaultGradeForClasse(widget.classe.nom) ?? '';
+        _gradeCtrl.text =
+            defaultGradeForClasse(
+              widget.classe.nom,
+              divisionCode: widget.division.code,
+            ) ??
+            '';
       }
       return;
     }

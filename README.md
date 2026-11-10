@@ -174,6 +174,43 @@ unité, un nombre nu induirait en erreur.
 L'élève voit la même chose sur son propre profil : `MonProfilScreen` réutilise
 `ApprenantDetailView`.
 
+## 10 novembre 2026
+
+### L'import porte toute la fiche, et non plus l'état civil seul
+
+Le modèle d'import ne prenait que nom, prénoms, sexe, téléphone, date et lieu
+de naissance. La fiche de renseignement de l'école en porte bien davantage, et
+l'application sait déjà tout stocker : douze colonnes se sont donc ajoutées à
+la suite des précédentes — situation matrimoniale, enfants, père, mère,
+e-mail, groupe sanguin, taille, poids, personne à prévenir, lien de parenté,
+téléphone à prévenir, diplôme. Elles sont facultatives, et **un fichier écrit
+pour l'ancien modèle reste lisible** : il s'arrête simplement plus tôt.
+
+Ce qu'une cellule veut dire se lit dans `import_valeurs.dart`, à part du
+dialogue et donc vérifiable (`test/import_apprenants_valeurs_test.dart`). La
+règle y est la même partout : devant une valeur qu'on ne comprend pas, on rend
+`null` plutôt que de trancher. Une case vide se complète ; une case fausse se
+croit. « 1,73 M » et « 173 » donnent tous deux 173 cm — sous trois, la cellule
+parle en mètres, personne ne mesure deux centimètres.
+
+`outils/scinder_fiche_renseignement.py` découpe une fiche de promotion en un
+classeur par division. Deux pièges s'y sont révélés, propres aux classeurs
+écrits par openpyxl et non par Excel : la feuille y est désignée par un chemin
+absolu que le lecteur de l'application ne sait pas suivre, et une cellule vide
+s'y écrit `<c t="inlineStr" />`, forme sur laquelle il s'arrête net. Le script
+corrige les deux. Le dialogue, lui, dit maintenant quoi faire quand un fichier
+le déroute — le rouvrir dans Excel et l'y enregistrer à nouveau — au lieu de
+rapporter « Null check operator used on a null value ».
+
+### Le grade suit la phase, et la division qui la donne
+
+La Formation Commune de Base se fait des deux côtés de l'école. La règle
+écrite le 1er septembre ne regardait que le nom de la phase : « FCB » donnait
+« élève sous-officier d'active de première année » à tout le monde, spécialistes
+compris. La division tranche désormais, dans l'application comme dans la base
+(migration `20261110000000`), et la migration corrige au passage les élèves
+déjà enregistrés sous le mauvais grade.
+
 ### État à la fin de la journée
 
 - `flutter analyze` : aucun avertissement

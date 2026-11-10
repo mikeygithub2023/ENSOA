@@ -13,6 +13,7 @@ import '../../models/division.dart';
 import '../../shared/widgets/common.dart';
 import 'data/apprenants_repository.dart';
 import 'grade_defaults.dart';
+import 'import_valeurs.dart';
 import 'providers/apprenants_providers.dart';
 
 class _TemplateColumn {
@@ -70,6 +71,92 @@ List<_TemplateColumn> _templateColumnsFor(ClasseType type) {
     'Texte libre',
     'Abidjan',
   );
+  // Ce que la fiche signalétique porte en plus de l'état civil. Tout y est
+  // facultatif : ces colonnes se sont ajoutées à la suite des précédentes,
+  // si bien qu'un fichier écrit pour l'ancien modèle reste lisible — il
+  // s'arrête simplement plus tôt.
+  const situationMatrimoniale = _TemplateColumn(
+    'situation_matrimoniale',
+    'Situation matrimoniale',
+    'Célibataire, Marié(e), Divorcé(e), Veuf(ve)',
+    'Célibataire',
+  );
+  const nombreEnfants = _TemplateColumn(
+    'nombre_enfants',
+    'Enfant(s)',
+    'Nombre',
+    '0',
+  );
+  const nomPere = _TemplateColumn(
+    'nom_pere',
+    'Nom et prénoms du père',
+    'Texte libre',
+    'KOUAME Yao',
+  );
+  const nomMere = _TemplateColumn(
+    'nom_mere',
+    'Nom et prénoms de la mère',
+    'Texte libre',
+    'ADJOUA Ama',
+  );
+  const email = _TemplateColumn(
+    'email',
+    'E-mail',
+    'Texte libre',
+    'yao.kouame@exemple.ci',
+  );
+  const groupeSanguin = _TemplateColumn(
+    'groupe_sanguin',
+    'Groupe sanguin',
+    'A+, A-, B+, B-, AB+, AB-, O+, O-',
+    'O+',
+  );
+  // En centimètres, mais « 1,73 m » se laisse lire aussi : les fiches de
+  // l'école sont écrites des deux façons.
+  const taille = _TemplateColumn('taille_cm', 'Taille (cm)', 'Nombre', '173');
+  const poids = _TemplateColumn('poids_kg', 'Poids (kg)', 'Nombre', '68');
+  const urgenceNom = _TemplateColumn(
+    'urgence_nom',
+    'Personne à prévenir',
+    'Texte libre',
+    'KOUAME Akissi',
+  );
+  const urgenceLien = _TemplateColumn(
+    'urgence_lien',
+    'Lien de parenté',
+    'Texte libre',
+    'Mère',
+  );
+  const urgenceContact = _TemplateColumn(
+    'urgence_contact',
+    'Téléphone à prévenir',
+    'Texte libre',
+    '05 00 00 00 00',
+  );
+  // Un seul par ligne : c'est ce que portent les fiches de renseignement.
+  // Un diplôme absent du catalogue s'y ajoute à l'enregistrement.
+  const diplome = _TemplateColumn(
+    'diplome',
+    'Diplôme',
+    'Texte libre',
+    'BAC D',
+  );
+
+  const fiche = [
+    situationMatrimoniale,
+    nombreEnfants,
+    nomPere,
+    nomMere,
+    email,
+    groupeSanguin,
+    taille,
+    poids,
+    urgenceNom,
+    urgenceLien,
+    urgenceContact,
+    diplome,
+  ];
+
   return type == ClasseType.stage
       ? [
           matricule,
@@ -80,6 +167,7 @@ List<_TemplateColumn> _templateColumnsFor(ClasseType type) {
           telephone,
           dateNaissance,
           lieuNaissance,
+          ...fiche,
         ]
       : [
           matricule,
@@ -89,6 +177,7 @@ List<_TemplateColumn> _templateColumnsFor(ClasseType type) {
           telephone,
           dateNaissance,
           lieuNaissance,
+          ...fiche,
         ];
 }
 
@@ -246,7 +335,16 @@ class _ImportApprenantsDialogState
       });
     } catch (e) {
       setState(() {
-        _parseError = 'Fichier invalide : ${messageErreur(e)}';
+        // Le lecteur de classeurs est pointilleux : un fichier écrit par un
+        // autre outil qu'Excel peut le dérouter, et son message — « Null
+        // check operator used on a null value » — ne dit rien à personne.
+        // On ajoute donc ce qui remet presque toujours d'aplomb : rouvrir
+        // le fichier dans Excel et l'y enregistrer à nouveau.
+        _parseError =
+            'Fichier illisible : ${messageErreur(e)}\n'
+            'Si ce classeur vient d\'un autre outil qu\'Excel, ouvrez-le '
+            'dans Excel et enregistrez-le à nouveau au format .xlsx, puis '
+            'réessayez.';
         _loading = false;
       });
     }
@@ -296,25 +394,21 @@ class _ImportApprenantsDialogState
   String? _emptyToNull(String value) =>
       value.trim().isEmpty ? null : value.trim();
 
-  /// Le sexe attendu est « M » ou « F ». On accepte les formes courantes
-  /// — « m », « Masculin », « H », « Homme », « f », « Féminin » — parce
-  /// qu'un fichier vient rarement normalisé, et on laisse vide plutôt que
-  /// de trancher devant une valeur qu'on ne comprend pas : mieux vaut une
-  /// fiche à compléter qu'un barème appliqué au mauvais sexe.
-  String? _parseSexe(String value) {
-    final v = value.trim().toLowerCase();
-    if (v.isEmpty) return null;
-    if (v.startsWith('m') || v.startsWith('h')) return 'M';
-    if (v.startsWith('f')) return 'F';
-    return null;
-  }
-
   /// Retire tous les espaces du matricule (pas seulement en début/fin) pour
   /// que la recherche par matricule ne dépende pas de la façon dont il a
   /// été saisi dans le fichier Excel.
   String? _normalizeMatricule(String value) {
     final stripped = value.replaceAll(RegExp(r'\s+'), '');
     return stripped.isEmpty ? null : stripped;
+  }
+
+  /// Une colonne ajoutée après coup peut manquer d'un fichier écrit pour
+  /// l'ancien modèle : on rend alors une cellule vide plutôt que de sortir
+  /// du tableau.
+  String _valeur(_ImportRow row, String cle) {
+    final index = _idx(cle);
+    if (index < 0 || index >= row.values.length) return '';
+    return row.values[index];
   }
 
   ApprenantDraft _draftFromRow(_ImportRow row) {
@@ -327,12 +421,29 @@ class _ImportApprenantsDialogState
       nom: row.values[_idx('nom')].trim(),
       prenom: row.values[_idx('prenoms')].trim(),
       grade: isEleve
-          ? defaultGradeForClasse(widget.classe.nom)
+          ? defaultGradeForClasse(
+              widget.classe.nom,
+              divisionCode: widget.division.code,
+            )
           : _emptyToNull(row.values[_idx('grade')]),
-      sexe: _parseSexe(row.values[_idx('sexe')]),
+      sexe: sexeDepuisCellule(row.values[_idx('sexe')]),
       telephone: _emptyToNull(row.values[_idx('telephone')]),
       dateNaissance: _parseDate(row.values[_idx('date_naissance')]),
       lieuNaissance: _emptyToNull(row.values[_idx('lieu_naissance')]),
+      situationMatrimoniale: situationDepuisCellule(
+        _valeur(row, 'situation_matrimoniale'),
+      ),
+      nombreEnfants: entierDepuisCellule(_valeur(row, 'nombre_enfants')),
+      nomPere: _emptyToNull(_valeur(row, 'nom_pere')),
+      nomMere: _emptyToNull(_valeur(row, 'nom_mere')),
+      email: _emptyToNull(_valeur(row, 'email')),
+      groupeSanguin: groupeSanguinDepuisCellule(_valeur(row, 'groupe_sanguin')),
+      tailleCm: tailleDepuisCellule(_valeur(row, 'taille_cm')),
+      poidsKg: premierNombre(_valeur(row, 'poids_kg')),
+      urgenceNom: _emptyToNull(_valeur(row, 'urgence_nom')),
+      urgenceLien: _emptyToNull(_valeur(row, 'urgence_lien')),
+      urgenceContact: _emptyToNull(_valeur(row, 'urgence_contact')),
+      diplomes: [?_emptyToNull(_valeur(row, 'diplome'))],
     );
   }
 
