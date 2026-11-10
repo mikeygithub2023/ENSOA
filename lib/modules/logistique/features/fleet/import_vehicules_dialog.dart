@@ -122,7 +122,9 @@ class _ImportVehiculesDialogState
       // Les retirés du parc ne sont dans aucune liste, mais ils gardent
       // leur immatriculation : sans eux, l'import annonce « à créer » une
       // plaque que la base refusera, et le lot entier tombe.
-      final retires = await ref.read(vehiculesProvider.notifier).retiresDuParc();
+      final retires = await ref
+          .read(vehiculesProvider.notifier)
+          .retiresDuParc();
 
       final classeur = Excel.decodeBytes(octets);
       if (classeur.tables.isEmpty) {
@@ -327,12 +329,7 @@ class _ImportVehiculesDialogState
                       _rienAFaire
                           ? 'Rien à verser : tout ce que porte ce fichier est '
                                 'déjà au parc, ou reste à corriger.'
-                          : '${[
-                              if (_aCreer.isNotEmpty)
-                                '${_aCreer.length} véhicule(s) seront créés',
-                              if (_aRetablir.isNotEmpty)
-                                '${_aRetablir.length} rétabli(s)',
-                            ].join(', ')}. Les autres lignes sont laissées '
+                          : '${[if (_aCreer.isNotEmpty) '${_aCreer.length} véhicule(s) seront créés', if (_aRetablir.isNotEmpty) '${_aRetablir.length} rétabli(s)'].join(', ')}. Les autres lignes sont laissées '
                                 'de côté.',
                       style: const TextStyle(
                         color: AppColors.inkMuted,
@@ -518,7 +515,8 @@ class _TableauApercu extends StatelessWidget {
           columns: [
             const DataColumn(label: Text('Ligne')),
             const DataColumn(label: Text('Sort')),
-            for (final c in colonnesVehicule) DataColumn(label: Text(c.libelle)),
+            for (final c in colonnesVehicule)
+              DataColumn(label: Text(c.libelle)),
           ],
           rows: [
             for (final l in lignes)

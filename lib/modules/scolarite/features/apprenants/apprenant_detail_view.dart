@@ -32,6 +32,7 @@ import 'providers/consultations_medicales_providers.dart';
 import 'providers/controles_providers.dart';
 import 'providers/permissions_providers.dart';
 import 'providers/sous_modules_providers.dart';
+import 'providers/sport_providers.dart';
 import 'register_apprenant_dialog.dart';
 import 'statistiques_apprenant_section.dart';
 
@@ -146,6 +147,9 @@ class ApprenantDetailView extends ConsumerWidget {
     final controlesAsync = ref.watch(controlesByClasseProvider(classe.id));
     final matieresAsync = ref.watch(matieresCatalogueProvider);
     final sousModulesAsync = ref.watch(sousModulesByClasseProvider(classe.id));
+    final performancesAsync = ref.watch(
+      performancesApprenantProvider(apprenant.id),
+    );
     final photoPath = apprenant.photoPath;
     final photoUrlAsync = photoPath == null
         ? null
@@ -303,7 +307,7 @@ class ApprenantDetailView extends ConsumerWidget {
                                       value: _libelleSexe(apprenant.sexe),
                                     ),
                                     _InfoRow(
-                                      label: 'Née le',
+                                      label: 'Né(e) le',
                                       value: apprenant.dateNaissance == null
                                           ? '—'
                                           : DateFormat(
@@ -571,6 +575,7 @@ class ApprenantDetailView extends ConsumerWidget {
                   notes: notes,
                   matieres: matieres,
                   sousModules: sousModulesAsync.value ?? const [],
+                  performances: performancesAsync.value ?? const {},
                 ),
                 loading: () => const Center(
                   child: Padding(
@@ -855,6 +860,7 @@ class _NotesSummary extends StatelessWidget {
     required this.notes,
     required this.matieres,
     required this.sousModules,
+    required this.performances,
   });
 
   final Classe classe;
@@ -862,6 +868,10 @@ class _NotesSummary extends StatelessWidget {
   final List<Note> notes;
   final List<Matiere> matieres;
   final List<SousModule> sousModules;
+
+  /// Ce que l'apprenant a réalisé à chaque séance sportive, mis en forme,
+  /// par sous-module. Vide tant que le module Sport n'a rien pour lui.
+  final Map<String, String> performances;
 
   @override
   Widget build(BuildContext context) {
@@ -919,6 +929,7 @@ class _NotesSummary extends StatelessWidget {
               sousModules: sousModules
                   .where((s) => s.moduleId == controle.id)
                   .toList(),
+              performances: performances,
             ),
             const SizedBox(height: 12),
           ],
@@ -964,11 +975,16 @@ class _ModuleNotesGroup extends StatelessWidget {
     required this.module,
     required this.notes,
     required this.sousModules,
+    this.performances = const {},
   });
 
   final Controle module;
   final List<Note> notes;
   final List<SousModule> sousModules;
+
+  /// Renseigné pour le module Sport : la performance réalisée à chaque
+  /// séance, à lire sous son nom.
+  final Map<String, String> performances;
 
   @override
   Widget build(BuildContext context) {
@@ -1013,6 +1029,7 @@ class _ModuleNotesGroup extends StatelessWidget {
                     sousModulesById[note.sousModuleId]?.nom ??
                     'Sous-module inconnu',
                 note: note,
+                detail: performances[note.sousModuleId],
               ),
               const SizedBox(height: 8),
             ],
@@ -1074,10 +1091,14 @@ class _ControleNotesGroup extends StatelessWidget {
 }
 
 class _NoteTile extends StatelessWidget {
-  const _NoteTile({required this.label, required this.note});
+  const _NoteTile({required this.label, required this.note, this.detail});
 
   final String label;
   final Note note;
+
+  /// Une ligne sous le nom : pour une séance sportive, la performance
+  /// réalisée. La note en est tirée par le barème, elle ne la remplace pas.
+  final String? detail;
 
   @override
   Widget build(BuildContext context) {
@@ -1093,9 +1114,24 @@ class _NoteTile extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Text(
-                label,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  if (detail != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      detail!,
+                      style: const TextStyle(
+                        color: AppColors.inkMuted,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
             const SizedBox(width: 16),

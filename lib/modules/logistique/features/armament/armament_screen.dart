@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sig_ensoa/core/theme.dart';
 import '../../data/models/armement.dart';
 import '../../data/repositories/armament_providers.dart';
+import '../dashboard/dashboard_armurerie.dart';
 import 'armes_tab.dart';
 import 'bons_armes_tab.dart';
 import 'bon_stock_dialog.dart';
@@ -16,7 +17,9 @@ import 'nouvel_article_dialog.dart';
 import 'weapon_form_dialog.dart';
 
 /// L'armement se tient en trois rubriques — Armement, Munitions,
-/// Équipements —, et chacune porte ses bons et son inventaire.
+/// Équipements —, et chacune porte ses bons et son inventaire. Son tableau de
+/// bord les précède, comme au Garage : on arrive sur l'état de l'armurerie,
+/// puis on descend dans le détail.
 ///
 /// Auparavant, les cinq onglets étaient à plat : « Armes », « Bons »,
 /// « Munitions », « Équipements », « Inventaire ». Les bons n'étaient donc
@@ -24,7 +27,16 @@ import 'weapon_form_dialog.dart';
 /// classement-ci suit celui du service : on travaille dans un domaine, et
 /// dans ce domaine on tient un stock, des bons et un inventaire.
 class ArmamentScreen extends ConsumerStatefulWidget {
-  const ArmamentScreen({super.key});
+  const ArmamentScreen({super.key, this.sansCadre = false});
+
+  /// Rendu nu, sans titre : la vue groupée du commandant (« Soutien
+  /// technique ») porte déjà le sien et n'a pas à en empiler un second.
+  ///
+  /// Le bandeau change de dessin avec lui. Le bandeau-pilule marque le niveau
+  /// le plus haut d'une page ; emboîté sous « Soutien technique », ce niveau
+  /// est déjà pris par les trois services, et l'armurerie descend d'un cran —
+  /// des onglets soulignés, comme le Garage à la même place.
+  final bool sansCadre;
 
   @override
   ConsumerState<ArmamentScreen> createState() => _ArmamentScreenState();
@@ -37,7 +49,7 @@ class _ArmamentScreenState extends ConsumerState<ArmamentScreen>
   @override
   void initState() {
     super.initState();
-    _rubriques = TabController(length: 3, vsync: this);
+    _rubriques = TabController(length: 4, vsync: this);
     _rubriques.addListener(() {
       if (_rubriques.indexIsChanging) return;
       setState(() {});
@@ -57,12 +69,18 @@ class _ArmamentScreenState extends ConsumerState<ArmamentScreen>
   void _rafraichirRubrique(int index) {
     switch (index) {
       case 0:
+        // Le tableau de bord lit les trois domaines à la fois.
         ref.read(armesProvider.notifier).refresh();
         ref.read(dotationsProvider.notifier).refresh();
+        ref.read(munitionsProvider.notifier).refresh();
+        ref.read(equipementsProvider.notifier).refresh();
       case 1:
+        ref.read(armesProvider.notifier).refresh();
+        ref.read(dotationsProvider.notifier).refresh();
+      case 2:
         ref.read(munitionsProvider.notifier).refresh();
         ref.read(mouvementsArticleProvider.notifier).refresh();
-      case 2:
+      case 3:
         ref.read(equipementsProvider.notifier).refresh();
         ref.read(mouvementsArticleProvider.notifier).refresh();
     }
@@ -73,16 +91,18 @@ class _ArmamentScreenState extends ConsumerState<ArmamentScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Armement',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            color: AppColors.ink,
+        if (!widget.sansCadre) ...[
+          const Text(
+            'Armement',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: AppColors.ink,
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
-        _BarreRubriques(controller: _rubriques),
+          const SizedBox(height: 16),
+        ],
+        _BarreRubriques(controller: _rubriques, pilules: !widget.sansCadre),
         const SizedBox(height: 12),
         Expanded(
           child: TabBarView(
@@ -92,10 +112,20 @@ class _ArmamentScreenState extends ConsumerState<ArmamentScreen>
             // sous-rubrique à l'autre. Le niveau haut se change au doigt sur
             // son bouton, le niveau bas au glissement.
             physics: const NeverScrollableScrollPhysics(),
-            children: const [
-              _RubriqueArmement(),
-              _RubriqueStock(famille: FamilleArticle.munition),
-              _RubriqueStock(famille: FamilleArticle.equipement),
+            children: [
+              // Le tableau de bord se rend nu et défile dans son onglet. Ses
+              // alertes mènent à la rubrique « Armement », à côté, au lieu de
+              // quitter la page pour y revenir.
+              SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(4, 4, 4, 100),
+                child: DashboardArmurerie(
+                  sansCadre: true,
+                  versGestion: () => _rubriques.animateTo(1),
+                ),
+              ),
+              const _RubriqueArmement(),
+              const _RubriqueStock(famille: FamilleArticle.munition),
+              const _RubriqueStock(famille: FamilleArticle.equipement),
             ],
           ),
         ),
@@ -104,15 +134,45 @@ class _ArmamentScreenState extends ConsumerState<ArmamentScreen>
   }
 }
 
-/// Les trois grandes rubriques, en bandeau segmenté — distinct des onglets
-/// soulignés qui sont, eux, les sous-rubriques.
+/// Le tableau de bord et les trois grandes rubriques.
+///
+/// En bandeau segmenté quand l'armement tient la page à lui seul — distinct
+/// des onglets soulignés qui sont, eux, les sous-rubriques. En onglets
+/// soulignés quand il est emboîté sous « Soutien technique », où le bandeau
+/// segmenté sert déjà à choisir le service.
 class _BarreRubriques extends StatelessWidget {
-  const _BarreRubriques({required this.controller});
+  const _BarreRubriques({required this.controller, required this.pilules});
 
   final TabController controller;
+  final bool pilules;
+
+  static const _titres = [
+    'Tableau de bord',
+    'Armement',
+    'Munitions',
+    'Équipements',
+  ];
 
   @override
   Widget build(BuildContext context) {
+    if (!pilules) {
+      return Align(
+        alignment: Alignment.centerLeft,
+        child: TabBar(
+          controller: controller,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          labelColor: AppColors.navy,
+          unselectedLabelColor: AppColors.inkMuted,
+          indicatorColor: AppColors.navy,
+          indicatorWeight: 3,
+          dividerColor: AppColors.border,
+          labelStyle: const TextStyle(fontWeight: FontWeight.w800),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
+          tabs: [for (final t in _titres) Tab(text: t)],
+        ),
+      );
+    }
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -132,11 +192,7 @@ class _BarreRubriques extends StatelessWidget {
         unselectedLabelColor: AppColors.inkMuted,
         labelStyle: const TextStyle(fontWeight: FontWeight.w800),
         unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w700),
-        tabs: const [
-          Tab(text: 'Armement'),
-          Tab(text: 'Munitions'),
-          Tab(text: 'Équipements'),
-        ],
+        tabs: [for (final t in _titres) Tab(text: t)],
       ),
     );
   }
@@ -187,15 +243,35 @@ class _RubriqueState extends ConsumerState<_Rubrique>
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TabBar(
-              controller: _onglets,
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              labelColor: AppColors.navy,
-              unselectedLabelColor: AppColors.inkMuted,
-              indicatorColor: AppColors.navy,
-              labelStyle: const TextStyle(fontWeight: FontWeight.w700),
-              tabs: [for (final t in widget.titres) Tab(text: t)],
+            // Les sous-rubriques, en onglets plus discrets que ceux du
+            // niveau au-dessus : sous « Soutien technique », trois niveaux
+            // d'onglets se superposent, et il faut lire d'un coup d'œil
+            // lequel on manœuvre.
+            SizedBox(
+              height: 38,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TabBar(
+                  controller: _onglets,
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  labelColor: AppColors.blue,
+                  unselectedLabelColor: AppColors.inkMuted,
+                  indicatorColor: AppColors.blue,
+                  indicatorWeight: 2,
+                  dividerColor: Colors.transparent,
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 14),
+                  labelStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  tabs: [for (final t in widget.titres) Tab(text: t)],
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -206,8 +282,7 @@ class _RubriqueState extends ConsumerState<_Rubrique>
             ),
           ],
         ),
-        if (fab != null)
-          Positioned(right: 4, bottom: 12, child: fab),
+        if (fab != null) Positioned(right: 4, bottom: 12, child: fab),
       ],
     );
   }
@@ -280,20 +355,20 @@ class _RubriqueStock extends StatelessWidget {
                     required quantiteInitiale,
                     required seuilCritique,
                   }) => munitions
-                      ? ref
-                            .read(munitionsProvider.notifier)
-                            .creer(
-                              calibre: libelle,
-                              quantiteInitiale: quantiteInitiale,
-                              seuilCritique: seuilCritique,
-                            )
-                      : ref
-                            .read(equipementsProvider.notifier)
-                            .creer(
-                              libelle: libelle,
-                              quantiteInitiale: quantiteInitiale,
-                              seuilCritique: seuilCritique,
-                            ),
+                  ? ref
+                        .read(munitionsProvider.notifier)
+                        .creer(
+                          calibre: libelle,
+                          quantiteInitiale: quantiteInitiale,
+                          seuilCritique: seuilCritique,
+                        )
+                  : ref
+                        .read(equipementsProvider.notifier)
+                        .creer(
+                          libelle: libelle,
+                          quantiteInitiale: quantiteInitiale,
+                          seuilCritique: seuilCritique,
+                        ),
             ),
           ),
           icon: const Icon(Icons.add),

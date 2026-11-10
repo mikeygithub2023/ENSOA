@@ -21,13 +21,19 @@ class IconeArme extends StatelessWidget {
     return SizedBox(
       width: size,
       height: size * _bandeUtile,
+      // L'image garde sa toile carrée et déborde de la bande, que ClipRect
+      // recoupe. Sans OverflowBox, elle se plie à la hauteur de la bande et le
+      // fusil rétrécit d'autant, jusqu'à n'être qu'un trait.
       child: ClipRect(
-        child: Align(
-          alignment: Alignment.center,
-          heightFactor: _bandeUtile,
+        child: OverflowBox(
+          minWidth: size,
+          maxWidth: size,
+          minHeight: size,
+          maxHeight: size,
           child: Image.asset(
             'assets/images/fusil_assaut.png',
             width: size,
+            height: size,
             fit: BoxFit.contain,
           ),
         ),

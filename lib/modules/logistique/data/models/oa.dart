@@ -87,6 +87,49 @@ extension StatutTacheLabel on StatutTache {
   }
 }
 
+/// Ce qui presse dans la liste quotidienne de quelqu'un.
+enum PrioriteTache { normale, importante, urgente }
+
+extension PrioriteTacheLabel on PrioriteTache {
+  String get label => switch (this) {
+    PrioriteTache.normale => 'Normale',
+    PrioriteTache.importante => 'Importante',
+    PrioriteTache.urgente => 'Urgente',
+  };
+}
+
+/// Une tâche de la liste de quelqu'un, hors de toute activité : il se l'écrit,
+/// ou un administrateur la lui impute. Elle se coche, sans validation.
+class TacheQuotidienne {
+  final String id;
+  final String description;
+  final DateTime? echeance;
+  final PrioriteTache priorite;
+  final String assigneA;
+  final String? creePar;
+
+  /// Les noms, recopiés par la base : un agent n'a pas accès à la fiche de
+  /// celui qui lui impute une tâche.
+  final String assigneNom;
+  final String creeParNom;
+  final DateTime? termineeLe;
+
+  const TacheQuotidienne({
+    required this.id,
+    required this.description,
+    this.echeance,
+    this.priorite = PrioriteTache.normale,
+    required this.assigneA,
+    this.creePar,
+    this.assigneNom = '',
+    this.creeParNom = '',
+    this.termineeLe,
+  });
+
+  bool get faite => termineeLe != null;
+  bool get imputee => creePar != assigneA;
+}
+
 class Activite {
   final String id;
   final String titre;

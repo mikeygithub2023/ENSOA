@@ -56,15 +56,6 @@ class _OaScreenState extends ConsumerState<OaScreen>
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Officier Adjoint',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: AppColors.ink,
-              ),
-            ),
-            const SizedBox(height: 16),
             TabBar(
               controller: _tabController,
               isScrollable: true,

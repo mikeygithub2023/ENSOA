@@ -52,6 +52,9 @@ Vehicule _vehiculeFromRow(Map<String, dynamic> row) {
     typeVehiculeId: row['type_vhl_id']?.toString() ?? '',
     kilometrageVidangeProchaine: row['kilometrage_vidange_prochaine'] as int,
     kilometrageVidangePrecedente: row['kilometrage_vidange_precedente'] as int?,
+    kilometrageCorrigeLe: row['kilometrage_corrige_le'] != null
+        ? DateTime.parse(row['kilometrage_corrige_le'] as String)
+        : null,
     marque: (marqueVhl?['marque'] as String?) ?? '—',
     modele: (modeleVhl?['modele'] as String?) ?? '—',
     typeVehicule: (typeVhl?['type'] as String?) ?? '—',
@@ -109,6 +112,10 @@ class VehiculesNotifier extends Notifier<List<Vehicule>> {
     String? positionActuelle,
     required String typeVehiculeId,
     required int kilometrageVidangeProchaine,
+
+    /// Le kilométrage corrigé, quand la fiche use de son unique correction ;
+    /// la base refuse une seconde correction.
+    int? kilometrageCorrige,
   }) async {
     await logistique
         .from('vehicule')
@@ -119,6 +126,10 @@ class VehiculesNotifier extends Notifier<List<Vehicule>> {
           'nbre_places': nbrePlaces,
           'type_vhl_id': int.parse(typeVehiculeId),
           'kilometrage_vidange_prochaine': kilometrageVidangeProchaine,
+          if (kilometrageCorrige != null) ...{
+            'kilometrage': kilometrageCorrige,
+            'kilometrage_corrige_le': DateTime.now().toIso8601String(),
+          },
         })
         .eq('id', int.parse(id));
     await refresh();
@@ -555,6 +566,8 @@ MouvementVehicule _mouvementFromRow(Map<String, dynamic> row) =>
       gradeChefBord: (row['grade_chef_bord'] as String?) ?? '',
       nomChefBord: row['nom_chef_bord'] as String,
       contactChefBord: (row['contact_chef_bord'] as String?) ?? '',
+      gradeChefDeBord: (row['grade_chef_de_bord'] as String?) ?? '',
+      nomChefDeBord: (row['nom_chef_de_bord'] as String?) ?? '',
     );
 
 class MouvementsVehiculeNotifier extends Notifier<List<MouvementVehicule>> {
@@ -585,6 +598,8 @@ class MouvementsVehiculeNotifier extends Notifier<List<MouvementVehicule>> {
       'grade_chef_bord': m.gradeChefBord,
       'nom_chef_bord': m.nomChefBord,
       'contact_chef_bord': m.contactChefBord,
+      'grade_chef_de_bord': m.gradeChefDeBord,
+      'nom_chef_de_bord': m.nomChefDeBord,
     });
     await refresh();
   }
@@ -598,6 +613,32 @@ class MouvementsVehiculeNotifier extends Notifier<List<MouvementVehicule>> {
           'km_arrivee': kmArrivee,
         })
         .eq('id', int.parse(id));
+    await refresh();
+  }
+
+  /// Corrige un ordre de mission : son objet, sa destination et son chef de
+  /// bord. On ne touche ni au véhicule, ni aux dates, ni au kilométrage —
+  /// ceux-là suivent le départ et la clôture, non une correction de saisie.
+  Future<void> modifier(MouvementVehicule m) async {
+    await logistique
+        .from('mouvement')
+        .update({
+          'objet': m.objet,
+          'destination': m.destination,
+          'grade_chef_bord': m.gradeChefBord,
+          'nom_chef_bord': m.nomChefBord,
+          'contact_chef_bord': m.contactChefBord,
+          'grade_chef_de_bord': m.gradeChefDeBord,
+          'nom_chef_de_bord': m.nomChefDeBord,
+        })
+        .eq('id', int.parse(m.id));
+    await refresh();
+  }
+
+  /// Supprime un ordre de mission. Rendre le véhicule à sa disponibilité, s'il
+  /// y a lieu, revient à l'appelant : lui seul sait s'il faut le libérer.
+  Future<void> supprimer(String id) async {
+    await logistique.from('mouvement').delete().eq('id', int.parse(id));
     await refresh();
   }
 }

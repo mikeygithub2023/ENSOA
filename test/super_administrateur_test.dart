@@ -1,10 +1,19 @@
-// L'administrateur commande l'école : aucune rubrique ne lui est fermée.
+// L'administrateur commande l'école : aucune rubrique ne lui est fermée —
+// sauf celles qu'il retrouve regroupées ailleurs.
 //
 // Ce test existe parce que la liste de ses droits, tenue à la main, l'avait
 // laissé sans accès aux consultations ni aux visites médicales — sans que
 // rien ne le signale. Il échouera désormais si une rubrique nouvelle oublie
 // de s'ouvrir à lui.
+//
+// Une exception, voulue : le parc, le carburant et l'armement lui sont
+// présentés regroupés sous « Soutien technique », à trois onglets. Leurs
+// entrées séparées lui sont donc masquées — mais la rubrique groupée doit
+// rester ouverte, et masquer une rubrique sans la regrouper la lui fermerait
+// en douce. Le second test tient cette garde.
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sig_ensoa/modules/scolarite/features/sante_screen.dart';
+import 'package:sig_ensoa/modules/scolarite/features/instruction_screen.dart';
 
 import 'package:sig_ensoa/core/postes.dart';
 import 'package:sig_ensoa/core/roles.dart';
@@ -33,6 +42,10 @@ void main() {
         .toSet()
         .difference(ouvertes)
         .where((e) => !e.permissions.every(_vuesPersonnelles.contains))
+        // Une rubrique regroupée ailleurs n'est pas « fermée » : il la retrouve
+        // sous « Soutien technique ». On l'écarte ici, et le test suivant
+        // vérifie que ce regroupement lui tient bien lieu de porte.
+        .where((e) => !e.masqueeSi.any(_administrateur.peut))
         .map((e) => e.libelle)
         .toList();
 
@@ -41,6 +54,65 @@ void main() {
       isEmpty,
       reason: 'rubriques fermées à l\'administrateur : $fermees',
     );
+  });
+
+  test('le soutien technique lui est regroupé en une seule rubrique', () {
+    final chemins = elementsPour(_administrateur).map((e) => e.chemin).toSet();
+
+    // La rubrique groupée est ouverte, et c'est elle qui tient lieu des trois
+    // entrées séparées — désormais masquées pour lui.
+    expect(chemins, contains('/logistique/soutien-technique'));
+    expect(chemins, isNot(contains('/logistique/parc')));
+    expect(chemins, isNot(contains('/logistique/carburant')));
+    expect(chemins, isNot(contains('/logistique/armement')));
+
+    // La garde : on ne lui masque que celles-là. Masquer une autre rubrique
+    // sans la regrouper la lui fermerait sans que rien ne le signale.
+    final masquees = elementsNav
+        .where((e) => e.masqueeSi.any(_administrateur.peut))
+        .map((e) => e.chemin)
+        .toSet();
+    expect(masquees, {
+      '/logistique/parc',
+      '/logistique/carburant',
+      '/logistique/armement',
+      '/scolarite/apprenants',
+      '/scolarite/cours',
+      '/scolarite/matieres',
+      '/scolarite/bulletins',
+      '/scolarite/consultations',
+      '/scolarite/visites-medicales',
+      '/scolarite/pharmacie',
+      '/scolarite/depenses',
+    });
+  });
+
+  test("l'instruction lui est regroupée, sans rien perdre", () {
+    final chemins = elementsPour(_administrateur).map((e) => e.chemin).toSet();
+
+    expect(chemins, contains('/instruction'));
+    expect(chemins, isNot(contains('/scolarite/apprenants')));
+
+    expect(ongletsInstruction(_administrateur).map((o) => o.$1), [
+      'Élèves & Stagiaires',
+      'Cours',
+      'Matières',
+      'Bulletins',
+    ]);
+  });
+
+  test('la santé lui est regroupée, sans rien perdre', () {
+    final chemins = elementsPour(_administrateur).map((e) => e.chemin).toSet();
+
+    expect(chemins, contains('/scolarite/sante'));
+    expect(chemins, isNot(contains('/scolarite/consultations')));
+
+    expect(ongletsSante(_administrateur).map((o) => o.$1), [
+      'Consultations',
+      'Visites médicales',
+      'Pharmacie',
+      'Dépenses santé',
+    ]);
   });
 
   test('il détient toute permission, hors vues personnelles', () {

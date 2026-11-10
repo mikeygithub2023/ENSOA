@@ -27,9 +27,16 @@ class MouvementVehicule {
   final int kmDepart; // KM_DEPART
   final int? kmArrivee; // KM_ARRIVE
   final String destination; // DESTINATION
+
+  // Le conducteur — qui mène le véhicule. Repris des colonnes `*_chef_bord`
+  // d'origine, qui ne désignaient qu'une personne.
   final String gradeChefBord; // GRADE_CHEF_BORD
   final String nomChefBord; // NOM_CHEF_BORD
   final String contactChefBord; // CONTACT_CHEF_BORD
+
+  // Le chef de bord — qui commande la mission, distinct du conducteur.
+  final String gradeChefDeBord; // GRADE_CHEF_DE_BORD
+  final String nomChefDeBord; // NOM_CHEF_DE_BORD
 
   const MouvementVehicule({
     required this.id,
@@ -45,5 +52,7 @@ class MouvementVehicule {
     required this.gradeChefBord,
     required this.nomChefBord,
     required this.contactChefBord,
+    this.gradeChefDeBord = '',
+    this.nomChefDeBord = '',
   });
 }

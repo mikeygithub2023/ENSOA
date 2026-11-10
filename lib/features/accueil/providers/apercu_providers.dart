@@ -60,11 +60,21 @@ class ApercuLogistique {
 }
 
 final apercuLogistiqueProvider = FutureProvider<ApercuLogistique>((ref) async {
-  final parc = await logistique.from('vehicule').select('etat');
+  // Ce qui a été retiré du parc ou de l'inventaire reste en base mais ne compte
+  // plus : sans ce filtre, l'accueil annonçait 16/27 véhicules là où le tableau
+  // de bord, qui les écarte, en lisait 12/22.
+  final parc = await logistique
+      .from('vehicule')
+      .select('etat')
+      .eq('supprime', false);
   final stocks = await logistique
       .from('soute_type_stock')
       .select('qte_gasoil, qte_super');
-  final armes = await logistique.from('arme').count();
+  final armes = await logistique
+      .from('arme')
+      .select('id')
+      .eq('supprime', false)
+      .count();
   // Une dotation sans date de retour effective est une arme encore sortie.
   final enDotation = await logistique
       .from('dotation_arme')
@@ -83,7 +93,7 @@ final apercuLogistiqueProvider = FutureProvider<ApercuLogistique>((ref) async {
     vehicules: parc.length,
     vehiculesDisponibles: parc.where((v) => v['etat'] == 'disponible').length,
     litresEnSoute: litres,
-    armes: armes,
+    armes: armes.count,
     // Comptée après un filtre, la valeur arrive dans la réponse plutôt qu'en
     // retour direct.
     armesEnDotation: enDotation.count,
@@ -158,10 +168,14 @@ class ApercuArmurerie {
 }
 
 final apercuArmurerieProvider = FutureProvider<ApercuArmurerie>((ref) async {
-  final armes = await logistique.from('arme').select('etat');
+  final armes = await logistique
+      .from('arme')
+      .select('etat')
+      .eq('supprime', false);
   final munitions = await logistique
       .from('stock_munition')
-      .select('quantite_disponible');
+      .select('quantite_disponible')
+      .eq('supprime', false);
   final enDotation = await logistique
       .from('dotation_arme')
       .select('id')
@@ -172,6 +186,7 @@ final apercuArmurerieProvider = FutureProvider<ApercuArmurerie>((ref) async {
   final echues = await logistique
       .from('arme')
       .select('id')
+      .eq('supprime', false)
       .lt('prochaine_inspection', DateTime.now().toIso8601String())
       .count();
 
@@ -207,7 +222,8 @@ class ApercuGarage {
 final apercuGarageProvider = FutureProvider<ApercuGarage>((ref) async {
   final parc = await logistique
       .from('vehicule')
-      .select('etat, kilometrage, kilometrage_vidange_prochaine');
+      .select('etat, kilometrage, kilometrage_vidange_prochaine')
+      .eq('supprime', false);
 
   var disponibles = 0;
   var enReparation = 0;

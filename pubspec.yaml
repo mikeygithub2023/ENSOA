@@ -78,3 +78,11 @@ flutter_launcher_icons:
     generate: true
     image_path: "assets/images/icone_ensoa.png"
     icon_size: 256
+  # L'identité web (PWA) : mêmes armoiries, pour que l'icône ajoutée à l'écran
+  # d'accueil ou installée sur le poste soit celle de l'ENSOA et non le logo
+  # Flutter par défaut. Le fond de l'icône masquable reprend le bleu marine.
+  web:
+    generate: true
+    image_path: "assets/images/icone_ensoa.png"
+    background_color: "#101F3C"
+    theme_color: "#101F3C"

@@ -15,6 +15,7 @@ import '../../shared/widgets/common.dart';
 import '../../shared/widgets/graphe_barres.dart';
 import '../../shared/widgets/ligne_cartes.dart';
 import '../matieres/providers/matieres_providers.dart';
+import 'bureaux.dart';
 import 'moyennes.dart';
 import 'providers/absences_providers.dart';
 import 'providers/apprenants_providers.dart';
@@ -34,11 +35,19 @@ const _tranches = [
   (min: 0.0, max: 8.0, label: 'Moins de 8', couleur: AppColors.danger),
 ];
 
-/// Statistiques générales d'une classe/stage : ce qu'il faut pour décider.
+/// Ce qu'une classe ou un stage donne à lire, selon le bureau qui regarde.
 ///
-/// Quatre questions, dans l'ordre où elles se posent au commandement :
-/// qui est là, comment la promotion travaille, qui décroche, et ce qui la
-/// tient éloignée du rang (absences, permissions, santé).
+/// Quatre questions se posent au commandement : qui est là, comment la
+/// promotion travaille, qui décroche, et ce qui la tient éloignée du rang
+/// (absences, permissions, santé). Elles ne relèvent pas du même bureau, et
+/// l'écran ne montre donc plus les quatre à tout le monde :
+///
+///  - l'**instruction** reçoit l'effectif et les **résultats** ;
+///  - les **ressources humaines** reçoivent l'effectif, la **disponibilité**
+///    et la **santé** — sans les notes, qui ne les regardent pas.
+///
+/// L'effectif figure dans les deux : il est la base de lecture de tout le
+/// reste. Chaque bureau ne charge que ce qu'il montre.
 ///
 /// Les moyennes suivent exactement la règle du bulletin (voir `moyennes.dart`)
 /// — un apprenant sans note à une évaluation y est non classé, jamais compté
@@ -46,32 +55,54 @@ const _tranches = [
 /// là où le bulletin se limite à celles cochées par l'administrateur : ici
 /// on cherche l'état réel de la promotion, pas le document officiel.
 class StatistiquesClasseTabView extends ConsumerWidget {
-  const StatistiquesClasseTabView({super.key, required this.classe});
+  const StatistiquesClasseTabView({
+    super.key,
+    required this.classe,
+    required this.bureau,
+  });
 
   final Classe classe;
+  final Bureau bureau;
+
+  bool get _instruction => bureau == Bureau.instruction;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final apprenantsAsync = ref.watch(apprenantsByClasseProvider(classe.id));
-    final controlesAsync = ref.watch(controlesByClasseProvider(classe.id));
-    final notesAsync = ref.watch(notesByClasseProvider(classe.id));
-    final matiereModulesAsync = ref.watch(matiereModulesProvider);
-    final sousModulesAsync = ref.watch(sousModulesByClasseProvider(classe.id));
-    final absencesAsync = ref.watch(absencesByClasseProvider(classe.id));
-    final permissionsAsync = ref.watch(permissionsByClasseProvider(classe.id));
-    final consultationsAsync = ref.watch(
-      consultationsMedicalesByClasseProvider(classe.id),
-    );
+    // Un provider qu'on ne lit pas n'est pas chargé : les ressources humaines
+    // n'ont pas à descendre toutes les notes de la phase pour afficher un
+    // effectif, ni l'instruction toutes les consultations.
+    final controlesAsync = _instruction
+        ? ref.watch(controlesByClasseProvider(classe.id))
+        : null;
+    final notesAsync = _instruction
+        ? ref.watch(notesByClasseProvider(classe.id))
+        : null;
+    final matiereModulesAsync = _instruction
+        ? ref.watch(matiereModulesProvider)
+        : null;
+    final sousModulesAsync = _instruction
+        ? ref.watch(sousModulesByClasseProvider(classe.id))
+        : null;
+    final absencesAsync = _instruction
+        ? null
+        : ref.watch(absencesByClasseProvider(classe.id));
+    final permissionsAsync = _instruction
+        ? null
+        : ref.watch(permissionsByClasseProvider(classe.id));
+    final consultationsAsync = _instruction
+        ? null
+        : ref.watch(consultationsMedicalesByClasseProvider(classe.id));
 
-    final chargements = [
+    final chargements = <AsyncValue<Object?>>[
       apprenantsAsync,
-      controlesAsync,
-      notesAsync,
-      matiereModulesAsync,
-      sousModulesAsync,
-      absencesAsync,
-      permissionsAsync,
-      consultationsAsync,
+      ?controlesAsync,
+      ?notesAsync,
+      ?matiereModulesAsync,
+      ?sousModulesAsync,
+      ?absencesAsync,
+      ?permissionsAsync,
+      ?consultationsAsync,
     ];
     final loading = chargements.any((a) => a.isLoading);
     final error = chargements
@@ -81,12 +112,20 @@ class StatistiquesClasseTabView extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SectionHeader(title: 'Statistiques générales — ${classe.nom}'),
+        SectionHeader(
+          title: _instruction
+              ? 'Résultats — ${classe.nom}'
+              : 'Statistiques générales — ${classe.nom}',
+        ),
         const SizedBox(height: 4),
-        const Text(
-          'Établies sur l\'ensemble des données enregistrées pour cette '
-          'phase ou ce stage.',
-          style: TextStyle(color: AppColors.inkMuted, fontSize: 13),
+        Text(
+          _instruction
+              ? 'Établis sur l\'ensemble des évaluations saisies pour cette '
+                    'phase ou ce stage.'
+              : 'Établies sur l\'ensemble des données enregistrées pour cette '
+                    'phase ou ce stage — hors notation, qui relève de '
+                    'l\'instruction.',
+          style: const TextStyle(color: AppColors.inkMuted, fontSize: 13),
         ),
         const SizedBox(height: 16),
         Expanded(
@@ -98,17 +137,18 @@ class StatistiquesClasseTabView extends ConsumerWidget {
                   icon: Icons.error_outline,
                 )
               : _Contenu(
+                  bureau: bureau,
                   apprenants: apprenantsAsync.value ?? const [],
-                  controles: controlesAsync.value ?? const [],
-                  notes: notesAsync.value ?? const [],
+                  controles: controlesAsync?.value ?? const [],
+                  notes: notesAsync?.value ?? const [],
                   coefMatiereById: coefficientsMatieres(
-                    matiereModulesAsync.value ?? const [],
+                    matiereModulesAsync?.value ?? const [],
                     classe.id,
                   ),
-                  sousModules: sousModulesAsync.value ?? const [],
-                  absences: absencesAsync.value ?? const [],
-                  permissions: permissionsAsync.value ?? const [],
-                  consultations: consultationsAsync.value ?? const [],
+                  sousModules: sousModulesAsync?.value ?? const [],
+                  absences: absencesAsync?.value ?? const [],
+                  permissions: permissionsAsync?.value ?? const [],
+                  consultations: consultationsAsync?.value ?? const [],
                 ),
         ),
       ],
@@ -118,6 +158,7 @@ class StatistiquesClasseTabView extends ConsumerWidget {
 
 class _Contenu extends StatelessWidget {
   const _Contenu({
+    required this.bureau,
     required this.apprenants,
     required this.controles,
     required this.notes,
@@ -128,6 +169,7 @@ class _Contenu extends StatelessWidget {
     required this.consultations,
   });
 
+  final Bureau bureau;
   final List<Apprenant> apprenants;
   final List<Controle> controles;
   final List<Note> notes;
@@ -198,162 +240,165 @@ class _Contenu extends StatelessWidget {
             ),
           ],
         ),
-        _Bloc(
-          titre: 'Résultats',
-          sousTitre:
-              'Moyennes pondérées par les coefficients, sur les '
-              '${controles.length} évaluation(s) saisie(s). Un apprenant sans '
-              'note à une évaluation y est non classé, jamais compté zéro.',
-          enfants: [
-            LigneCartes(
-              cartes: [
-                _Kpi(
-                  valeur: moyenneClasse == null
-                      ? '—'
-                      : moyenneClasse.toStringAsFixed(2),
-                  label: 'Moyenne de la promotion',
-                  principal: true,
-                ),
-                _Kpi(
-                  valeur: classes.isEmpty
-                      ? '—'
-                      : '${(admis * 100 / classes.length).round()} %',
-                  label: 'Au-dessus de 10',
-                  couleur: AppColors.success,
-                ),
-                _Kpi(
-                  valeur: '${classes.length - admis}',
-                  label: 'En dessous de 10',
-                  couleur: AppColors.danger,
-                ),
-                _Kpi(
-                  valeur: '$nonClasses',
-                  label: 'Non classés',
-                  couleur: nonClasses == 0
-                      ? AppColors.inkMuted
-                      : AppColors.warning,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            GrapheBarres(
-              titre: 'Répartition de la promotion',
-              sousTitre:
-                  'Combien d\'apprenants dans chaque tranche de moyenne.',
-              largeurLabel: 140,
-              messageVide: 'Aucune moyenne calculable : aucune note saisie.',
-              barres: [
-                for (final tranche in _tranches)
-                  BarreDonnee(
-                    label: tranche.label,
-                    valeur: classes
-                        .where((m) => m >= tranche.min && m < tranche.max)
-                        .length,
-                    detail: classes.isEmpty
-                        ? null
-                        : '${(classes.where((m) => m >= tranche.min && m < tranche.max).length * 100 / classes.length).round()} %',
-                    couleur: tranche.couleur,
+        if (bureau == Bureau.instruction)
+          _Bloc(
+            titre: 'Résultats',
+            sousTitre:
+                'Moyennes pondérées par les coefficients, sur les '
+                '${controles.length} évaluation(s) saisie(s). Un apprenant sans '
+                'note à une évaluation y est non classé, jamais compté zéro.',
+            enfants: [
+              LigneCartes(
+                cartes: [
+                  _Kpi(
+                    valeur: moyenneClasse == null
+                        ? '—'
+                        : moyenneClasse.toStringAsFixed(2),
+                    label: 'Moyenne de la promotion',
+                    principal: true,
                   ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            GrapheBarres(
-              titre: 'Moyenne par évaluation',
-              sousTitre:
-                  'Les évaluations les plus faibles en bas : c\'est là que '
-                  'l\'instruction doit être reprise.',
-              couleur: AppColors.blue,
-              messageVide: 'Aucune évaluation enregistrée.',
-              barres: _moyennesParControle(),
-            ),
-          ],
-        ),
-        _Bloc(
-          titre: 'Disponibilité',
-          sousTitre:
-              'Ce qui tient un apprenant éloigné du rang, toutes périodes '
-              'confondues.',
-          enfants: [
-            LigneCartes(
-              cartes: [
-                _Kpi(
-                  valeur: '${absences.length}',
-                  label: 'Absences enregistrées',
-                  couleur: AppColors.warning,
-                ),
-                _Kpi(
-                  valeur: '${absences.where((a) => a.enCours).length}',
-                  label: 'Absences en cours',
-                  couleur: AppColors.danger,
-                ),
-                _Kpi(
-                  valeur: '${permissions.length}',
-                  label: 'Permissions accordées',
-                  couleur: AppColors.blueDeep,
-                ),
-                _Kpi(
-                  valeur: '$_joursDeRepos',
-                  label: 'Jours de repos médical',
-                  couleur: AppColors.blue,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            GrapheBarres(
-              titre: 'Apprenants les plus absents',
-              sousTitre:
-                  'Nombre d\'absences enregistrées — les cas à convoquer.',
-              couleur: AppColors.warning,
-              messageVide: 'Aucune absence enregistrée.',
-              barres: _classementAbsences(),
-            ),
-          ],
-        ),
-        _Bloc(
-          titre: 'Santé',
-          sousTitre:
-              'Ce qui envoie les apprenants à l\'infirmerie — de quoi '
-              'réorienter la préparation physique et la prévention.',
-          enfants: [
-            LigneCartes(
-              cartes: [
-                _Kpi(
-                  valeur: '${consultations.length}',
-                  label: 'Consultations',
-                  principal: true,
-                ),
-                _Kpi(
-                  valeur:
-                      '${consultations.where((c) => c.type == ConsultationType.urgence).length}',
-                  label: 'Dont urgences',
-                  couleur: AppColors.danger,
-                ),
-                _Kpi(
-                  valeur:
-                      '${consultations.where((c) => c.hospitalisationInterne || c.hospitalisationExterne).length}',
-                  label: 'Hospitalisations',
-                  couleur: AppColors.danger,
-                ),
-                _Kpi(
-                  valeur: '${consultations.where((c) => c.exemption).length}',
-                  label: 'Exemptions',
-                  couleur: AppColors.warning,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            GrapheBarres(
-              titre: 'Pathologies les plus fréquentes',
-              sousTitre:
-                  'Sur les consultations dont la pathologie a été renseignée.',
-              couleur: AppColors.danger,
-              messageVide:
-                  'Aucune pathologie renseignée sur les consultations de '
-                  'cette phase ou ce stage.',
-              barres: _pathologies(),
-            ),
-          ],
-        ),
+                  _Kpi(
+                    valeur: classes.isEmpty
+                        ? '—'
+                        : '${(admis * 100 / classes.length).round()} %',
+                    label: 'Au-dessus de 10',
+                    couleur: AppColors.success,
+                  ),
+                  _Kpi(
+                    valeur: '${classes.length - admis}',
+                    label: 'En dessous de 10',
+                    couleur: AppColors.danger,
+                  ),
+                  _Kpi(
+                    valeur: '$nonClasses',
+                    label: 'Non classés',
+                    couleur: nonClasses == 0
+                        ? AppColors.inkMuted
+                        : AppColors.warning,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              GrapheBarres(
+                titre: 'Répartition de la promotion',
+                sousTitre:
+                    'Combien d\'apprenants dans chaque tranche de moyenne.',
+                largeurLabel: 140,
+                messageVide: 'Aucune moyenne calculable : aucune note saisie.',
+                barres: [
+                  for (final tranche in _tranches)
+                    BarreDonnee(
+                      label: tranche.label,
+                      valeur: classes
+                          .where((m) => m >= tranche.min && m < tranche.max)
+                          .length,
+                      detail: classes.isEmpty
+                          ? null
+                          : '${(classes.where((m) => m >= tranche.min && m < tranche.max).length * 100 / classes.length).round()} %',
+                      couleur: tranche.couleur,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              GrapheBarres(
+                titre: 'Moyenne par évaluation',
+                sousTitre:
+                    'Les évaluations les plus faibles en bas : c\'est là que '
+                    'l\'instruction doit être reprise.',
+                couleur: AppColors.blue,
+                messageVide: 'Aucune évaluation enregistrée.',
+                barres: _moyennesParControle(),
+              ),
+            ],
+          ),
+        if (bureau == Bureau.ressourcesHumaines) ...[
+          _Bloc(
+            titre: 'Disponibilité',
+            sousTitre:
+                'Ce qui tient un apprenant éloigné du rang, toutes périodes '
+                'confondues.',
+            enfants: [
+              LigneCartes(
+                cartes: [
+                  _Kpi(
+                    valeur: '${absences.length}',
+                    label: 'Absences enregistrées',
+                    couleur: AppColors.warning,
+                  ),
+                  _Kpi(
+                    valeur: '${absences.where((a) => a.enCours).length}',
+                    label: 'Absences en cours',
+                    couleur: AppColors.danger,
+                  ),
+                  _Kpi(
+                    valeur: '${permissions.length}',
+                    label: 'Permissions accordées',
+                    couleur: AppColors.blueDeep,
+                  ),
+                  _Kpi(
+                    valeur: '$_joursDeRepos',
+                    label: 'Jours de repos médical',
+                    couleur: AppColors.blue,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              GrapheBarres(
+                titre: 'Apprenants les plus absents',
+                sousTitre:
+                    'Nombre d\'absences enregistrées — les cas à convoquer.',
+                couleur: AppColors.warning,
+                messageVide: 'Aucune absence enregistrée.',
+                barres: _classementAbsences(),
+              ),
+            ],
+          ),
+          _Bloc(
+            titre: 'Santé',
+            sousTitre:
+                'Ce qui envoie les apprenants à l\'infirmerie — de quoi '
+                'réorienter la préparation physique et la prévention.',
+            enfants: [
+              LigneCartes(
+                cartes: [
+                  _Kpi(
+                    valeur: '${consultations.length}',
+                    label: 'Consultations',
+                    principal: true,
+                  ),
+                  _Kpi(
+                    valeur:
+                        '${consultations.where((c) => c.type == ConsultationType.urgence).length}',
+                    label: 'Dont urgences',
+                    couleur: AppColors.danger,
+                  ),
+                  _Kpi(
+                    valeur:
+                        '${consultations.where((c) => c.hospitalisationInterne || c.hospitalisationExterne).length}',
+                    label: 'Hospitalisations',
+                    couleur: AppColors.danger,
+                  ),
+                  _Kpi(
+                    valeur: '${consultations.where((c) => c.exemption).length}',
+                    label: 'Exemptions',
+                    couleur: AppColors.warning,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              GrapheBarres(
+                titre: 'Pathologies les plus fréquentes',
+                sousTitre:
+                    'Sur les consultations dont la pathologie a été renseignée.',
+                couleur: AppColors.danger,
+                messageVide:
+                    'Aucune pathologie renseignée sur les consultations de '
+                    'cette phase ou ce stage.',
+                barres: _pathologies(),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

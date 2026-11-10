@@ -149,10 +149,7 @@ class ArmesNotifier extends Notifier<List<Arme>> {
   /// d'unicité le leur réserve. L'import doit donc les connaître, sinon il
   /// annonce « à créer » un numéro que la base refusera.
   Future<List<Arme>> retireesDuRegistre() async {
-    final rows = await logistique
-        .from('arme')
-        .select()
-        .eq('supprime', true);
+    final rows = await logistique.from('arme').select().eq('supprime', true);
     return (rows as List)
         .map((r) => _armeFromRow(r as Map<String, dynamic>))
         .toList();
@@ -177,11 +174,9 @@ class ArmesNotifier extends Notifier<List<Arme>> {
     // Le référentiel des désignations suit : sans cela, une arme importée
     // porterait une désignation absente de la liste déroulante du
     // formulaire, et la modifier obligerait à en choisir une autre.
-    await ref
-        .read(typesArmeProvider.notifier)
-        .completer([
-          for (final a in [...armes, ...retablies.values]) a.designation,
-        ]);
+    await ref.read(typesArmeProvider.notifier).completer([
+      for (final a in [...armes, ...retablies.values]) a.designation,
+    ]);
 
     // Les rétablissements d'abord : ils libèrent les numéros de série que
     // l'insertion suivante pourrait croire disponibles.

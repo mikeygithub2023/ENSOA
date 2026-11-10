@@ -32,3 +32,39 @@ final performancesSeanceProvider = FutureProvider.autoDispose
     .family<List<PerformanceSportive>, String>((ref, sousModuleId) {
       return ref.watch(sportRepositoryProvider).fetchPerformances(sousModuleId);
     });
+
+/// Ce que l'apprenant a réalisé à chaque séance, déjà mis en forme — « 12′30″ »
+/// plutôt que 750 —, rangé par sous-module.
+///
+/// Sa fiche n'affichait que la note du sportif. Or la note est une lecture du
+/// barème : elle dit le rang, pas la performance. Les deux se lisent
+/// maintenant côte à côte.
+final performancesApprenantProvider = FutureProvider.autoDispose
+    .family<Map<String, String>, String>((ref, apprenantId) async {
+      final realisees = await ref
+          .watch(sportRepositoryProvider)
+          .fetchPerformancesApprenant(apprenantId);
+      if (realisees.isEmpty) return const {};
+
+      final activites = await ref.watch(activitesSportivesProvider.future);
+      return performancesParSeance(realisees, activites);
+    });
+
+/// Met en forme chaque performance dans l'unité de son activité.
+///
+/// Une séance dont l'activité a disparu du catalogue est laissée de côté :
+/// sans unité, « 750 » ne veut rien dire, et la note reste seule — ce qui
+/// est encore la lecture la moins fausse.
+Map<String, String> performancesParSeance(
+  List<({PerformanceSportive performance, String activiteId})> realisees,
+  List<ActiviteSportive> activites,
+) {
+  final activitesById = {for (final a in activites) a.id: a};
+  return {
+    for (final realisee in realisees)
+      if (activitesById[realisee.activiteId] case final activite?)
+        realisee.performance.sousModuleId: activite.unite.formater(
+          realisee.performance.valeur,
+        ),
+  };
+}

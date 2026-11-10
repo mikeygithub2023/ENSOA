@@ -304,6 +304,43 @@ class SportRepository {
     }, onConflict: 'sous_module_id,apprenant_id');
   }
 
+  /// Ce qu'un apprenant a réalisé à chacune de ses séances, avec l'activité
+  /// qu'il y passait.
+  ///
+  /// Sa fiche ne montrait que la note : « 14 / 20 » ne dit pas s'il a couru
+  /// le 3000 en douze minutes ou en vingt. L'unité d'affichage dépend de
+  /// l'activité, d'où l'identifiant rendu avec la performance.
+  Future<List<({PerformanceSportive performance, String activiteId})>>
+  fetchPerformancesApprenant(String apprenantId) async {
+    final lignes = await scolarite
+        .from('performances_sportives')
+        .select()
+        .eq('apprenant_id', apprenantId);
+    if (lignes.isEmpty) return const [];
+
+    // La séance et la performance ne se rejoignent pas par clé étrangère :
+    // toutes deux pendent du sous-module. On les rapproche donc ici.
+    final seances = await scolarite
+        .from('seances_sportives')
+        .select('sous_module_id, activite_id')
+        .inFilter('sous_module_id', [
+          for (final ligne in lignes) ligne['sous_module_id'] as String,
+        ]);
+    final activiteParSeance = {
+      for (final seance in seances)
+        seance['sous_module_id'] as String: seance['activite_id'] as String,
+    };
+
+    return [
+      for (final ligne in lignes)
+        if (activiteParSeance[ligne['sous_module_id']] case final activiteId?)
+          (
+            performance: PerformanceSportive.fromJson(ligne),
+            activiteId: activiteId,
+          ),
+    ];
+  }
+
   Future<void> supprimerPerformance(String performanceId) async {
     final supprimees = await scolarite
         .from('performances_sportives')

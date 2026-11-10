@@ -27,7 +27,10 @@ bool FlutterWindow::OnCreate() {
   RegisterPlugins(flutter_controller_->engine());
   SetChildContent(flutter_controller_->view()->GetNativeWindow());
 
-  ExclureDeLaCapture();
+  // MAINTENANCE : captures d'ecran autorisees le temps de la maintenance du
+  // projet. Pour retablir la protection, de-commenter l'appel ci-dessous et
+  // recompiler.
+  // ExclureDeLaCapture();
 
   flutter_controller_->engine()->SetNextFrameCallback([&]() {
     this->Show();

@@ -9,23 +9,24 @@ import '../features/auth/connexion_screen.dart';
 import '../features/auth/providers/auth_providers.dart';
 import '../features/shell/app_shell.dart';
 import '../features/shell/nav_items.dart';
-import '../features/tableau_de_bord/tableau_de_bord_screen.dart';
 import '../modules/logistique/data/models/armement.dart';
 import '../modules/logistique/data/models/oa.dart';
 import '../modules/logistique/data/models/vehicule.dart';
 import '../modules/logistique/features/armament/armament_screen.dart';
 import '../modules/logistique/features/armament/weapon_detail_screen.dart';
 import '../modules/logistique/features/audit/audit_screen.dart';
-import '../modules/logistique/features/fleet/fleet_screen.dart';
+import '../modules/logistique/features/dashboard/soutien_technique_screen.dart';
+import '../modules/scolarite/features/sante_screen.dart';
+import '../modules/scolarite/features/instruction_screen.dart';
+import '../modules/logistique/features/fleet/garage_workspace_screen.dart';
 import '../modules/logistique/features/fleet/vehicle_detail_screen.dart';
 import '../modules/logistique/features/fuel/fuel_screen.dart';
 import '../modules/logistique/features/notifications/notifications_screen.dart';
 import '../modules/logistique/features/oa/activite_detail_screen.dart';
-import '../modules/logistique/features/oa/oa_screen.dart';
 import '../modules/logistique/features/police/police_screen.dart';
-import '../modules/logistique/features/tasks/mes_taches_screen.dart';
-import '../modules/logistique/features/tasks/taches_equipe_screen.dart';
+import '../modules/logistique/features/tasks/taches_screen.dart';
 import '../modules/scolarite/features/apprenants/apprenants_list_screen.dart';
+import '../modules/scolarite/features/apprenants/bureaux.dart';
 import '../modules/scolarite/features/apprenants/apprenant_detail_screen.dart';
 import '../modules/scolarite/features/apprenants/controle_detail_screen.dart';
 import '../modules/scolarite/features/apprenants/mon_profil_screen.dart';
@@ -56,13 +57,23 @@ class _Rafraichisseur extends ChangeNotifier {
 final _ecransPortes = <String, Widget Function()>{
   '/administration': () => const AdministrationScreen(),
 
-  '/tableau-de-bord': () => const TableauDeBordScreen(),
+  // Instruction
+  // Le regroupement du super administrateur, comme « Soutien technique ».
+  '/instruction': () => const InstructionScreen(),
+  // Le même écran sous ses deux bureaux : l'instruction y voit la notation,
+  // les ressources humaines la situation de l'effectif. Le chemin de
+  // l'instruction ne change pas — il porte les fiches élèves et les contrôles
+  // en sous-routes.
+  '/scolarite/apprenants': () =>
+      const ApprenantsListScreen(bureau: Bureau.instruction),
 
-  // Scolarité
-  '/scolarite/apprenants': () => const ApprenantsListScreen(),
+  // Ressources humaines
+  '/ressources-humaines': () =>
+      const ApprenantsListScreen(bureau: Bureau.ressourcesHumaines),
   '/scolarite/cours': () => const CoursScreen(),
   '/scolarite/matieres': () => const MatieresScreen(),
   '/scolarite/bulletins': () => const BulletinsScreen(),
+  '/scolarite/sante': () => const SanteScreen(),
   '/scolarite/consultations': () => const ConsultationsScreen(),
   '/scolarite/visites-medicales': () => const VisitesMedicalesScreen(),
   '/scolarite/pharmacie': () => const MedicamentsScreen(),
@@ -70,13 +81,16 @@ final _ecransPortes = <String, Widget Function()>{
   '/scolarite/mon-espace': () => const MonProfilScreen(),
 
   // Soutien technique
-  '/logistique/parc': () => const FleetScreen(),
+  // Le regroupement des trois dashboards (garage, carburant, armurerie) sous
+  // une seule rubrique — réservé au super administrateur par la permission qui
+  // ouvre son entrée de menu.
+  '/logistique/soutien-technique': () => const SoutienTechniqueScreen(),
+  // Le Garage est désormais un espace à onglets (tableau de bord, liste des
+  // véhicules, et bientôt les ordres de mission) plutôt que la seule liste.
+  '/logistique/parc': () => const GarageWorkspaceScreen(),
   '/logistique/carburant': () => const FuelScreen(),
   '/logistique/armement': () => const ArmamentScreen(),
   '/logistique/poste-police': () => const PoliceScreen(),
-  '/logistique/activites': () => const OaScreen(),
-  '/logistique/mes-taches': () => const MesTachesScreen(),
-  '/logistique/taches-equipe': () => const TachesEquipeScreen(),
 
   // Communs aux deux modules
   '/notifications': () => const NotificationsScreen(),
@@ -139,6 +153,9 @@ final routeurProvider = Provider<GoRouter>((ref) {
             path: '/',
             builder: (context, state) => const AccueilScreen(),
           ),
+          // L'ancienne adresse du tableau de bord, fusionné dans le premier
+          // bouton : une PWA restée ouverte ou un lien conservé y mène encore.
+          GoRoute(path: '/tableau-de-bord', redirect: (_, _) => '/'),
 
           // Les fiches de la scolarité, désignées par identifiant. L'ordre
           // compte : `controles/:id` doit passer avant `:id`, sinon ce
@@ -181,7 +198,31 @@ final routeurProvider = Provider<GoRouter>((ref) {
           // Chaque entrée du menu a sa route. Les écrans des deux modules
           // arrivent un par un ; d'ici là l'emplacement est tenu, plutôt
           // qu'un menu qui mènerait au vide.
-          for (final entree in elementsNav.where((e) => e.chemin != '/'))
+          // La rubrique des tâches, qui s'ouvre sur l'un de ses onglets selon le
+          // lien suivi. Les anciennes adresses y mènent encore : une PWA restée
+          // ouverte ou un lien conservé peuvent y conduire.
+          GoRoute(
+            path: '/logistique/taches',
+            builder: (context, state) => TachesRubriqueScreen(
+              surActivites: state.uri.queryParameters['onglet'] == 'activites',
+            ),
+          ),
+          GoRoute(
+            path: '/logistique/activites',
+            redirect: (_, _) => '/logistique/taches?onglet=activites',
+          ),
+          GoRoute(
+            path: '/logistique/mes-taches',
+            redirect: (_, _) => '/logistique/taches',
+          ),
+          GoRoute(
+            path: '/logistique/taches-equipe',
+            redirect: (_, _) => '/logistique/taches',
+          ),
+
+          for (final entree in elementsNav.where(
+            (e) => e.chemin != '/' && e.chemin != '/logistique/taches',
+          ))
             GoRoute(
               path: entree.chemin,
               builder: (context, state) =>

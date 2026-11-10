@@ -63,6 +63,10 @@ class Vehicule {
   final int kilometrageVidangeProchaine; // KILOMETRAGE_VIDANGE_PROCHAINE
   final int? kilometrageVidangePrecedente; // KILOMETRAGE_VIDANGE_PRECEDENTE
 
+  /// La date de l'unique correction du kilométrage depuis la fiche ; nulle
+  /// tant qu'elle n'a pas eu lieu.
+  final DateTime? kilometrageCorrigeLe;
+
   // Champs d'affichage dénormalisés côté app (résolus via TYPE_VHL → MODELE_VHL → MARQUE_VHL) :
   final String marque;
   final String modele;
@@ -80,10 +84,13 @@ class Vehicule {
     required this.typeVehiculeId,
     required this.kilometrageVidangeProchaine,
     this.kilometrageVidangePrecedente,
+    this.kilometrageCorrigeLe,
     required this.marque,
     required this.modele,
     required this.typeVehicule,
   });
 
   bool get vidangeRequise => kilometrage >= kilometrageVidangeProchaine;
+
+  bool get kilometrageCorrige => kilometrageCorrigeLe != null;
 }

@@ -1,6 +1,8 @@
 import 'package:sig_ensoa/core/formulaire.dart';
-import 'dart:io' show Platform;
 import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -152,7 +154,12 @@ class _RegisterApprenantDialogState
     final existing = widget.existing;
     if (existing == null) {
       if (widget.classe.type == ClasseType.phase) {
-        _gradeCtrl.text = defaultGradeForClasse(widget.classe.nom) ?? '';
+        _gradeCtrl.text =
+            defaultGradeForClasse(
+              widget.classe.nom,
+              divisionCode: widget.division.code,
+            ) ??
+            '';
       }
       return;
     }
@@ -206,8 +213,13 @@ class _RegisterApprenantDialogState
 
   /// L'appareil photo n'existe que sur la tablette : `image_picker` ne sait
   /// pas ouvrir de caméra sur le poste de travail, et proposer un bouton qui
-  /// ne fait rien serait pire que de ne pas le proposer.
-  bool get _peutPhotographier => Platform.isAndroid || Platform.isIOS;
+  /// ne fait rien serait pire que de ne pas le proposer. Sur le web (PWA), on
+  /// s'en tient au choix de fichier, qui ouvre lui-même la caméra là où le
+  /// navigateur le permet — un bouton « prendre une photo » n'y est pas sûr.
+  bool get _peutPhotographier =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
 
   /// Prise de vue sur place — l'élève est devant l'agent qui l'inscrit.
   ///
@@ -764,7 +776,7 @@ class _RegisterApprenantDialogState
             ]),
             _FieldRow([
               _DatePickerField(
-                label: 'Née le',
+                label: 'Né(e) le',
                 value: _dateNaissance,
                 onChanged: (date) => setState(() => _dateNaissance = date),
               ),
@@ -960,7 +972,7 @@ class _RegisterApprenantDialogState
             'Nom': draft.nom,
             'Prénoms': draft.prenom,
             'Téléphone': draft.telephone ?? '—',
-            'Née le': draft.dateNaissance == null
+            'Né(e) le': draft.dateNaissance == null
                 ? '—'
                 : DateFormat('dd/MM/yyyy').format(draft.dateNaissance!),
             'Lieu de naissance': draft.lieuNaissance ?? '—',

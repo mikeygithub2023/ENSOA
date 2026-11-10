@@ -1,0 +1,65 @@
+# Déploiement de la PWA sur Cloudflare Pages.
+#
+# À chaque poussée de code, GitHub Actions recompile l'application web (Flutter
+# y est disponible) puis la publie sur Cloudflare Pages. Les appareils
+# installés récupèrent la nouvelle version d'eux-mêmes au prochain lancement
+# (service worker) : plus d'APK ni d'EXE à redistribuer.
+#
+# Le site est servi à la racine d'un sous-domaine pages.dev (ex.
+# sig-ensoa.pages.dev), donc pas de base-href : l'application vit sous « / ».
+#
+# Configuration, une seule fois (côté toi — je ne peux pas créer de compte ni
+# de jeton à ta place) :
+#   1. Compte Cloudflare gratuit, puis un projet Pages nommé « sig-ensoa »
+#      (Workers & Pages → Create → Pages → Direct Upload, ou laissé créer au
+#      premier déploiement).
+#   2. Un jeton d'API Cloudflare avec la permission « Account → Cloudflare
+#      Pages → Edit », et ton « Account ID » (tableau de bord Cloudflare).
+#   3. Dans le dépôt GitHub : Settings → Secrets and variables → Actions →
+#      New repository secret, deux fois :
+#        - CLOUDFLARE_API_TOKEN   = le jeton
+#        - CLOUDFLARE_ACCOUNT_ID  = l'Account ID
+name: Déploiement web (PWA)
+
+on:
+  push:
+    branches: [main, master, migration-pwa]
+  workflow_dispatch:
+
+# Une seule publication à la fois ; la plus récente l'emporte.
+concurrency:
+  group: cloudflare-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.44.8
+
+      - run: flutter pub get
+
+      - run: flutter build web --release
+
+      # `pages deploy` ne crée pas le projet : on l'y prépare d'abord. L'étape
+      # échoue sans dommage si le projet existe déjà (continue-on-error) — elle
+      # ne sert qu'au tout premier déploiement.
+      - name: Préparer le projet Pages
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages project create sig-ensoa --production-branch=migration-pwa
+
+      - name: Déployer sur Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy build/web --project-name=sig-ensoa --branch=migration-pwa

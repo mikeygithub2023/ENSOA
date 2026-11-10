@@ -160,6 +160,9 @@ Future<void> _ouvrir(
     ),
   );
   await tester.pumpAndSettle();
+  // L'écran ouvre sur son tableau de bord ; ces épreuves portent sur les
+  // rubriques, on se place donc d'emblée sur la première.
+  await _rubrique(tester, 'Armement');
 }
 
 /// Ouvre une grande rubrique par son nom.
@@ -169,8 +172,9 @@ Future<void> _rubrique(WidgetTester tester, String nom) async {
 }
 
 void main() {
-  testWidgets('trois grandes rubriques, et seulement trois', (tester) async {
+  testWidgets('un tableau de bord et trois grandes rubriques', (tester) async {
     await _ouvrir(tester);
+    expect(find.widgetWithText(Tab, 'Tableau de bord'), findsOneWidget);
     expect(find.widgetWithText(Tab, 'Armement'), findsOneWidget);
     expect(find.widgetWithText(Tab, 'Munitions'), findsOneWidget);
     expect(find.widgetWithText(Tab, 'Équipements'), findsOneWidget);

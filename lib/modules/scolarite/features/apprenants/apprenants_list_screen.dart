@@ -14,6 +14,7 @@ import '../../shared/widgets/common.dart';
 import '../../shared/widgets/filtres_scolarite.dart';
 import '../../shared/widgets/pdf_preview_dialog.dart';
 import '../matieres/providers/matieres_providers.dart';
+import 'bureaux.dart';
 import 'entity_tabs.dart';
 import 'import_apprenants_dialog.dart';
 import 'liste_apprenants_pdf.dart';
@@ -21,8 +22,16 @@ import 'pdf_fonts.dart';
 import 'providers/apprenants_providers.dart';
 import 'register_apprenant_dialog.dart';
 
+/// L'effectif, et autour de lui les onglets du bureau où l'on se trouve.
+///
+/// Un seul écran pour les deux bureaux : le choix de la portée — division,
+/// promotion, phase ou stage — est le même travail, et la liste nominative
+/// leur sert à tous les deux. Seuls les onglets diffèrent, et c'est
+/// `bureaux.dart` qui en décide.
 class ApprenantsListScreen extends ConsumerStatefulWidget {
-  const ApprenantsListScreen({super.key});
+  const ApprenantsListScreen({super.key, this.bureau = Bureau.instruction});
+
+  final Bureau bureau;
 
   @override
   ConsumerState<ApprenantsListScreen> createState() =>
@@ -377,7 +386,12 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionHeader(title: 'Élèves & Stagiaires'),
+        SectionHeader(title: widget.bureau.titreEffectif),
+        const SizedBox(height: 4),
+        Text(
+          widget.bureau.propos,
+          style: const TextStyle(color: AppColors.inkMuted, fontSize: 13),
+        ),
         const SizedBox(height: 16),
         if (divisionUnique == null)
           divisionsAsync.when(
@@ -428,6 +442,7 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
         // dans quelle phase.
         Expanded(
           child: EntityTabsView(
+            bureau: widget.bureau,
             division: selectedDivision,
             classe: selectedClasse,
             classesRetenues: classesRetenues,
@@ -842,8 +857,10 @@ class _ApprenantTile extends ConsumerWidget {
                 child: photoUrl != null
                     ? null
                     : Text(
-                        apprenant.prenom.isNotEmpty
-                            ? apprenant.prenom[0].toUpperCase()
+                        // La même lettre que celle qui ouvre la ligne : le
+                        // nom, puisque c'est par lui qu'on lit la liste.
+                        apprenant.nom.isNotEmpty
+                            ? apprenant.nom[0].toUpperCase()
                             : '?',
                         style: const TextStyle(
                           fontWeight: FontWeight.w800,

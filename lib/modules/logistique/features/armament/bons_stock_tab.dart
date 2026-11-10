@@ -62,9 +62,7 @@ class _BonsStockTabContentState extends ConsumerState<BonsStockTabContent> {
         ? 'munitions'
         : 'equipements';
     final charge = estCharge(ref, [cle, 'mouvements_articles']);
-    final mouvements = ref.watch(
-      mouvementsParFamilleProvider(widget.famille),
-    );
+    final mouvements = ref.watch(mouvementsParFamilleProvider(widget.famille));
     final df = DateFormat('dd/MM/yyyy HH:mm');
 
     if (!charge) {
@@ -149,10 +147,7 @@ class _BonsStockTabContentState extends ConsumerState<BonsStockTabContent> {
             child: Text(
               '${formatMilliers(sorties)} sorti(s), '
               '${formatMilliers(entrees)} entré(s) sur ces bons.',
-              style: const TextStyle(
-                color: AppColors.inkMuted,
-                fontSize: 13,
-              ),
+              style: const TextStyle(color: AppColors.inkMuted, fontSize: 13),
             ),
           ),
         if (filtres.isEmpty)

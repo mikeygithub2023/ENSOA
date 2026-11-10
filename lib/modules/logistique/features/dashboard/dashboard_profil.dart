@@ -57,7 +57,7 @@ class DashboardProfilPersonnalise extends ConsumerWidget {
     final titres = {for (final a in activites) a.id: a};
     final jour = DateFormat('dd/MM');
 
-    void versMesTaches() => context.go('/logistique/mes-taches');
+    void versMesTaches() => context.go('/logistique/taches');
 
     final alertes = <Alerte>[
       for (final t in enRetard)

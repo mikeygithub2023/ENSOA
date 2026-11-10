@@ -37,10 +37,15 @@ class DashboardGarage extends ConsumerWidget {
     final mesTaches = ref.watch(mesTachesProvider);
 
     if (!estCharge(ref, ['vehicules', 'reparations'])) {
-      return const ScreenScaffold(
-        title: 'Tableau de bord',
-        children: [SkeletonDashboard()],
-      );
+      // Sans cadre, le squelette se rend nu : la page qui réunit les onglets
+      // porte déjà le titre et le défilement, et un ScreenScaffold imbriqué y
+      // empilerait deux zones de défilement.
+      return sansCadre
+          ? const SkeletonDashboard()
+          : const ScreenScaffold(
+              title: 'Tableau de bord',
+              children: [SkeletonDashboard()],
+            );
     }
 
     // Un véhicule hors service ne se répare plus : le compter ferait baisser
@@ -54,17 +59,23 @@ class DashboardGarage extends ConsumerWidget {
     final horsService = vehicules.length - enService.length;
     final ouvertes = reparations.where((r) => r.dateSortie == null).toList();
 
-    // Le parc par type : c'est ainsi qu'on demande un véhicule, et ainsi
-    // qu'on constate qu'il n'en reste plus d'une sorte.
-    final parType = <String, int>{};
+    // La disponibilité par type : c'est ainsi qu'on demande un véhicule, et
+    // ainsi qu'on constate qu'il n'en reste plus d'une sorte.
+    final parType = <String, (int, int)>{};
     for (final v in enService) {
-      parType[v.typeVehicule] = (parType[v.typeVehicule] ?? 0) + 1;
+      final (d, t) = parType[v.typeVehicule] ?? (0, 0);
+      parType[v.typeVehicule] = (
+        d + (v.etat == EtatVehicule.disponible ? 1 : 0),
+        t + 1,
+      );
     }
-    final types = parType.entries.map((e) => (e.key, e.value)).toList()
-      ..sort((a, b) => b.$2.compareTo(a.$2));
+    final types = [
+      for (final MapEntry(key: type, value: (d, t)) in parType.entries)
+        (type, d, t),
+    ]..sort((a, b) => b.$3.compareTo(a.$3));
 
     void versParc() => context.go('/logistique/parc');
-    void versActivites() => context.go('/logistique/activites');
+    void versActivites() => context.go('/logistique/taches');
 
     final alertes = <Alerte>[
       for (final r in ouvertes)
@@ -90,91 +101,98 @@ class DashboardGarage extends ConsumerWidget {
     ];
 
     final contenu = <Widget>[
+      // Le suivi du garage à gauche — sans titre, ses quatre lignes se
+      // nomment d'elles-mêmes —, les alertes à droite : sur une même ligne
+      // et à même hauteur là où la largeur le permet, empilés sinon.
       LayoutBuilder(
         builder: (context, constraints) {
           final large = constraints.maxWidth > 820;
-          final jauge = GaugeCard(
-            title: 'Disponibilité du parc',
-            subtitle: 'Véhicules prêts à l\'emploi',
-            progress: enService.isEmpty ? 0 : disponibles / enService.length,
-            centerValue: '$disponibles/${enService.length}',
-            centerLabel: 'dispo.',
-            color: AppColors.success,
-          );
+
           final alerte = AlertesCard(alertes: alertes);
+
+          final suivi = Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Column(
+                children: [
+                  DotProgressRow(
+                    icon: Icons.directions_car_rounded,
+                    iconColor: AppColors.blue,
+                    title: 'Disponibilité',
+                    subtitle: 'Véhicules prêts sur le parc en service',
+                    completed: disponibles,
+                    total: enService.length,
+                    onTap: versParc,
+                  ),
+                  const Divider(height: 1),
+                  DotProgressRow(
+                    icon: Icons.oil_barrel_rounded,
+                    iconColor: AppColors.warning,
+                    title: 'Entretien',
+                    subtitle: 'Véhicules à jour de vidange',
+                    completed: enService.length - vidangeRequise.length,
+                    total: enService.length,
+                    onTap: versParc,
+                  ),
+                  const Divider(height: 1),
+                  DotProgressRow(
+                    icon: Icons.car_repair_rounded,
+                    iconColor: AppColors.navy,
+                    title: 'Réparations',
+                    subtitle: 'Interventions clôturées',
+                    completed: reparations.length - ouvertes.length,
+                    total: reparations.length,
+                    onTap: versParc,
+                  ),
+                  const Divider(height: 1),
+                  // Le compteur montre ce qui roule, pas ce qui est cloué :
+                  // « immobilisé » affiché avec « 15/22 » se lisait à
+                  // l'envers (15 étaient en service). On nomme la ligne par
+                  // ce qu'elle compte vraiment.
+                  DotProgressRow(
+                    icon: Icons.car_crash_rounded,
+                    iconColor: AppColors.danger,
+                    title: 'Parc en service',
+                    subtitle:
+                        'Véhicules non immobilisés — $horsService hors service',
+                    completed: vehicules.length - horsService,
+                    total: vehicules.length,
+                    onTap: versParc,
+                  ),
+                ],
+              ),
+            ),
+          );
+
           if (!large) {
             return Column(
-              children: [jauge, const SizedBox(height: 16), alerte],
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [suivi, const SizedBox(height: 16), alerte],
             );
           }
           return IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(flex: 6, child: jauge),
+                Expanded(child: suivi),
                 const SizedBox(width: 16),
-                Expanded(flex: 5, child: alerte),
+                Expanded(child: alerte),
               ],
             ),
           );
         },
       ),
       const SizedBox(height: 16),
-      SoutesStockCard(
-        title: 'Parc par type',
-        total: enService.length,
-        soutes: types,
-        unite: 'vhl',
-      ),
-      const SizedBox(height: 24),
-      const SectionHeader(title: 'Suivi du garage'),
-      Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Column(
-            children: [
-              DotProgressRow(
-                icon: Icons.directions_car_rounded,
-                iconColor: AppColors.blue,
-                title: 'Disponibilité',
-                subtitle: 'Véhicules prêts sur le parc en service',
-                completed: disponibles,
-                total: enService.length,
-                onTap: versParc,
-              ),
-              const Divider(height: 1),
-              DotProgressRow(
-                icon: Icons.oil_barrel_rounded,
-                iconColor: AppColors.warning,
-                title: 'Entretien',
-                subtitle: 'Véhicules à jour de vidange',
-                completed: enService.length - vidangeRequise.length,
-                total: enService.length,
-                onTap: versParc,
-              ),
-              const Divider(height: 1),
-              DotProgressRow(
-                icon: Icons.car_repair_rounded,
-                iconColor: AppColors.navy,
-                title: 'Réparations',
-                subtitle: 'Interventions clôturées',
-                completed: reparations.length - ouvertes.length,
-                total: reparations.length,
-                onTap: versParc,
-              ),
-              const Divider(height: 1),
-              DotProgressRow(
-                icon: Icons.car_crash_rounded,
-                iconColor: AppColors.danger,
-                title: 'Parc immobilisé',
-                subtitle: 'Véhicules hors service',
-                completed: vehicules.length - horsService,
-                total: vehicules.length,
-                onTap: versParc,
-              ),
-            ],
-          ),
-        ),
+      // Comptée sur le parc en service, comme le suivi : un véhicule hors
+      // service n'est disponible pour personne, et le compter dans le total
+      // ferait paraître vide un type qui ne l'est pas.
+      DisponibiliteParTypeCard(
+        title: 'Disponibilité par type',
+        subtitle: horsService == 0
+            ? 'Véhicules prêts sur le parc en service'
+            : 'Véhicules prêts sur le parc en service — '
+                  '$horsService hors service, non comptés',
+        types: types,
       ),
     ];
 
