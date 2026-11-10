@@ -170,8 +170,35 @@ doublons = {c for c in cles if cles.count(c) > 1}
 if doublons:
     sys.exit(f'clés en double, rien écrit : {sorted(doublons)}')
 
-valeurs = ',\n  '.join(
-    '(' + ', '.join(litteral(v) for v in ligne) + ')' for ligne in lignes
+
+# Trois instructions, chacune se suffisant à elle-même.
+#
+# L'éditeur SQL du tableau de bord Supabase n'exécute pas le script d'un seul
+# tenant : il valide chaque instruction à part, et une table temporaire
+# — même déclarée `on commit drop` — ne passe pas de l'une à l'autre. Les
+# valeurs sont donc écrites en toutes lettres dans chaque instruction, et
+# chacune peut être lancée seule, dans cet ordre, ou relancée.
+PORTEE = f"""   and a.classe_id in (
+         select c.id
+           from scolarite.classes c
+           join scolarite.promotions p on p.id = c.promotion_id
+          where upper(c.nom) = '{PHASE}'
+            and p.nom like '{PROMOTION}'
+       )"""
+
+# 1. Le catalogue des diplômes.
+diplomes = sorted({l[14] for l in lignes if l[14]}, key=str.upper)
+valeurs_diplomes = ',\n         '.join(f'({litteral(d)})' for d in diplomes)
+
+# 2. Le rattachement : qui porte quel diplôme.
+valeurs_rattachement = ',\n         '.join(
+    '(' + ', '.join(litteral(v) for v in (l[0], l[1], l[2], l[14])) + ')'
+    for l in lignes if l[14]
+)
+
+# 3. Les fiches elles-mêmes. Le diplôme n'y figure pas : il a sa table.
+valeurs_fiches = ',\n         '.join(
+    '(' + ', '.join(litteral(v) for v in ligne[:14]) + ')' for ligne in lignes
 )
 
 sql = f"""-- Compléter les fiches importées à moitié.
@@ -182,96 +209,77 @@ sql = f"""-- Compléter les fiches importées à moitié.
 --
 -- Il ne remplit que ce qui est vide : une case corrigée depuis l'import n'est
 -- pas écrasée. Il se borne aux phases « {PHASE} » des promotions « {PROMOTION} ».
--- Il peut être rejoué sans dommage.
 --
--- {len(lignes)} fiche(s) concernée(s).
+-- Trois instructions, à lancer dans cet ordre — ensemble ou une par une.
+-- Chacune peut être relancée sans dommage. La dernière rend la liste des
+-- fiches complétées : son nombre de lignes est le compte rendu.
+--
+-- {len(lignes)} fiche(s), {len(diplomes)} diplôme(s) distinct(s).
 
-begin;
 
-create temporary table maj_fiches (
-  nom                    text,
-  prenom                 text,
-  naissance              date,
-  situation_matrimoniale text,
-  nombre_enfants         integer,
-  nom_pere               text,
-  nom_mere               text,
-  email                  text,
-  groupe_sanguin         text,
-  taille_cm              numeric,
-  poids_kg               numeric,
-  urgence_nom            text,
-  urgence_lien           text,
-  urgence_contact        text,
-  diplome                text
-) on commit drop;
+-- 1. Le catalogue des diplômes : on n'ajoute que ce qui manque. La casse ne
+--    compte pas, pour ne pas créer « Bac » à côté de « BAC ».
+insert into scolarite.diplomes (nom)
+select distinct on (upper(d.nom)) d.nom
+  from (values
+         {valeurs_diplomes}
+       ) as d(nom)
+ where not exists (
+         select 1 from scolarite.diplomes x
+          where upper(x.nom) = upper(d.nom)
+       )
+ order by upper(d.nom);
 
-insert into maj_fiches values
-  {valeurs};
 
--- Les fiches visées : celles que l'import a posées, et elles seules. Une
--- table temporaire plutôt qu'une vue : elle disparaît avec la transaction,
--- et le script peut donc être relancé tel quel.
-create temporary table cibles on commit drop as
-select a.id, m.*
-  from scolarite.apprenants a
-  join maj_fiches m
+-- 2. Le rattachement de chaque élève à son diplôme.
+insert into scolarite.apprenant_diplomes (apprenant_id, diplome_id)
+-- `distinct on` : si le catalogue portait déjà « Bac » à côté de « BAC », la
+-- jointure insensible à la casse rendrait deux lignes pour un seul diplôme.
+select distinct on (a.id, upper(m.diplome)) a.id, x.id
+  from (values
+         {valeurs_rattachement}
+       ) as m(nom, prenom, naissance, diplome)
+  join scolarite.apprenants a
     on upper(a.nom) = upper(m.nom)
    and upper(a.prenom) = upper(m.prenom)
-   and a.date_naissance = m.naissance
- where a.classe_id in (
-         select c.id
-           from scolarite.classes c
-           join scolarite.promotions p on p.id = c.promotion_id
-          where upper(c.nom) = '{PHASE}'
-            and p.nom like '{PROMOTION}'
-       );
-
-update scolarite.apprenants a
-   set situation_matrimoniale =
-         coalesce(a.situation_matrimoniale, c.situation_matrimoniale),
-       nombre_enfants   = coalesce(a.nombre_enfants, c.nombre_enfants),
-       nom_pere         = coalesce(a.nom_pere, c.nom_pere),
-       nom_mere         = coalesce(a.nom_mere, c.nom_mere),
-       email            = coalesce(a.email, c.email),
-       groupe_sanguin   = coalesce(a.groupe_sanguin, c.groupe_sanguin),
-       taille_cm        = coalesce(a.taille_cm, c.taille_cm),
-       poids_kg         = coalesce(a.poids_kg, c.poids_kg),
-       urgence_nom      = coalesce(a.urgence_nom, c.urgence_nom),
-       urgence_lien     = coalesce(a.urgence_lien, c.urgence_lien),
-       urgence_contact  = coalesce(a.urgence_contact, c.urgence_contact)
-  from cibles c
- where c.id = a.id;
-
--- Le diplôme : au catalogue d'abord, rattaché ensuite. Le catalogue est
--- unique sur le nom, et insensible à la casse pour l'application : on ne crée
--- donc pas « Bac » à côté de « BAC ».
-insert into scolarite.diplomes (nom)
-select distinct on (upper(c.diplome)) c.diplome
-  from cibles c
- where c.diplome is not null
-   and not exists (
-         select 1 from scolarite.diplomes d
-          where upper(d.nom) = upper(c.diplome)
-       )
- order by upper(c.diplome);
-
-insert into scolarite.apprenant_diplomes (apprenant_id, diplome_id)
-select c.id, d.id
-  from cibles c
-  join scolarite.diplomes d on upper(d.nom) = upper(c.diplome)
- where c.diplome is not null
+   and a.date_naissance = m.naissance::date
+  join scolarite.diplomes x on upper(x.nom) = upper(m.diplome)
+ where true
+{PORTEE}
+ order by a.id, upper(m.diplome), x.nom
     on conflict (apprenant_id, diplome_id) do nothing;
 
--- Le compte rendu : combien de fiches le script a effectivement touchées.
-select count(*) as fiches_completees from cibles;
 
-commit;
+-- 3. Les fiches. `coalesce` ne remplit que les cases vides, et la liste
+--    rendue dit lesquelles ont été retrouvées.
+update scolarite.apprenants a
+   set situation_matrimoniale =
+         coalesce(a.situation_matrimoniale, m.situation_matrimoniale),
+       nombre_enfants   = coalesce(a.nombre_enfants, m.nombre_enfants::integer),
+       nom_pere         = coalesce(a.nom_pere, m.nom_pere),
+       nom_mere         = coalesce(a.nom_mere, m.nom_mere),
+       email            = coalesce(a.email, m.email),
+       groupe_sanguin   = coalesce(a.groupe_sanguin, m.groupe_sanguin),
+       taille_cm        = coalesce(a.taille_cm, m.taille_cm::numeric),
+       poids_kg         = coalesce(a.poids_kg, m.poids_kg::numeric),
+       urgence_nom      = coalesce(a.urgence_nom, m.urgence_nom),
+       urgence_lien     = coalesce(a.urgence_lien, m.urgence_lien),
+       urgence_contact  = coalesce(a.urgence_contact, m.urgence_contact)
+  from (values
+         {valeurs_fiches}
+       ) as m(nom, prenom, naissance, situation_matrimoniale, nombre_enfants,
+              nom_pere, nom_mere, email, groupe_sanguin, taille_cm, poids_kg,
+              urgence_nom, urgence_lien, urgence_contact)
+ where upper(a.nom) = upper(m.nom)
+   and upper(a.prenom) = upper(m.prenom)
+   and a.date_naissance = m.naissance::date
+{PORTEE}
+returning a.nom, a.prenom, a.nom_pere, a.urgence_contact, a.taille_cm;
 """
 
 with open(SORTIE, 'w', encoding='utf-8', newline='\n') as f:
     f.write(sql)
 
-print(f'{len(lignes)} fiche(s) -> {SORTIE}')
+print(f'{len(lignes)} fiche(s), {len(diplomes)} diplome(s) -> {SORTIE}')
 if ignorees:
     print('sans date de naissance, laissées de côté :', ', '.join(ignorees))

@@ -276,7 +276,12 @@ l'œil sur une fiche, coupée net après « Lieu de naissance ».
 
 Plutôt que de supprimer puis réimporter 203 fiches,
 `outils/completer_fiches_depuis_import.py` relit les mêmes classeurs et écrit
-le SQL qui complète celles qui sont là. Il reprend à l'identique les règles de
+le SQL qui complète celles qui sont là. Trois instructions, sans table
+temporaire : l'éditeur SQL du tableau de bord Supabase valide chaque
+instruction à part, et une table temporaire — même `on commit drop` — ne passe
+pas de l'une à l'autre. Les valeurs sont donc écrites en toutes lettres dans
+chacune, qui se suffit à elle-même et se relance sans dommage. Le fichier
+produit est relu par le parseur de PostgreSQL (`pglast`) avant d'être remis. Il reprend à l'identique les règles de
 lecture de `import_valeurs.dart` — même normalisation de la taille, du groupe
 sanguin, de la situation matrimoniale — et le SQL produit ne remplit que ce
 qui est **vide** : une case corrigée à la main depuis l'import n'est pas
