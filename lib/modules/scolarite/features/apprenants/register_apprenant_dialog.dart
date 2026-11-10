@@ -776,7 +776,7 @@ class _RegisterApprenantDialogState
             ]),
             _FieldRow([
               _DatePickerField(
-                label: 'Née le',
+                label: 'Né(e) le',
                 value: _dateNaissance,
                 onChanged: (date) => setState(() => _dateNaissance = date),
               ),
@@ -972,7 +972,7 @@ class _RegisterApprenantDialogState
             'Nom': draft.nom,
             'Prénoms': draft.prenom,
             'Téléphone': draft.telephone ?? '—',
-            'Née le': draft.dateNaissance == null
+            'Né(e) le': draft.dateNaissance == null
                 ? '—'
                 : DateFormat('dd/MM/yyyy').format(draft.dateNaissance!),
             'Lieu de naissance': draft.lieuNaissance ?? '—',

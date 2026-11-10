@@ -307,7 +307,7 @@ class ApprenantDetailView extends ConsumerWidget {
                                       value: _libelleSexe(apprenant.sexe),
                                     ),
                                     _InfoRow(
-                                      label: 'Née le',
+                                      label: 'Né(e) le',
                                       value: apprenant.dateNaissance == null
                                           ? '—'
                                           : DateFormat(

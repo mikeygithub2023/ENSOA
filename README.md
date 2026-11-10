@@ -264,6 +264,27 @@ Chemins : `/instruction` (la rubrique groupée de l'administrateur, ex
 `/scolarite/rubrique`) et `/ressources-humaines`. `/scolarite/apprenants` ne
 bouge pas : il porte les fiches élèves et les contrôles en sous-routes.
 
+### Les fiches importées à moitié, et comment on les complète
+
+Les 203 élèves de la 37e promotion ont été importés à 16 h par la version de
+l'application qui ne lisait encore que **sept colonnes** — matricule, nom,
+prénoms, sexe, téléphone, date et lieu de naissance. La version qui lit les
+douze suivantes (filiation, contact d'urgence, données médicales, diplôme) est
+partie en production à 16 h 02 : l'import l'avait précédée de peu. Le tableur
+portait tout, l'application n'en a retenu que le début — ce qui se voit à
+l'œil sur une fiche, coupée net après « Lieu de naissance ».
+
+Plutôt que de supprimer puis réimporter 203 fiches,
+`outils/completer_fiches_depuis_import.py` relit les mêmes classeurs et écrit
+le SQL qui complète celles qui sont là. Il reprend à l'identique les règles de
+lecture de `import_valeurs.dart` — même normalisation de la taille, du groupe
+sanguin, de la situation matrimoniale — et le SQL produit ne remplit que ce
+qui est **vide** : une case corrigée à la main depuis l'import n'est pas
+écrasée. Il se borne aux phases visées, et peut être rejoué.
+
+Au passage : la fiche écrivait « Née le » à tout le monde. Elle écrit « Né(e)
+le ».
+
 ### État à la fin de la journée
 
 - `flutter analyze` : aucun avertissement
