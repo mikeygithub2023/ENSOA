@@ -202,6 +202,24 @@ corrige les deux. Le dialogue, lui, dit maintenant quoi faire quand un fichier
 le déroute — le rouvrir dans Excel et l'y enregistrer à nouveau — au lieu de
 rapporter « Null check operator used on a null value ».
 
+### Le NOM avant le prénom
+
+L'apprenant se lisait « ATSE ALEX AMIRAL ABE » : il fallait chercher le
+patronyme au bout de trois ou quatre prénoms — la 37e promotion en compte qui
+en portent quatre. C'est désormais « ABE ATSE ALEX AMIRAL », le nom d'usage
+militaire, celui par lequel on appelle au rapport et par lequel les listes de
+l'école sont tenues.
+
+Un seul endroit construisait ce libellé, `Apprenant.nomComplet` : la liste,
+les fiches, les feuilles de séance, les bulletins et les listes imprimées en
+héritent d'un coup. Le tri des listes imprimées se faisait déjà par nom puis
+prénom, et l'initiale de la pastille suit maintenant la même lettre que la
+ligne.
+
+`Profil` porte la même règle depuis toujours dans `nomDUsage`, mais son
+`nomComplet` — celui que lit l'écran Administration — reste dans l'autre
+ordre. À aligner le jour où l'on voudra la même lecture pour les comptes.
+
 ### Le grade suit la phase, et la division qui la donne
 
 La Formation Commune de Base se fait des deux côtés de l'école. La règle

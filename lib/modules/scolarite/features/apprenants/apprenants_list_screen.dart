@@ -842,8 +842,10 @@ class _ApprenantTile extends ConsumerWidget {
                 child: photoUrl != null
                     ? null
                     : Text(
-                        apprenant.prenom.isNotEmpty
-                            ? apprenant.prenom[0].toUpperCase()
+                        // La même lettre que celle qui ouvre la ligne : le
+                        // nom, puisque c'est par lui qu'on lit la liste.
+                        apprenant.nom.isNotEmpty
+                            ? apprenant.nom[0].toUpperCase()
                             : '?',
                         style: const TextStyle(
                           fontWeight: FontWeight.w800,

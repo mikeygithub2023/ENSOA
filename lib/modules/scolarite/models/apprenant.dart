@@ -111,7 +111,13 @@ class Apprenant {
   final DateTime? deletionRequestedAt;
   final String? deletionRequestedBy;
 
-  String get nomComplet => '$prenom $nom'.trim();
+  /// Le nom d'usage militaire : le NOM d'abord, le prénom ensuite.
+  ///
+  /// C'est ainsi qu'on appelle quelqu'un au rapport, ainsi qu'il se présente,
+  /// et ainsi que les listes de l'école sont tenues — un effectif se lit par
+  /// ordre alphabétique de nom. L'écrire dans l'autre sens obligeait à
+  /// chercher le patronyme au milieu de trois ou quatre prénoms.
+  String get nomComplet => '$nom $prenom'.trim();
   bool get suppressionDemandee => deletionRequestedAt != null;
 
   factory Apprenant.fromJson(Map<String, dynamic> json) {
