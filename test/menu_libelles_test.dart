@@ -49,10 +49,7 @@ Future<void> _ouvrir(
       child: MaterialApp(
         // Un chemin hors des modules : le cadre ne déclenche alors aucun
         // rechargement, et la barre se dessine seule.
-        home: AppShell(
-          location: location,
-          child: const SizedBox.shrink(),
-        ),
+        home: AppShell(location: location, child: const SizedBox.shrink()),
       ),
     ),
   );

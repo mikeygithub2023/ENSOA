@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/erreurs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -52,7 +53,7 @@ class ActiviteDetailScreen extends ConsumerWidget {
       await ref.read(tachesProvider.notifier).supprimer(tache.id);
     } catch (e) {
       messager.showSnackBar(
-        SnackBar(content: Text('Suppression impossible : $e')),
+        SnackBar(content: Text('Suppression impossible : ${messageErreur(e)}')),
       );
     }
   }

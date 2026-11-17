@@ -125,18 +125,20 @@ void main() {
       expect(lignes.single.existant, isNull);
     });
 
-    test('deux lignes du fichier pour le même véhicule : la première passe',
-        () {
-      final lignes = analyserLignes(
-        brutes: [
-          _ligne(immatriculation: '5555 BB 02'),
-          _ligne(immatriculation: '5555-bb-02', chassis: 'AUTRE'),
-        ],
-        parcExistant: const [],
-      );
-      expect(lignes[0].statut, StatutLigne.nouveau);
-      expect(lignes[1].statut, StatutLigne.doublonDansLeFichier);
-    });
+    test(
+      'deux lignes du fichier pour le même véhicule : la première passe',
+      () {
+        final lignes = analyserLignes(
+          brutes: [
+            _ligne(immatriculation: '5555 BB 02'),
+            _ligne(immatriculation: '5555-bb-02', chassis: 'AUTRE'),
+          ],
+          parcExistant: const [],
+        );
+        expect(lignes[0].statut, StatutLigne.nouveau);
+        expect(lignes[1].statut, StatutLigne.doublonDansLeFichier);
+      },
+    );
   });
 
   group('ce qui bloque une ligne', () {
@@ -202,9 +204,7 @@ void main() {
   group('ce qui sera écrit', () {
     test('les conventions annoncées s\'appliquent', () {
       final ligne = analyserLignes(
-        brutes: [
-          _ligne(kilometrage: '', places: '', vidange: '', etat: ''),
-        ],
+        brutes: [_ligne(kilometrage: '', places: '', vidange: '', etat: '')],
         parcExistant: const [],
       ).single;
       final v = construireImport(ligne);
@@ -255,7 +255,10 @@ void main() {
   test('le numéro de ligne est celui qu\'affiche le tableur', () {
     // L'en-tête occupe la ligne 1 : la première donnée est en ligne 2.
     final lignes = analyserLignes(
-      brutes: [_ligne(immatriculation: 'A1'), _ligne(immatriculation: 'A2')],
+      brutes: [
+        _ligne(immatriculation: 'A1'),
+        _ligne(immatriculation: 'A2'),
+      ],
       parcExistant: const [],
     );
     expect(lignes.map((l) => l.numero), [2, 3]);

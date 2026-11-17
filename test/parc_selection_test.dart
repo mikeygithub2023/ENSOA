@@ -133,14 +133,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Supprimer 3 véhicules'), findsOneWidget);
-    expect(
-      find.text('• 310 20 155 — TOYOTA Land Cruiser'),
-      findsOneWidget,
-    );
-    expect(
-      find.text('• 310 40 026 — TOYOTA Land Cruiser'),
-      findsOneWidget,
-    );
+    expect(find.text('• 310 20 155 — TOYOTA Land Cruiser'), findsOneWidget);
+    expect(find.text('• 310 40 026 — TOYOTA Land Cruiser'), findsOneWidget);
     expect(find.textContaining('historique'), findsOneWidget);
   });
 

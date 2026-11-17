@@ -1,5 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart'
-    show FunctionException, PostgrestException, StorageException;
+    show AuthException, FunctionException, PostgrestException, StorageException;
 
 import 'erreurs_base.dart';
 import 'exceptions_reseau.dart';
@@ -20,10 +20,7 @@ String messageErreur(Object erreur) {
   if (estSessionExpiree(erreur)) {
     return 'Votre session a expiré. Reconnectez-vous pour continuer.';
   }
-  if (estExceptionReseauBasNiveau(erreur) || _estCoupureClient(erreur)) {
-    return 'Connexion au serveur interrompue. Vérifiez votre accès Internet, '
-        'puis réessayez.';
-  }
+  if (estProblemeReseau(erreur)) return messageReseau;
   // Le message brut de PostgreSQL s'adresse à qui tient la base, pas à qui
   // saisit un véhicule : « violates foreign key constraint
   // "vehicule_type_vhl_id_fkey" » n'apprend rien et inquiète. Voir
@@ -32,24 +29,75 @@ String messageErreur(Object erreur) {
     return messageBaseDeDonnees(erreur);
   }
   if (erreur is StorageException) {
-    return erreur.message;
+    return _lisible(erreur.message) ?? messageServeurGenerique;
   }
-  // Une fonction serveur qui refuse lève cette exception, dont le
-  // `toString()` ne montre qu'un code — « FunctionException(status: 400) ».
-  // Le motif du refus, lui, est dans les détails : c'est lui qui apprend
-  // quelque chose à l'utilisateur.
+  // Une fonction serveur qui refuse lève cette exception. Le motif du refus,
+  // quand la fonction l'a rédigé pour l'utilisateur, est dans les détails.
   if (erreur is FunctionException) {
     final details = erreur.details;
-    if (details is Map && details['error'] != null) {
-      return details['error'].toString();
-    }
-    if (details is String && details.trim().isNotEmpty) return details;
-    final reason = erreur.reasonPhrase;
-    return reason == null || reason.trim().isEmpty
-        ? 'Le serveur a refusé l\'opération (code ${erreur.status}).'
-        : reason;
+    final motif = details is Map ? details['error']?.toString() : '$details';
+    final lisible = _lisible(motif);
+    if (lisible != null) return lisible;
+    return switch (erreur.status) {
+      401 => 'Votre session a expiré. Reconnectez-vous pour continuer.',
+      403 => 'Vous n\'avez pas le droit d\'effectuer cette opération.',
+      _ => messageServeurGenerique,
+    };
   }
-  return erreur.toString();
+  if (erreur is AuthException) {
+    return _lisible(erreur.message) ?? messageServeurGenerique;
+  }
+  // Nos propres `throw Exception('…')` portent une phrase écrite pour
+  // l'utilisateur ; tout le reste est un détail technique.
+  return _lisible('$erreur') ?? messageServeurGenerique;
+}
+
+const messageReseau =
+    'Connexion au serveur impossible. Vérifiez votre accès Internet, '
+    'puis réessayez.';
+
+/// Ce qui trahit un message écrit pour le technicien : une adresse, le nom
+/// d'un service, d'une exception, d'une table ou d'un code d'erreur.
+final _technique = RegExp(
+  r'https?:|www\.|\.co\b|\.ts\b|\.dart\b|uri=|supabase|postgres|postgrest|'
+  r'pgrst|jwt|sql|schema|relation |column |constraint|function |'
+  r'exception|error:|status:|statuscode|reasonphrase|minified|'
+  r'stack|null\)|\{|\}|#\d|typeerror|nosuchmethod|instance of',
+  caseSensitive: false,
+);
+
+/// Les refus courants du service d'authentification, qui répond en anglais.
+const _traductions = <String, String>{
+  'already been registered':
+      'Cet identifiant est déjà utilisé par un autre compte.',
+  'already registered': 'Cet identifiant est déjà utilisé par un autre compte.',
+  'invalid login credentials': 'Identifiant ou mot de passe incorrect.',
+  'password should be at least': 'Le mot de passe est trop court.',
+  'user not found': 'Ce compte est introuvable.',
+  'new password should be different':
+      'Le nouveau mot de passe doit différer de l\'ancien.',
+  'email rate limit': 'Trop de tentatives. Patientez quelques minutes.',
+  'rate limit': 'Trop de tentatives. Patientez quelques minutes.',
+};
+
+/// La phrase, si elle peut être montrée telle quelle ; sinon `null`.
+String? _lisible(String? brut) {
+  if (brut == null) return null;
+  var texte = brut.trim();
+  for (final prefixe in [
+    'Exception: ',
+    'Bad state: ',
+    'Invalid argument(s): ',
+  ]) {
+    if (texte.startsWith(prefixe)) texte = texte.substring(prefixe.length);
+  }
+  if (texte.isEmpty || texte == 'null') return null;
+  final minuscule = texte.toLowerCase();
+  for (final MapEntry(:key, :value) in _traductions.entries) {
+    if (minuscule.contains(key)) return value;
+  }
+  if (_technique.hasMatch(texte)) return null;
+  return texte;
 }
 
 /// `ClientException` vient du paquet `http` et n'est pas exposée par
@@ -70,7 +118,12 @@ bool estProblemeReseau(Object erreur) {
     return true;
   }
   final texte = erreur.toString().toLowerCase();
+  // Sur le web, une requête que le navigateur n'a pas pu envoyer (serveur
+  // injoignable, refus CORS) remonte avec le statut 0 et « Failed to fetch ».
+  if (erreur is FunctionException && erreur.status == 0) return true;
   return texte.contains('failed host lookup') ||
+      texte.contains('failed to fetch') ||
+      texte.contains('xmlhttprequest error') ||
       texte.contains('socketexception') ||
       texte.contains('clientexception') ||
       texte.contains('network is unreachable') ||

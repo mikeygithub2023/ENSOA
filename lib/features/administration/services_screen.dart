@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/erreurs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -23,7 +24,8 @@ class ServicesScreen extends ConsumerWidget {
 
     return profils.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => EmptyState(message: 'Services illisibles : $e'),
+      error: (e, _) =>
+          EmptyState(message: 'Services illisibles : ${messageErreur(e)}'),
       data: (liste) => Stack(
         children: [
           if (liste.isEmpty)

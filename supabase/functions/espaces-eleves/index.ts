@@ -22,6 +22,7 @@
 // clé service, jamais embarquée dans l'application.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { servir } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -82,7 +83,7 @@ function motDePasseAleatoire(): string {
   return Array.from(octets, (o) => alphabet[o % alphabet.length]).join("");
 }
 
-Deno.serve(async (req) => {
+servir(async (req) => {
   if (req.method !== "POST") {
     return jsonResponse({ error: "Méthode non autorisée" }, 405);
   }

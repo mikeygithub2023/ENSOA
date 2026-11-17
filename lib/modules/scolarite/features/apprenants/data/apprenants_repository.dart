@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/erreurs.dart';
 import 'dart:typed_data';
 
 import 'package:intl/intl.dart';
@@ -339,7 +340,7 @@ class ApprenantsRepository {
         final label = (draft.matricule?.isNotEmpty ?? false)
             ? draft.matricule!
             : '${draft.nom} ${draft.prenom}';
-        failed.add('$label : $e');
+        failed.add('$label : ${messageErreur(e)}');
       }
     }
     return ImportResult(inserted: inserted, failed: failed);

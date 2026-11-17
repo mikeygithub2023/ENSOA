@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/erreurs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -53,7 +54,7 @@ class _AssistantIaState extends ConsumerState<AssistantIa> {
         ),
       );
     } catch (e) {
-      setState(() => _erreur = 'Erreur : $e');
+      setState(() => _erreur = 'Erreur : ${messageErreur(e)}');
     } finally {
       if (mounted) setState(() => _enCours = false);
       await Future.delayed(const Duration(milliseconds: 100));

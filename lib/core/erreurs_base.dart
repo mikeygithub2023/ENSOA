@@ -22,6 +22,7 @@
 ///    technicien sans rien à chercher.
 library;
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 /// Un nom de champ tel qu'on le dit en français, avec son genre — sans quoi
@@ -111,6 +112,11 @@ const _tables = <String, String>{
   'activite': 'les activités',
 };
 
+/// Ce qu'on dit quand on ne sait pas dire mieux.
+const messageServeurGenerique =
+    'L\'opération n\'a pas abouti. Réessayez ; si cela se reproduit, '
+    'signalez-le à l\'administrateur.';
+
 /// Un refus de la base, dit en français.
 String messageBaseDeDonnees(PostgrestException e) {
   final code = e.code ?? '';
@@ -195,10 +201,11 @@ String messageBaseDeDonnees(PostgrestException e) {
         'vous revient, signalez-le à l\'administrateur.';
   }
 
-  // Ce qu'on ne sait pas traduire garde sa trace : sans elle, l'utilisateur
-  // n'a rien à signaler et le technicien rien à chercher.
-  final trace = code.isEmpty ? '' : ' (code $code)';
-  return 'Le serveur a refusé l\'opération$trace : ${e.message}';
+  // Ce qu'on ne sait pas traduire ne s'affiche pas tel quel : le message brut
+  // décrit la base, ses tables et ses colonnes, ce qu'un utilisateur n'a pas à
+  // voir. Le détail reste dans la console, pour le technicien.
+  debugPrint('Refus du serveur non traduit : ${e.code} ${e.message}');
+  return messageServeurGenerique;
 }
 
 /// Le champ en cause, cherché d'abord dans les détails — PostgreSQL y écrit

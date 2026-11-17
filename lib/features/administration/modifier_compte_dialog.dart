@@ -83,7 +83,7 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
       ref.invalidate(comptesProvider);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      setState(() => _erreur = '$e'.replaceFirst('Exception: ', ''));
+      setState(() => _erreur = messageErreur(e));
     } finally {
       if (mounted) setState(() => _enCours = false);
     }

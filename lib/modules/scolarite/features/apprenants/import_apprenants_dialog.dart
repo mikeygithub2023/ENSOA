@@ -684,7 +684,7 @@ class _ImportApprenantsDialogState
       setState(() => _submitting = false);
       messenger.showSnackBar(
         SnackBar(
-          content: Text('Erreur lors de l\'import : $e'),
+          content: Text('Erreur lors de l\'import : ${messageErreur(e)}'),
           backgroundColor: AppColors.danger,
         ),
       );

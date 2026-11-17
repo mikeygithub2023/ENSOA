@@ -306,7 +306,7 @@ class _RegisterUrgenceConsultationDialogState
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
                     error: (error, _) => Text(
-                      'Erreur de chargement des médicaments : $error',
+                      'Erreur de chargement des médicaments : ${messageErreur(error)}',
                       style: const TextStyle(color: AppColors.danger),
                     ),
                   ),

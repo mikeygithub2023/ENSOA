@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/erreurs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -132,7 +133,7 @@ class _ComptesState extends ConsumerState<_Comptes> {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (e, _) => Center(
         child: Text(
-          'Comptes illisibles : $e',
+          'Comptes illisibles : ${messageErreur(e)}',
           style: const TextStyle(color: AppColors.danger),
         ),
       ),
@@ -468,7 +469,7 @@ class _CarteState extends ConsumerState<_Carte> {
     } catch (e) {
       messager.showSnackBar(
         SnackBar(
-          content: Text('$e'.replaceFirst('Exception: ', '')),
+          content: Text(messageErreur(e)),
           backgroundColor: AppColors.danger,
         ),
       );

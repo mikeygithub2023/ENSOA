@@ -102,7 +102,7 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
       ref.invalidate(comptesProvider);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
-      setState(() => _erreur = '$e'.replaceFirst('Exception: ', ''));
+      setState(() => _erreur = messageErreur(e));
     } finally {
       if (mounted) setState(() => _enCours = false);
     }
@@ -262,7 +262,7 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                   divisions.when(
                     loading: () => const LinearProgressIndicator(),
                     error: (e, _) => Text(
-                      'Divisions illisibles : $e',
+                      'Divisions illisibles : ${messageErreur(e)}',
                       style: const TextStyle(
                         color: AppColors.danger,
                         fontSize: 12,

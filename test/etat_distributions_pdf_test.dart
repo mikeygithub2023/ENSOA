@@ -57,7 +57,8 @@ void main() {
     expect(
       theme,
       isNotNull,
-      reason: 'aucune police : le document sortirait en caractères de repli, '
+      reason:
+          'aucune police : le document sortirait en caractères de repli, '
           'aux chasses différentes de celles mesurées ici',
     );
     final contexte = pw.Context(document: pw.Document().document);
@@ -66,9 +67,7 @@ void main() {
 
     final total = flex.values.reduce((a, b) => a + b);
     final utile = PdfPageFormat.a4.landscape.width - marges;
-    largeurs = {
-      for (final e in flex.entries) e.key: utile * e.value / total,
-    };
+    largeurs = {for (final e in flex.entries) e.key: utile * e.value / total};
   });
 
   double mesure(PdfFont police, String texte) =>

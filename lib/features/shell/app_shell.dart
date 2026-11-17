@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/erreurs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -198,7 +199,8 @@ class _AppShellState extends ConsumerState<AppShell>
 
     return profilAsync.when(
       loading: () => const EcranDemarrage(),
-      error: (e, _) => _Impasse(titre: 'Profil illisible', texte: '$e'),
+      error: (e, _) =>
+          _Impasse(titre: 'Profil illisible', texte: messageErreur(e)),
       data: (profil) {
         if (profil == null) {
           return const _Impasse(

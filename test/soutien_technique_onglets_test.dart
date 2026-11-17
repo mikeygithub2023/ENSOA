@@ -271,8 +271,13 @@ void main() {
     await _ouvrir(tester);
     await _service(tester, 'Soutien pétrolier');
     expect(find.widgetWithText(Tab, 'Tableau de bord'), findsOneWidget);
-    for (final onglet in ['Soute', 'Dépotage', 'Ventilation', 'Répartitions',
-        'Distributions']) {
+    for (final onglet in [
+      'Soute',
+      'Dépotage',
+      'Ventilation',
+      'Répartitions',
+      'Distributions',
+    ]) {
       expect(
         find.widgetWithText(Tab, onglet),
         findsOneWidget,

@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/erreurs.dart';
 import 'dart:typed_data';
 
 import 'package:excel/excel.dart' hide Border;
@@ -153,7 +154,7 @@ class _ImportVehiculesDialogState
       });
     } catch (e) {
       setState(() {
-        _erreurLecture = 'Fichier illisible : $e';
+        _erreurLecture = 'Fichier illisible : ${messageErreur(e)}';
         _lecture = false;
       });
     }

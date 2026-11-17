@@ -155,7 +155,9 @@ Future<void> _ouvrir(
         ),
       ],
       child: const MaterialApp(
-        home: Scaffold(body: Padding(padding: EdgeInsets.all(8), child: ArmamentScreen())),
+        home: Scaffold(
+          body: Padding(padding: EdgeInsets.all(8), child: ArmamentScreen()),
+        ),
       ),
     ),
   );
@@ -183,9 +185,7 @@ void main() {
     expect(find.widgetWithText(Tab, 'Armes'), findsNothing);
   });
 
-  testWidgets('l\'Armement porte registre, bons et inventaire', (
-    tester,
-  ) async {
+  testWidgets('l\'Armement porte registre, bons et inventaire', (tester) async {
     await _ouvrir(tester);
     expect(find.widgetWithText(Tab, 'Registre'), findsOneWidget);
     expect(find.widgetWithText(Tab, 'Bons'), findsOneWidget);
@@ -211,9 +211,7 @@ void main() {
     expect(find.textContaining('Gilet pare-balles'), findsWidgets);
   });
 
-  testWidgets('les bons des munitions sont ceux des munitions', (
-    tester,
-  ) async {
+  testWidgets('les bons des munitions sont ceux des munitions', (tester) async {
     // La sous-rubrique « Bons » d'une famille ne montre que ses mouvements.
     // Le journal est commun aux deux familles en base ; s'il n'était pas
     // filtré, les sorties de cartouches paraîtraient sous les gilets.
@@ -238,10 +236,7 @@ void main() {
     testWidgets("les filtres n'offrent que ces deux-là", (tester) async {
       await _ouvrir(tester);
       expect(find.widgetWithText(FilterChipPill, 'Bon'), findsOneWidget);
-      expect(
-        find.widgetWithText(FilterChipPill, 'Défectueux'),
-        findsOneWidget,
-      );
+      expect(find.widgetWithText(FilterChipPill, 'Défectueux'), findsOneWidget);
       for (final ancien in [
         'En armurerie',
         'En dotation',

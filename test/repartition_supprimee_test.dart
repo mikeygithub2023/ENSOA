@@ -122,7 +122,10 @@ void main() {
 
     // Elle n'est ni première dans la liste d'entrée, ni première par ordre
     // alphabétique : seule la règle peut l'avoir mise là.
-    expect(groupe.repartitions.first.repartitionLibelle, 'Activités Ordinaires');
+    expect(
+      groupe.repartitions.first.repartitionLibelle,
+      'Activités Ordinaires',
+    );
   });
 
   test('on ne distribue plus depuis une répartition supprimée', () {
@@ -132,7 +135,10 @@ void main() {
       lignes.map((v) => v.stock.repartitionLibelle),
       containsAll(['Activités Ordinaires', 'AB1']),
     );
-    expect(lignes.map((v) => v.stock.repartitionLibelle), isNot(contains('BA2')));
+    expect(
+      lignes.map((v) => v.stock.repartitionLibelle),
+      isNot(contains('BA2')),
+    );
   });
 
   test('la répartition d\'accueil ne paraît pas dans la liste', () {

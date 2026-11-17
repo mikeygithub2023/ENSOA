@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
+import 'package:supabase_flutter/supabase_flutter.dart'
+    show FunctionException, PostgrestException;
 
 import 'package:sig_ensoa/core/erreurs.dart';
 
@@ -74,7 +75,8 @@ void main() {
         '23503',
         'insert or update on table "soute_type_stock" violates foreign key '
             'constraint "soute_type_stock_repartition_id_fkey"',
-        details: 'Key (repartition_id)=(9) is not present in table '
+        details:
+            'Key (repartition_id)=(9) is not present in table '
             '"repartition".',
       ),
     );
@@ -84,7 +86,8 @@ void main() {
         'update or delete on table "repartition" violates foreign key '
             'constraint "soute_type_stock_repartition_id_fkey" on table '
             '"soute_type_stock"',
-        details: 'Key (id)=(9) is still referenced from table '
+        details:
+            'Key (id)=(9) is still referenced from table '
             '"soute_type_stock".',
       ),
     );
@@ -128,12 +131,103 @@ void main() {
     expect(phrase, contains('obligatoire'));
   });
 
-  test('un code inconnu garde sa trace technique', () {
-    // Sans elle, l'utilisateur n'a rien à signaler et le technicien rien à
-    // chercher.
+  test('un code inconnu ne montre rien du serveur', () {
     final phrase = messageErreur(_pg('XX000', 'internal error'));
-    expect(phrase, contains('XX000'));
-    expect(phrase, contains('internal error'));
+    expect(phrase, isNot(contains('XX000')));
+    expect(phrase, isNot(contains('internal error')));
+    expect(phrase, contains('administrateur'));
+  });
+
+  group('rien du serveur ne transparaît', () {
+    void sansServeur(String phrase) {
+      for (final mot in [
+        'supabase',
+        'http',
+        'uri',
+        'status',
+        'minified',
+        'exception',
+        'functions',
+        'pgrst',
+      ]) {
+        expect(phrase.toLowerCase(), isNot(contains(mot)), reason: phrase);
+      }
+    }
+
+    test("une fonction injoignable depuis le navigateur parle de connexion", () {
+      // L'erreur exacte vue à l'ouverture d'un compte sur l'application web.
+      final phrase = messageErreur(
+        FunctionException(
+          status: 0,
+          details:
+              'ClientFailed to fetch, uri=https://abc.supabase.co/functions/v1/creer-compte',
+        ),
+      );
+      sansServeur(phrase);
+      expect(phrase, contains('Connexion'));
+    });
+
+    test('le motif rédigé par la fonction reste lisible', () {
+      expect(
+        messageErreur(
+          const FunctionException(
+            status: 403,
+            details: {'error': "Vous n'êtes pas habilité à ouvrir un compte."},
+          ),
+        ),
+        "Vous n'êtes pas habilité à ouvrir un compte.",
+      );
+    });
+
+    test("un motif technique de la fonction ne s'affiche pas", () {
+      final phrase = messageErreur(
+        const FunctionException(
+          status: 500,
+          details: {'error': 'TypeError: Cannot read properties of null'},
+        ),
+      );
+      sansServeur(phrase);
+    });
+
+    test("le service d'authentification est traduit", () {
+      expect(
+        messageErreur(
+          const FunctionException(
+            status: 400,
+            details: {
+              'error':
+                  'A user with this email address has already been registered',
+            },
+          ),
+        ),
+        contains('déjà utilisé'),
+      );
+    });
+
+    test('table introuvable', () {
+      sansServeur(
+        messageErreur(
+          _pg(
+            'PGRST205',
+            "Could not find the table 'logistique.tache_quotidienne' in the schema cache",
+          ),
+        ),
+      );
+    });
+
+    test('nos propres phrases passent, sans le préfixe', () {
+      expect(
+        messageErreur(Exception('Suppression refusée par le serveur.')),
+        'Suppression refusée par le serveur.',
+      );
+    });
+
+    test("une exception quelconque n'est pas recopiée", () {
+      sansServeur(messageErreur(StateError('Null check operator used')));
+      sansServeur(
+        messageErreur(Exception('ClientException: x, uri=https://y')),
+      );
+    });
   });
 
   test('un champ hors catalogue reste lisible', () {

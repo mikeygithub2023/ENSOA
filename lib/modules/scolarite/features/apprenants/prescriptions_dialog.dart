@@ -187,7 +187,7 @@ class _OrdonnanceLignesList extends ConsumerWidget {
         child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
       ),
       error: (error, _) => Text(
-        'Erreur : $error',
+        'Erreur : ${messageErreur(error)}',
         style: const TextStyle(color: AppColors.danger),
       ),
     );

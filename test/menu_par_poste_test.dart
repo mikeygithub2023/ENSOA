@@ -21,10 +21,7 @@ void main() {
 
   group('le tableau de bord', () {
     test("s'ouvre à l'administrateur", () {
-      expect(
-        _chemins(RoleLogistique.administrateur),
-        contains('/'),
-      );
+      expect(_chemins(RoleLogistique.administrateur), contains('/'));
     });
 
     // Chacun de ces postes a son propre tableau de bord. Sans cette entrée,
@@ -147,9 +144,8 @@ void _profilPersonnalise() {
   group("l'entrée des activités", () {
     // Elle s'appelait « Tâches » et fermait la marche du menu. Elle porte le
     // nom de ce qu'on y organise, et se tient là où l'on s'en sert.
-    ElementNav entree(String chemin) => elementsNav.firstWhere(
-      (e) => e.chemin == chemin,
-    );
+    ElementNav entree(String chemin) =>
+        elementsNav.firstWhere((e) => e.chemin == chemin);
 
     test('porte le nom « Activités »', () {
       expect(entree('/logistique/taches').libelle, 'Activités');

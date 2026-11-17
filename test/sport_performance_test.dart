@@ -36,10 +36,13 @@ void main() {
   );
 
   test('chaque séance est rendue dans l’unité de son activité', () {
-    final mise = performancesParSeance([
-      (performance: _perf('s1', 750), activiteId: cross.id),
-      (performance: _perf('s2', 12), activiteId: traction.id),
-    ], [cross, traction]);
+    final mise = performancesParSeance(
+      [
+        (performance: _perf('s1', 750), activiteId: cross.id),
+        (performance: _perf('s2', 12), activiteId: traction.id),
+      ],
+      [cross, traction],
+    );
 
     // Un chrono se lit en minutes et secondes, pas en secondes cumulées.
     expect(mise['s1'], '12′30″');
@@ -47,9 +50,10 @@ void main() {
   });
 
   test('moins d’une minute reste en secondes', () {
-    final mise = performancesParSeance([
-      (performance: _perf('s1', 48), activiteId: cross.id),
-    ], [cross]);
+    final mise = performancesParSeance(
+      [(performance: _perf('s1', 48), activiteId: cross.id)],
+      [cross],
+    );
 
     expect(mise['s1'], '48 s');
   });
@@ -57,10 +61,13 @@ void main() {
   // Sans unité, un nombre nu induirait en erreur : la séance s'efface, la
   // note reste seule.
   test('une séance dont l’activité a disparu du catalogue est laissée', () {
-    final mise = performancesParSeance([
-      (performance: _perf('s1', 750), activiteId: cross.id),
-      (performance: _perf('s2', 12), activiteId: 'act-supprimee'),
-    ], [cross]);
+    final mise = performancesParSeance(
+      [
+        (performance: _perf('s1', 750), activiteId: cross.id),
+        (performance: _perf('s2', 12), activiteId: 'act-supprimee'),
+      ],
+      [cross],
+    );
 
     expect(mise.keys, ['s1']);
   });

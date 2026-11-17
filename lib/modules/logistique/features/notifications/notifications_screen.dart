@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/erreurs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -146,7 +147,9 @@ Future<void> _marquerLue(
       ..showSnackBar(
         SnackBar(
           backgroundColor: AppColors.danger,
-          content: Text('Notification non marquée comme lue : $e'),
+          content: Text(
+            'Notification non marquée comme lue : ${messageErreur(e)}',
+          ),
         ),
       );
   }
@@ -183,7 +186,9 @@ Future<void> _toutMarquerLu(BuildContext context, WidgetRef ref) async {
       ..showSnackBar(
         SnackBar(
           backgroundColor: AppColors.danger,
-          content: Text('Notifications non marquées comme lues : $e'),
+          content: Text(
+            'Notifications non marquées comme lues : ${messageErreur(e)}',
+          ),
         ),
       );
   }

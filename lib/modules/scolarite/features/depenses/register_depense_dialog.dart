@@ -362,7 +362,7 @@ class _RegisterDepenseDialogState
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Text(
-          'Erreur de chargement des apprenants : $error',
+          'Erreur de chargement des apprenants : ${messageErreur(error)}',
           style: const TextStyle(color: AppColors.danger),
         ),
       ),
@@ -394,7 +394,7 @@ class _RegisterDepenseDialogState
                     ),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, _) => Text(
-                'Erreur de chargement des consultations : $error',
+                'Erreur de chargement des consultations : ${messageErreur(error)}',
                 style: const TextStyle(color: AppColors.danger),
               ),
             ),

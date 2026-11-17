@@ -1,3 +1,4 @@
+import 'package:sig_ensoa/core/erreurs.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -302,7 +303,7 @@ class _BlocScolarite extends ConsumerWidget {
 
     return apercu.when(
       loading: () => const _TuilesEnAttente(nombre: 4),
-      error: (e, _) => _Incident(message: '$e'),
+      error: (e, _) => _Incident(message: messageErreur(e)),
       data: (a) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -367,7 +368,7 @@ class _BlocActivites extends ConsumerWidget {
 
     return apercu.when(
       loading: () => const _TuilesEnAttente(nombre: 4),
-      error: (e, _) => _Incident(message: '$e'),
+      error: (e, _) => _Incident(message: messageErreur(e)),
       data: (a) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -430,7 +431,7 @@ class _BlocLogistique extends ConsumerWidget {
 
     return apercu.when(
       loading: () => const _TuilesEnAttente(nombre: 4),
-      error: (e, _) => _Incident(message: '$e'),
+      error: (e, _) => _Incident(message: messageErreur(e)),
       data: (a) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -750,7 +751,7 @@ class _BlocArmurerie extends ConsumerWidget {
 
     return apercu.when(
       loading: () => const _TuilesEnAttente(nombre: 4),
-      error: (e, _) => _Incident(message: '$e'),
+      error: (e, _) => _Incident(message: messageErreur(e)),
       data: (a) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -819,7 +820,7 @@ class _BlocGarage extends ConsumerWidget {
 
     return apercu.when(
       loading: () => const _TuilesEnAttente(nombre: 4),
-      error: (e, _) => _Incident(message: '$e'),
+      error: (e, _) => _Incident(message: messageErreur(e)),
       data: (a) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -884,7 +885,7 @@ class _BlocCarburant extends ConsumerWidget {
 
     return apercu.when(
       loading: () => const _TuilesEnAttente(nombre: 4),
-      error: (e, _) => _Incident(message: '$e'),
+      error: (e, _) => _Incident(message: messageErreur(e)),
       data: (a) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -948,7 +949,7 @@ class _BlocSante extends ConsumerWidget {
 
     return apercu.when(
       loading: () => const _TuilesEnAttente(nombre: 4),
-      error: (e, _) => _Incident(message: '$e'),
+      error: (e, _) => _Incident(message: messageErreur(e)),
       data: (a) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1011,7 +1012,7 @@ class _BlocPolice extends ConsumerWidget {
 
     return apercu.when(
       loading: () => const _TuilesEnAttente(nombre: 4),
-      error: (e, _) => _Incident(message: '$e'),
+      error: (e, _) => _Incident(message: messageErreur(e)),
       data: (a) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

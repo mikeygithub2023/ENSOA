@@ -7,6 +7,7 @@
 // ============================================================================
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { servir } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -65,7 +66,7 @@ const reponse = (corps: unknown, status: number) =>
     headers: { "Content-Type": "application/json" },
   });
 
-Deno.serve(async (req) => {
+servir(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) return reponse({ error: "Non authentifié." }, 401);

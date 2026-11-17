@@ -166,7 +166,10 @@ void main() {
 
     test('la ligne en erreur nomme son numéro de ligne dans le tableur', () {
       final lignes = analyserLignesArmes(
-        brutes: [_ligne(), _ligne(designation: '')],
+        brutes: [
+          _ligne(),
+          _ligne(designation: ''),
+        ],
         registreExistant: const [],
       );
       // En-tête en 1, première donnée en 2 : la ligne fautive est la 3e.
@@ -222,7 +225,8 @@ void main() {
       expect(
         lignes.single.erreurs.single,
         contains('à vérifier'),
-        reason: 'le message doit montrer le mot refusé, pour qu\'on sache '
+        reason:
+            'le message doit montrer le mot refusé, pour qu\'on sache '
             'lequel corriger dans le fichier',
       );
     });
@@ -234,10 +238,7 @@ void main() {
         brutes: [_ligne(numeroSerie: '1975-a-04412')],
         registreExistant: const [],
       );
-      expect(
-        construireImportArme(lignes.single).numeroSerie,
-        '1975-A-04412',
-      );
+      expect(construireImportArme(lignes.single).numeroSerie, '1975-A-04412');
     });
 
     test('position et observations vides deviennent nulles, pas vides', () {
@@ -279,8 +280,14 @@ void main() {
       // des numéros de série.
       expect(
         [for (final c in colonnesArme) c.cle],
-        ['designation', 'marquage', 'numero_serie', 'position', 'etat',
-          'observations'],
+        [
+          'designation',
+          'marquage',
+          'numero_serie',
+          'position',
+          'etat',
+          'observations',
+        ],
       );
     });
   });

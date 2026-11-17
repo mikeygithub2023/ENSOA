@@ -35,6 +35,7 @@
 // cloisonnement par division.
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { servir } from "../_shared/cors.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -505,7 +506,7 @@ const SCHEMA_ATTENDU = `{
   "points_cles": ["point clé 1", "point clé 2"]
 }`;
 
-Deno.serve(async (req) => {
+servir(async (req) => {
   try {
     if (req.method !== "POST") {
       return jsonResponse({ error: "Méthode non autorisée" }, 405);
