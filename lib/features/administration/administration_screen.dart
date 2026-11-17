@@ -13,6 +13,8 @@ import 'services_screen.dart';
 import 'modifier_compte_dialog.dart';
 import 'nouveau_compte_dialog.dart';
 import 'providers/comptes_providers.dart';
+import 'providers/profils_personnalises_providers.dart';
+import 'regroupement_comptes.dart';
 
 enum _Rubrique { comptes, services, espacesEleves, assistant }
 
@@ -128,6 +130,10 @@ class _ComptesState extends ConsumerState<_Comptes> {
         ? null
         : posteDepuisRoles(moi.roleScolarite, moi.roleLogistique);
     final sousMonAutorite = postesCreables[monPoste] ?? const <Poste>{};
+    final services = <String, String>{
+      for (final p in ref.watch(profilsPersonnalisesProvider).value ?? const [])
+        p.id: p.libelle,
+    };
 
     return comptes.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -194,14 +200,24 @@ class _ComptesState extends ConsumerState<_Comptes> {
                   ),
                 ),
               ),
-            for (final compte in filtres) ...[
-              _Carte(
-                compte: compte,
-                cestMoi: compte.id == moi?.id,
-                sousMonAutorite: sousMonAutorite.contains(
-                  posteDepuisRoles(compte.roleScolarite, compte.roleLogistique),
+            for (final (cellule, membres) in regrouperComptes(
+              filtres,
+              services,
+            )) ...[
+              _EnteteCellule(titre: cellule, nombre: membres.length),
+              for (final compte in membres) ...[
+                _Carte(
+                  compte: compte,
+                  cestMoi: compte.id == moi?.id,
+                  sousMonAutorite: sousMonAutorite.contains(
+                    posteDepuisRoles(
+                      compte.roleScolarite,
+                      compte.roleLogistique,
+                    ),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 12),
+              ],
               const SizedBox(height: 12),
             ],
           ],
@@ -220,6 +236,51 @@ class _ComptesState extends ConsumerState<_Comptes> {
       compte.appellation(poste?.libelle),
     ].join(' ').toLowerCase();
     return champs.contains(_recherche.trim().toLowerCase());
+  }
+}
+
+/// Le titre d'une cellule, au-dessus de ses comptes.
+class _EnteteCellule extends StatelessWidget {
+  const _EnteteCellule({required this.titre, required this.nombre});
+
+  final String titre;
+  final int nombre;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, top: 4, bottom: 10),
+      child: Row(
+        children: [
+          Text(
+            titre,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+              color: AppColors.navy,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: AppColors.navy.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              '$nombre',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.navy,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(child: Divider(color: AppColors.border, height: 1)),
+        ],
+      ),
+    );
   }
 }
 
