@@ -754,7 +754,11 @@ class _RegisterApprenantDialogState
               TextFormField(
                 controller: _matriculeCtrl,
                 decoration: const InputDecoration(labelText: 'Matricule'),
-                validator: widget.classe?.type == ClasseType.stage
+                // L'élève peut n'avoir pas encore de matricule : il le
+                // reçoit à l'incorporation. Le stagiaire et le militaire de
+                // l'école en ont un depuis longtemps, et c'est par lui
+                // qu'on les retrouve.
+                validator: widget.classe?.type != ClasseType.phase
                     ? (v) => (v == null || v.trim().isEmpty)
                           ? 'Champ requis'
                           : null

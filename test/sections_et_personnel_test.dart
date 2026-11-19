@@ -18,6 +18,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:sig_ensoa/modules/scolarite/features/apprenants/bureaux.dart';
 import 'package:sig_ensoa/modules/scolarite/features/apprenants/data/apprenants_repository.dart';
 import 'package:sig_ensoa/modules/scolarite/features/apprenants/import_apprenants_dialog.dart';
 import 'package:sig_ensoa/modules/scolarite/features/apprenants/portee_promotion.dart';
@@ -26,6 +27,7 @@ import 'package:sig_ensoa/modules/scolarite/features/apprenants/sections_dialog.
 import 'package:sig_ensoa/modules/scolarite/features/matieres/data/sections_repository.dart';
 import 'package:sig_ensoa/modules/scolarite/features/matieres/providers/matieres_providers.dart';
 import 'package:sig_ensoa/modules/scolarite/models/apprenant.dart';
+import 'package:sig_ensoa/modules/scolarite/models/classe.dart';
 import 'package:sig_ensoa/modules/scolarite/models/division.dart';
 import 'package:sig_ensoa/modules/scolarite/models/promotion.dart';
 import 'package:sig_ensoa/modules/scolarite/models/section.dart';
@@ -196,6 +198,88 @@ void main() {
       // Et il a un matricule, lui — contrairement à l'élève qui ne le
       // reçoit qu'à l'incorporation.
       expect(find.text('Obligatoire, unique'), findsWidgets);
+    });
+  });
+
+  group('ce que chaque bureau propose', () {
+    const commandement = Division(
+      id: 'd4',
+      code: codeDivisionCommandement,
+      nom: 'Division de Commandement et Logistique',
+    );
+    const initiale = Division(
+      id: 'd1',
+      code: 'formation_initiale',
+      nom: 'Division de Formation Initiale',
+    );
+
+    // L'instruction note des élèves : une division qui n'instruit personne
+    // n'a rien à y faire, et la proposer menait à un écran vide.
+    test("l'instruction ne propose pas la division du commandement", () {
+      expect(
+        divisionsDuBureau(const [initiale, commandement], Bureau.instruction)
+            .map((d) => d.nom),
+        ['Division de Formation Initiale'],
+      );
+    });
+
+    test('les ressources humaines la tiennent comme les autres', () {
+      expect(
+        divisionsDuBureau(
+          const [initiale, commandement],
+          Bureau.ressourcesHumaines,
+        ),
+        hasLength(2),
+      );
+    });
+  });
+
+  group('où l’on peut ouvrir une fiche', () {
+    const commandement = Division(
+      id: 'd4',
+      code: codeDivisionCommandement,
+      nom: 'Division de Commandement et Logistique',
+    );
+    const initiale = Division(
+      id: 'd1',
+      code: 'formation_initiale',
+      nom: 'Division de Formation Initiale',
+    );
+    const phase = Classe(
+      id: 'phase-fcb',
+      divisionId: 'd1',
+      type: ClasseType.phase,
+      nom: 'FCB',
+      promotionId: 'promo-37',
+    );
+
+    // Le cœur du sujet : le personnel s'enregistre et s'importe sans
+    // phase, parce qu'il n'est en formation nulle part. Sans cette règle,
+    // la division du commandement s'ouvrait sur un écran sans aucun
+    // bouton, et l'on ne pouvait y inscrire personne.
+    test('le personnel s’enregistre sans phase', () {
+      expect(
+        ouvreUneFiche(division: commandement, classeInscription: null),
+        isTrue,
+      );
+    });
+
+    test('un élève exige une phase ou un stage', () {
+      expect(
+        ouvreUneFiche(division: initiale, classeInscription: null),
+        isFalse,
+      );
+      expect(
+        ouvreUneFiche(division: initiale, classeInscription: phase),
+        isTrue,
+      );
+    });
+
+    // Sous « Toutes », on ne sait pas où écrire : les boutons se taisent
+    // plutôt que d'échouer à l'enregistrement.
+    test('sous « Toutes », on n’ouvre rien', () {
+      expect(ouvreUneFiche(division: null, classeInscription: null), isFalse);
+      expect(ouvreUneFiche(division: null, classeInscription: phase), isFalse);
     });
   });
 

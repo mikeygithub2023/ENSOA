@@ -308,7 +308,14 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
     final isAdmin =
         ref.watch(currentProfileProvider).value?.role == AppRole.admin;
 
-    final divisions = divisionsAsync.value ?? const <Division>[];
+    // La Division de Commandement et Logistique n'instruit personne : elle
+    // ne tient que du personnel, et n'a donc sa place qu'aux ressources
+    // humaines. L'instruction ne la propose pas — un bureau qui note des
+    // élèves n'a rien à y chercher.
+    final divisions = divisionsDuBureau(
+      divisionsAsync.value ?? const <Division>[],
+      widget.bureau,
+    );
     // Une seule division visible — c'est le cas d'un commandant de division
     // ou d'un commandant de promotion, cloisonnés sur la leur : il n'y a rien
     // à choisir,
@@ -420,7 +427,7 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
         const SizedBox(height: 16),
         if (divisionUnique == null)
           divisionsAsync.when(
-            data: (divisions) => _DivisionFilters(
+            data: (_) => _DivisionFilters(
               divisions: divisions,
               selected: _divisionFilter,
               onSelect: (id) => setState(() {
@@ -476,6 +483,19 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
               );
               if (mounted) setState(() {});
             },
+          ),
+        ],
+        if (selectedDivision != null &&
+            !tientDuPersonnel &&
+            classesAsync.hasValue &&
+            promotionsDeLaDivision.isEmpty &&
+            stagesDeLaDivision.isEmpty) ...[
+          const SizedBox(height: 12),
+          const Text(
+            'Cette division ne porte encore ni promotion ni stage : il n\'y a '
+            'pas où enregistrer un élève. Créez-en depuis Instruction › '
+            'Matières › Promotions.',
+            style: TextStyle(color: AppColors.inkMuted, fontSize: 13),
           ),
         ],
         const SizedBox(height: 16),
@@ -537,8 +557,14 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
               // On enregistre dans une promotion, pas dans une phase : il suffit
               // donc qu'une promotion soit retenue. La phase transmise est celle
               // où l'élève commence — la première du cursus à défaut de choix.
+              // Le `!= null` fait double emploi avec `ouvreUneFiche`, qui
+              // le vérifie aussi ; il est là pour que Dart sache, en
+              // dessous, que la division existe.
               if (selectedDivision != null &&
-                  (classeInscription != null || tientDuPersonnel)) ...[
+                  ouvreUneFiche(
+                    division: selectedDivision,
+                    classeInscription: classeInscription,
+                  )) ...[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -682,9 +708,13 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
             final filtered = _filtrer(apprenants, classesRetenues);
 
             if (filtered.isEmpty) {
-              return const SliverToBoxAdapter(
+              return SliverToBoxAdapter(
                 child: EmptyState(
-                  message: 'Aucun apprenant trouvé.',
+                  message: tientDuPersonnel
+                      ? 'Aucun membre du personnel enregistré. Utilisez '
+                            '« Enregistrement individuel » ou « Importer un '
+                            'fichier Excel » ci-dessus.'
+                      : 'Aucun apprenant trouvé.',
                   icon: Icons.groups_outlined,
                 ),
               );

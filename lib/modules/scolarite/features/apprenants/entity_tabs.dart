@@ -103,13 +103,18 @@ class _EntityTabsViewState extends State<EntityTabsView>
       ongletsDuBureau(widget.bureau, avecClasse: widget.classe != null);
 
   /// Le mot suit la portée : une promotion et ses phases ne contiennent
-  /// que des élèves, un stage que des stagiaires. « Élèves/Stagiaires » ne
-  /// subsiste que sous une division entière, où les deux se côtoient.
-  String get _elevesStagiairesLabel => switch (widget.classe?.type) {
-    ClasseType.phase => 'Élèves',
-    ClasseType.stage => 'Stagiaires',
-    null => widget.sousPromotion ? 'Élèves' : 'Élèves/Stagiaires',
-  };
+  /// que des élèves, un stage que des stagiaires, et la Division de
+  /// Commandement et Logistique du personnel — elle n'instruit personne.
+  /// « Élèves/Stagiaires » ne subsiste que sous une division qui forme, ou
+  /// sous « Toutes », où les deux se côtoient.
+  String get _elevesStagiairesLabel {
+    if (widget.division?.tientDuPersonnel ?? false) return 'Personnel';
+    return switch (widget.classe?.type) {
+      ClasseType.phase => 'Élèves',
+      ClasseType.stage => 'Stagiaires',
+      null => widget.sousPromotion ? 'Élèves' : 'Élèves/Stagiaires',
+    };
+  }
 
   /// Les modules ne concernent que les classes (élèves) ; les stages n'ont
   /// que le contrôle continu et l'examen final.
@@ -132,7 +137,11 @@ class _EntityTabsViewState extends State<EntityTabsView>
 
   IconData _icone(OngletEffectif onglet) => switch (onglet) {
     OngletEffectif.priseArmes => Icons.groups_outlined,
-    OngletEffectif.effectif => Icons.school_outlined,
+    // L'icône suit le mot : on ne coiffe pas le personnel de l'école d'une
+    // toque d'étudiant.
+    OngletEffectif.effectif => (widget.division?.tientDuPersonnel ?? false)
+        ? Icons.badge_outlined
+        : Icons.school_outlined,
     OngletEffectif.resultats => Icons.insights_outlined,
     OngletEffectif.statistiques => Icons.bar_chart_outlined,
     OngletEffectif.controles => Icons.grading_outlined,
