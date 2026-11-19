@@ -25,6 +25,7 @@ class PermissionsTabView extends ConsumerStatefulWidget {
     required this.division,
     required this.classe,
     this.classesRetenues,
+    this.apprenantsRetenus,
   });
 
   /// Nulle sous « Toutes » : la vue cumule alors ce que l'utilisateur a le
@@ -34,6 +35,11 @@ class PermissionsTabView extends ConsumerStatefulWidget {
 
   /// Phases d'une promotion sélectionnée sans phase précise, nul sinon.
   final Set<String>? classesRetenues;
+
+  /// Les élèves d'une section retenue, nommément — nul sous « toutes les
+  /// sections ». Une section traverse les phases de sa promotion : elle ne
+  /// se dit pas en classes, mais par ceux qu'elle tient.
+  final Set<String>? apprenantsRetenus;
 
   @override
   ConsumerState<PermissionsTabView> createState() => _PermissionsTabViewState();
@@ -120,14 +126,16 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
                 : _division != null
                 ? ref.watch(apprenantsByDivisionProvider(_division!.id))
                 : ref.watch(apprenantsListProvider))
-            .dansLesClasses(portee, (a) => a.classeId);
+            .dansLesClasses(portee, (a) => a.classeId)
+            .pourLesApprenants(widget.apprenantsRetenus, (a) => a.id);
     final permissionsAsync =
         (classe != null
                 ? ref.watch(permissionsByClasseProvider(classe.id))
                 : _division != null
                 ? ref.watch(permissionsByDivisionProvider(_division!.id))
                 : ref.watch(permissionsToutesProvider))
-            .dansLesClasses(portee, (p) => p.classeId);
+            .dansLesClasses(portee, (p) => p.classeId)
+            .pourLesApprenants(widget.apprenantsRetenus, (p) => p.apprenantId);
     final classesAsync = ref.watch(classesListProvider);
 
     return Column(

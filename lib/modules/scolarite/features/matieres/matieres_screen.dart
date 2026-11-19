@@ -57,6 +57,15 @@ class MatieresScreen extends StatelessWidget {
   }
 }
 
+/// Les divisions où l'on instruit — toutes sauf celle du commandement,
+/// qui ne tient que du personnel et n'a donc ni phase, ni stage, ni
+/// matière à affecter.
+List<Division> _divisionsInstruisantes(List<Division>? divisions) {
+  return (divisions ?? const <Division>[])
+      .where((d) => !d.tientDuPersonnel)
+      .toList();
+}
+
 String _divisionNom(List<Division> divisions, String? id) {
   for (final d in divisions) {
     if (d.id == id) return d.nom;
@@ -370,7 +379,9 @@ class _ClassesTab extends ConsumerWidget {
                     context,
                     ref,
                     profile,
-                    divisionsAsync.value ?? const [],
+                    // La Division de Commandement et Logistique n'instruit
+                    // personne : il n'y a ni phase ni stage à y créer.
+                    _divisionsInstruisantes(divisionsAsync.value),
                   ),
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Ajouter'),
@@ -1011,7 +1022,7 @@ class _AffectationsTab extends ConsumerWidget {
                     ref,
                     matieres: matieresAsync.value ?? const [],
                     classes: classesAsync.value ?? const [],
-                    divisions: divisionsAsync.value ?? const [],
+                    divisions: _divisionsInstruisantes(divisionsAsync.value),
                     profile: profile,
                   ),
                   icon: const Icon(Icons.add_link, size: 18),

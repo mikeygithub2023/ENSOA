@@ -26,3 +26,24 @@ extension PorteePromotion<T> on AsyncValue<List<T>> {
     );
   }
 }
+
+/// Restreint à une section des données chargées pour toute une promotion.
+///
+/// Une section traverse les phases de sa promotion : elle ne se dit donc
+/// pas en `classe_id`, comme le fait [PorteePromotion], mais par les élèves
+/// qu'elle tient, nommément. L'écran connaît déjà cet ensemble — il a la
+/// liste nominative sous les yeux —, il le passe aux onglets plutôt que
+/// d'ajouter un provider par section.
+///
+/// [apprenants] nul signifie « aucune restriction » : toute la promotion.
+extension PorteeNominative<T> on AsyncValue<List<T>> {
+  AsyncValue<List<T>> pourLesApprenants(
+    Set<String>? apprenants,
+    String? Function(T) apprenantDe,
+  ) {
+    if (apprenants == null) return this;
+    return whenData(
+      (liste) => liste.where((e) => apprenants.contains(apprenantDe(e))).toList(),
+    );
+  }
+}

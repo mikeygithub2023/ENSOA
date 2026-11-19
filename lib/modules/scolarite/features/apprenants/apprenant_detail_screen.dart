@@ -37,7 +37,10 @@ class ApprenantDetailScreen extends ConsumerWidget {
         };
         final division = divisions[apprenant.divisionId];
         final classe = classes[apprenant.classeId];
-        if (division == null || classe == null) {
+        // Le personnel n'a pas de phase : sa fiche s'ouvre sans. On
+        // n'attend donc une classe que de qui en porte une.
+        if (division == null ||
+            (apprenant.classeId != null && classe == null)) {
           return const Center(child: CircularProgressIndicator());
         }
         return ApprenantDetailView(

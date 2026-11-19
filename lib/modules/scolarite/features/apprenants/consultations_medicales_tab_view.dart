@@ -27,6 +27,7 @@ class ConsultationsMedicalesTabView extends ConsumerWidget {
     required this.division,
     required this.classe,
     this.classesRetenues,
+    this.apprenantsRetenus,
   });
 
   /// Nulle sous « Toutes » : la vue cumule alors ce que l'utilisateur a le
@@ -36,6 +37,11 @@ class ConsultationsMedicalesTabView extends ConsumerWidget {
 
   /// Phases d'une promotion sélectionnée sans phase précise, nul sinon.
   final Set<String>? classesRetenues;
+
+  /// Les élèves d'une section retenue, nommément — nul sous « toutes les
+  /// sections ». Une section traverse les phases de sa promotion : elle ne
+  /// se dit pas en classes, mais par ceux qu'elle tient.
+  final Set<String>? apprenantsRetenus;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -48,7 +54,8 @@ class ConsultationsMedicalesTabView extends ConsumerWidget {
                 : division != null
                 ? ref.watch(apprenantsByDivisionProvider(division.id))
                 : ref.watch(apprenantsListProvider))
-            .dansLesClasses(portee, (a) => a.classeId);
+            .dansLesClasses(portee, (a) => a.classeId)
+            .pourLesApprenants(apprenantsRetenus, (a) => a.id);
     final consultationsAsync =
         (classe != null
                 ? ref.watch(consultationsMedicalesByClasseProvider(classe.id))
@@ -57,7 +64,8 @@ class ConsultationsMedicalesTabView extends ConsumerWidget {
                     consultationsMedicalesByDivisionProvider(division.id),
                   )
                 : ref.watch(consultationsMedicalesToutesProvider))
-            .dansLesClasses(portee, (c) => c.classeId);
+            .dansLesClasses(portee, (c) => c.classeId)
+            .pourLesApprenants(apprenantsRetenus, (c) => c.apprenantId);
     final classesAsync = ref.watch(classesListProvider);
     final role = ref.watch(currentProfileProvider).value?.role;
     final canTraiter = role == AppRole.admin || role == AppRole.medecin;

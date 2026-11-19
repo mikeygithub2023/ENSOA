@@ -264,6 +264,59 @@ Chemins : `/instruction` (la rubrique groupée de l'administrateur, ex
 `/scolarite/rubrique`) et `/ressources-humaines`. `/scolarite/apprenants` ne
 bouge pas : il porte les fiches élèves et les contrôles en sous-routes.
 
+### La quatrième division, et les sections
+
+Deux manques relevés le même jour sur l'écran des Ressources humaines
+(migration `20261119000000`).
+
+**La Division de Commandement et Logistique.** L'école en compte quatre, le
+référentiel n'en portait que trois. Celle-ci ne ressemble pas aux autres :
+elle n'instruit personne, et n'a donc ni promotion ni stage — elle regroupe le
+personnel de l'école. Ce personnel reçoit la **même fiche** que les élèves,
+pour une raison simple : la prise d'armes du matin compte toute l'école,
+cadres compris, et une permission, une consultation ou une absence se tiennent
+de la même façon pour un adjudant que pour un élève. Plutôt qu'une seconde
+table qui redirait la première en moins bien — et qu'il faudrait rebrancher sur
+chacun des quatre registres —, le type d'apprenant s'ouvre à `personnel`. Ce
+qu'il n'a pas : ni phase, ni promotion, ni section, ni note ; une contrainte
+en base l'interdit, pour qu'un import maladroit n'inscrive pas le commandant de
+l'école au FCB. L'enregistrement individuel, l'import Excel et la liste
+imprimée s'ouvrent à lui sans phase ; les écrans qui créent des phases, des
+stages ou des affectations de matières, eux, ne proposent plus cette division.
+
+**Les sections.** Une promotion de deux cents élèves ne se commande pas d'un
+bloc. La section s'attache à la **promotion**, pas à la phase : l'élève y
+entre à l'incorporation et la garde du FCB jusqu'à sa sortie, tandis que les
+phases se succèdent sous lui. C'est la même distinction que celle posée par la
+migration 065 — la promotion rattache, la phase situe. L'arbre devient :
+
+```
+division
+  ├── promotion
+  │     ├── phase      (où l'élève se trouve aujourd'hui)
+  │     └── section    (avec qui il sert, du premier au dernier jour)
+  └── stage
+```
+
+La répartition se fait d'un seul écran (« Répartir en sections », sous une
+promotion retenue) : les sections à gauche avec leur effectif, les élèves du
+bucket regardé à droite, et un « Verser dans… » qui déplace la sélection. Le
+volet s'ouvre sur « Sans section », là où est tout le monde le premier jour.
+Supprimer une section ne supprime pas ses élèves : ils reviennent sans
+section, et le message le dit — sans quoi on n'ose pas.
+
+Une fois la section retenue, elle vaut pour tout l'écran : prise d'armes,
+statistiques, consultations, permissions et absences ne portent plus que sur
+elle. Comme elle traverse les phases de sa promotion, elle ne se dit pas en
+`classe_id` : elle se transmet aux onglets par les élèves qu'elle tient,
+nommément (`PorteeNominative`, à côté de `PorteePromotion`). Nulle vaut
+« toute la promotion » ; un ensemble vide est une vraie restriction — une
+section qu'on vient de créer n'a personne, et l'écran doit le montrer.
+
+Répartir sa promotion est le travail du commandant de promotion et du
+commandant de brigade : la RLS leur ouvre les sections de la leur, et d'elle
+seule.
+
 ### Les fiches importées à moitié, et comment on les complète
 
 Les 203 élèves de la 37e promotion ont été importés à 16 h par la version de

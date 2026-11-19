@@ -1,4 +1,12 @@
-enum ApprenantType { eleve, stagiaire }
+/// Ce qu'une fiche décrit.
+///
+/// `personnel` est venu avec la Division de Commandement et Logistique :
+/// elle n'instruit personne, elle regroupe le personnel de l'école. Ce
+/// personnel reçoit la même fiche que les élèves — la prise d'armes du
+/// matin compte toute l'école, et une permission se tient de la même façon
+/// pour un adjudant que pour un élève —, mais il n'est pas en formation :
+/// ni promotion, ni phase, ni section, ni note. La base le fait respecter.
+enum ApprenantType { eleve, stagiaire, personnel }
 
 ApprenantType apprenantTypeFromString(String value) {
   return ApprenantType.values.firstWhere(
@@ -11,6 +19,7 @@ extension ApprenantTypeLabel on ApprenantType {
   String get label => switch (this) {
     ApprenantType.eleve => 'Élève',
     ApprenantType.stagiaire => 'Stagiaire',
+    ApprenantType.personnel => 'Personnel',
   };
 }
 
@@ -46,6 +55,8 @@ class Apprenant {
     required this.statut,
     this.profileId,
     this.classeId,
+    this.promotionId,
+    this.sectionId,
     this.matricule,
     this.grade,
     this.sexe,
@@ -79,7 +90,18 @@ class Apprenant {
   final String? matricule;
   final String nom;
   final String prenom;
+  /// La phase qu'il suit aujourd'hui. Nulle pour le personnel.
   final String? classeId;
+
+  /// La promotion où il est inscrit — c'est elle qui le rattache à l'école,
+  /// et elle ne change pas d'une phase à l'autre (migration 065). Nulle
+  /// pour un stagiaire comme pour le personnel.
+  final String? promotionId;
+
+  /// La section de sa promotion. Nulle tant que la répartition n'est pas
+  /// faite — et nulle à jamais pour un stagiaire ou le personnel.
+  final String? sectionId;
+
   final ApprenantStatut statut;
 
   final String? grade;
@@ -130,6 +152,8 @@ class Apprenant {
       nom: json['nom'] as String? ?? '',
       prenom: json['prenom'] as String? ?? '',
       classeId: json['classe_id'] as String?,
+      promotionId: json['promotion_id'] as String?,
+      sectionId: json['section_id'] as String?,
       statut: apprenantStatutFromString(json['statut'] as String? ?? 'actif'),
       grade: json['grade'] as String?,
       sexe: json['sexe'] as String?,

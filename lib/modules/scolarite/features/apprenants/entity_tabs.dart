@@ -64,6 +64,7 @@ class EntityTabsView extends StatefulWidget {
     required this.classe,
     required this.elevesStagiairesTab,
     this.classesRetenues,
+    this.apprenantsRetenus,
     this.sousPromotion = false,
   });
 
@@ -80,6 +81,11 @@ class EntityTabsView extends StatefulWidget {
   /// précise — nul sous « Toutes promotions », où la portée est la division
   /// entière. Voir `portee_promotion.dart`.
   final Set<String>? classesRetenues;
+
+  /// Les élèves d'une section retenue, nommément — nul sous « toutes les
+  /// sections ». Une section traverse les phases de sa promotion : elle ne
+  /// se dit pas en classes, mais par ceux qu'elle tient.
+  final Set<String>? apprenantsRetenus;
 
   /// La portée est-elle une promotion ? Une promotion ne contient que des
   /// élèves, un stage que des stagiaires — c'est ce qui décide du mot.
@@ -140,6 +146,7 @@ class _EntityTabsViewState extends State<EntityTabsView>
       division: widget.division,
       classe: widget.classe,
       classesRetenues: widget.classesRetenues,
+      apprenantsRetenus: widget.apprenantsRetenus,
     ),
     OngletEffectif.effectif => widget.elevesStagiairesTab,
     // Les deux voient le même écran, chacun son volet : les résultats pour
@@ -147,10 +154,12 @@ class _EntityTabsViewState extends State<EntityTabsView>
     OngletEffectif.resultats => StatistiquesClasseTabView(
       classe: widget.classe!,
       bureau: Bureau.instruction,
+      apprenantsRetenus: widget.apprenantsRetenus,
     ),
     OngletEffectif.statistiques => StatistiquesClasseTabView(
       classe: widget.classe!,
       bureau: Bureau.ressourcesHumaines,
+      apprenantsRetenus: widget.apprenantsRetenus,
     ),
     OngletEffectif.controles => ControlesTabView(
       // Une classe est retenue : sa division l'est donc aussi.
@@ -161,16 +170,19 @@ class _EntityTabsViewState extends State<EntityTabsView>
       division: widget.division,
       classe: widget.classe,
       classesRetenues: widget.classesRetenues,
+      apprenantsRetenus: widget.apprenantsRetenus,
     ),
     OngletEffectif.permissions => PermissionsTabView(
       division: widget.division,
       classe: widget.classe,
       classesRetenues: widget.classesRetenues,
+      apprenantsRetenus: widget.apprenantsRetenus,
     ),
     OngletEffectif.absences => AbsencesTabView(
       division: widget.division,
       classe: widget.classe,
       classesRetenues: widget.classesRetenues,
+      apprenantsRetenus: widget.apprenantsRetenus,
     ),
   };
 

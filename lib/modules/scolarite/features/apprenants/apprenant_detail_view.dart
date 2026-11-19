@@ -18,6 +18,7 @@ import '../../models/matiere.dart';
 import '../../models/note.dart';
 import '../../models/permission.dart';
 import 'package:sig_ensoa/modules/scolarite/compat.dart';
+import '../../models/section.dart';
 import '../../models/sous_module.dart';
 import '../../shared/widgets/common.dart';
 import '../../shared/widgets/pdf_preview_dialog.dart';
@@ -76,7 +77,12 @@ class ApprenantDetailView extends ConsumerWidget {
 
   final Apprenant apprenant;
   final Division division;
-  final Classe classe;
+
+  /// La phase ou le stage où il se trouve. Nulle pour le personnel de
+  /// l'école : il n'est pas en formation, et tout ce qui relève du cursus
+  /// — notes, contrôles, statistiques de promotion — disparaît alors de la
+  /// fiche plutôt que de s'y afficher vide.
+  final Classe? classe;
   final bool showActions;
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
@@ -144,9 +150,22 @@ class ApprenantDetailView extends ConsumerWidget {
       consultationsMedicalesByApprenantProvider(apprenant.id),
     );
     final notesAsync = ref.watch(notesByApprenantProvider(apprenant.id));
-    final controlesAsync = ref.watch(controlesByClasseProvider(classe.id));
+    // Le personnel n'a ni phase ni notes : on ne va pas chercher pour lui
+    // ce qui n'existe pas.
+    final classe = this.classe;
+    final controlesAsync = classe == null
+        ? null
+        : ref.watch(controlesByClasseProvider(classe.id));
     final matieresAsync = ref.watch(matieresCatalogueProvider);
-    final sousModulesAsync = ref.watch(sousModulesByClasseProvider(classe.id));
+    final sousModulesAsync = classe == null
+        ? null
+        : ref.watch(sousModulesByClasseProvider(classe.id));
+    final sectionNom = apprenant.sectionId == null
+        ? null
+        : (ref.watch(sectionsListProvider).value ?? const <Section>[])
+              .where((s) => s.id == apprenant.sectionId)
+              .firstOrNull
+              ?.nom;
     final performancesAsync = ref.watch(
       performancesApprenantProvider(apprenant.id),
     );
@@ -264,12 +283,21 @@ class ApprenantDetailView extends ConsumerWidget {
                           const SectionHeader(title: 'Carrière'),
                           const SizedBox(height: 10),
                           _InfoRow(label: 'Type', value: apprenant.type.label),
-                          _InfoRow(
-                            label: apprenant.type == ApprenantType.eleve
-                                ? 'Classe'
-                                : 'Stage',
-                            value: classe.nom,
-                          ),
+                          if (classe != null)
+                            _InfoRow(
+                              label: apprenant.type == ApprenantType.eleve
+                                  ? 'Classe'
+                                  : 'Stage',
+                              value: classe.nom,
+                            ),
+                          // La section ne concerne que les élèves : ni le
+                          // stagiaire ni le personnel n'en ont une, et la
+                          // ligne resterait vide pour eux.
+                          if (apprenant.type == ApprenantType.eleve)
+                            _InfoRow(
+                              label: 'Section',
+                              value: sectionNom ?? 'Non affecté',
+                            ),
                           _InfoRow(
                             label: 'Grade',
                             value: apprenant.grade ?? '—',
@@ -461,7 +489,8 @@ class ApprenantDetailView extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
-          const SectionHeader(title: 'Statistiques personnelles'),
+          if (classe != null) ...[
+            const SectionHeader(title: 'Statistiques personnelles'),
           const SizedBox(height: 4),
           const Text(
             'Situation de l\'apprenant dans sa promotion — les listes qui '
@@ -469,7 +498,8 @@ class ApprenantDetailView extends ConsumerWidget {
             style: TextStyle(color: AppColors.inkMuted, fontSize: 13),
           ),
           const SizedBox(height: 12),
-          StatistiquesApprenantSection(apprenant: apprenant, classe: classe),
+            StatistiquesApprenantSection(apprenant: apprenant, classe: classe),
+          ],
           const SizedBox(height: 20),
           const SectionHeader(title: 'Permissions'),
           const SizedBox(height: 12),
@@ -554,19 +584,20 @@ class ApprenantDetailView extends ConsumerWidget {
               icon: Icons.error_outline,
             ),
           ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              const Expanded(child: SectionHeader(title: 'Notes')),
-              _ImprimerBulletinButton(
-                apprenant: apprenant,
-                classe: classe,
-                division: division,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          controlesAsync.when(
+          if (classe != null) ...[
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                const Expanded(child: SectionHeader(title: 'Notes')),
+                _ImprimerBulletinButton(
+                  apprenant: apprenant,
+                  classe: classe,
+                  division: division,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            controlesAsync!.when(
             data: (controles) => notesAsync.when(
               data: (notes) => matieresAsync.when(
                 data: (matieres) => _NotesSummary(
@@ -574,7 +605,7 @@ class ApprenantDetailView extends ConsumerWidget {
                   controles: controles,
                   notes: notes,
                   matieres: matieres,
-                  sousModules: sousModulesAsync.value ?? const [],
+                  sousModules: sousModulesAsync?.value ?? const [],
                   performances: performancesAsync.value ?? const {},
                 ),
                 loading: () => const Center(
@@ -599,17 +630,18 @@ class ApprenantDetailView extends ConsumerWidget {
                 icon: Icons.error_outline,
               ),
             ),
-            loading: () => const Center(
-              child: Padding(
-                padding: EdgeInsets.all(12),
-                child: CircularProgressIndicator(strokeWidth: 2),
+              loading: () => const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(12),
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+              error: (error, _) => EmptyState(
+                message: 'Erreur de chargement : ${messageErreur(error)}',
+                icon: Icons.error_outline,
               ),
             ),
-            error: (error, _) => EmptyState(
-              message: 'Erreur de chargement : ${messageErreur(error)}',
-              icon: Icons.error_outline,
-            ),
-          ),
+          ],
         ],
       ),
     );

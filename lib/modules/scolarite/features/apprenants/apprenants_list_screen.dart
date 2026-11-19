@@ -9,6 +9,7 @@ import '../../models/apprenant.dart';
 import '../../models/classe.dart';
 import '../../models/division.dart';
 import '../../models/promotion.dart';
+import '../../models/section.dart';
 import 'package:sig_ensoa/modules/scolarite/compat.dart';
 import '../../shared/widgets/common.dart';
 import '../../shared/widgets/filtres_scolarite.dart';
@@ -21,6 +22,7 @@ import 'liste_apprenants_pdf.dart';
 import 'pdf_fonts.dart';
 import 'providers/apprenants_providers.dart';
 import 'register_apprenant_dialog.dart';
+import 'sections_dialog.dart';
 
 /// L'effectif, et autour de lui les onglets du bureau où l'on se trouve.
 ///
@@ -43,6 +45,10 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
   String? _classeFilter;
   String? _promotionFilter;
   String? _stageFilter;
+
+  /// La section regardée au sein de la promotion retenue. Nulle : toute la
+  /// promotion, sections confondues.
+  String? _sectionFilter;
   final _nomSearchCtrl = TextEditingController();
   final _matriculeSearchCtrl = TextEditingController();
   final Set<String> _selectedIds = {};
@@ -383,6 +389,25 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
         ? null
         : {for (final c in phasesDeLaPromotion) c.id};
 
+    final sectionsDeLaPromotion = _promotionFilter == null
+        ? const <Section>[]
+        : ref.watch(sectionsParPromotionProvider(_promotionFilter!));
+
+    // Une section ne se dit pas en phases : elle traverse toutes celles de
+    // sa promotion. Elle se transmet donc aux onglets par les élèves
+    // qu'elle tient, nommément, et non par une portée de classes.
+    final apprenantsRetenus = _sectionFilter == null
+        ? null
+        : {
+            for (final a in apprenantsAsync.value ?? const <Apprenant>[])
+              if (a.sectionId == _sectionFilter) a.id,
+          };
+
+    // La Division de Commandement et Logistique n'instruit personne : elle
+    // n'a ni promotion ni stage où ouvrir une fiche, et pourtant son
+    // personnel s'enregistre et s'importe comme le reste de l'école.
+    final tientDuPersonnel = selectedDivision?.tientDuPersonnel ?? false;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -403,6 +428,7 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
                 _promotionFilter = null;
                 _stageFilter = null;
                 _classeFilter = null;
+                _sectionFilter = null;
               }),
             ),
             loading: () => const SizedBox(height: 40),
@@ -422,6 +448,7 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
               _promotionFilter = choix.promotionId;
               _stageFilter = choix.stageId;
               _classeFilter = null;
+              _sectionFilter = null;
             }),
           ),
         ],
@@ -431,6 +458,24 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
             classes: phasesDeLaPromotion,
             selected: _classeFilter,
             onSelect: (id) => setState(() => _classeFilter = id),
+          ),
+        ],
+        // La répartition en sections ne paraît que sous une promotion : une
+        // section n'existe pas ailleurs. Le bouton reste même quand il n'y
+        // a encore aucune section — c'est par lui qu'on en crée.
+        if (promotionInscription != null) ...[
+          const SizedBox(height: 12),
+          _SectionFilters(
+            sections: sectionsDeLaPromotion,
+            selected: _sectionFilter,
+            onSelect: (id) => setState(() => _sectionFilter = id),
+            onRepartir: () async {
+              await showSectionsDialog(
+                context,
+                promotion: promotionInscription,
+              );
+              if (mounted) setState(() {});
+            },
           ),
         ],
         const SizedBox(height: 16),
@@ -446,6 +491,7 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
             division: selectedDivision,
             classe: selectedClasse,
             classesRetenues: classesRetenues,
+            apprenantsRetenus: apprenantsRetenus,
             sousPromotion: promotionInscription != null,
             elevesStagiairesTab: _apprenantsList(
               apprenantsAsync,
@@ -457,6 +503,7 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
               classesRetenues,
               classeInscription,
               promotionInscription,
+              tientDuPersonnel,
             ),
           ),
         ),
@@ -474,6 +521,7 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
     Set<String>? classesRetenues,
     Classe? classeInscription,
     Promotion? promotionInscription,
+    bool tientDuPersonnel,
   ) {
     // Sur tablette l'écran est large mais bas : les boutons, la recherche et
     // la sélection prenaient la moitié de la hauteur, et il ne restait à la
@@ -489,7 +537,8 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
               // On enregistre dans une promotion, pas dans une phase : il suffit
               // donc qu'une promotion soit retenue. La phase transmise est celle
               // où l'élève commence — la première du cursus à défaut de choix.
-              if (selectedDivision != null && classeInscription != null) ...[
+              if (selectedDivision != null &&
+                  (classeInscription != null || tientDuPersonnel)) ...[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
@@ -625,6 +674,11 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
             final classesById = {
               for (final c in classesAsync.value ?? <Classe>[]) c.id: c,
             };
+            final sectionsById = {
+              for (final s in ref.watch(sectionsListProvider).value ??
+                  <Section>[])
+                s.id: s,
+            };
             final filtered = _filtrer(apprenants, classesRetenues);
 
             if (filtered.isEmpty) {
@@ -688,6 +742,7 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
                       apprenant: apprenant,
                       divisionNom: division?.nom ?? '—',
                       classeNom: classe?.nom,
+                      sectionNom: sectionsById[apprenant.sectionId]?.nom,
                       isAdmin: isAdmin,
                       showCheckbox: _selectionMode,
                       selected: _selectedIds.contains(apprenant.id),
@@ -727,6 +782,57 @@ T? _findById<T>(List<T> items, String? id, String Function(T) idOf) {
     if (idOf(item) == id) return item;
   }
   return null;
+}
+
+/// Les sections d'une promotion, et le bouton qui ouvre leur répartition.
+///
+/// « Toutes » est la promotion entière ; « Sans section » n'est pas une
+/// absence de filtre mais une question utile — qui reste à répartir.
+class _SectionFilters extends StatelessWidget {
+  const _SectionFilters({
+    required this.sections,
+    required this.selected,
+    required this.onSelect,
+    required this.onRepartir,
+  });
+
+  final List<Section> sections;
+  final String? selected;
+  final ValueChanged<String?> onSelect;
+  final VoidCallback onRepartir;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        if (sections.isNotEmpty) ...[
+          FilterChipPill(
+            label: 'Toutes les sections',
+            selected: selected == null,
+            onTap: () => onSelect(null),
+          ),
+          for (final section in sections)
+            FilterChipPill(
+              label: section.nom,
+              selected: selected == section.id,
+              onTap: () => onSelect(section.id),
+            ),
+        ],
+        OutlinedButton.icon(
+          onPressed: onRepartir,
+          icon: const Icon(Icons.account_tree_outlined, size: 18),
+          label: Text(
+            sections.isEmpty
+                ? 'Répartir en sections'
+                : 'Gérer les sections',
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _DivisionFilters extends StatelessWidget {
@@ -802,6 +908,7 @@ class _ApprenantTile extends ConsumerWidget {
     required this.apprenant,
     required this.divisionNom,
     this.classeNom,
+    this.sectionNom,
     this.isAdmin = false,
     this.showCheckbox = false,
     this.selected = false,
@@ -814,6 +921,7 @@ class _ApprenantTile extends ConsumerWidget {
   final Apprenant apprenant;
   final String divisionNom;
   final String? classeNom;
+  final String? sectionNom;
   final bool isAdmin;
   final bool showCheckbox;
   final bool selected;
@@ -879,7 +987,9 @@ class _ApprenantTile extends ConsumerWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${apprenant.matricule ?? "Sans matricule"} · $divisionNom${classeNom != null ? ' · $classeNom' : ''}',
+                      '${apprenant.matricule ?? "Sans matricule"} · $divisionNom'
+                      '${classeNom != null ? ' · $classeNom' : ''}'
+                      '${sectionNom != null ? ' · $sectionNom' : ''}',
                       style: const TextStyle(
                         color: AppColors.inkMuted,
                         fontSize: 13,
@@ -962,6 +1072,9 @@ extension _ListeApprenants on _ApprenantsListScreenState {
       if (classesRetenues != null && !classesRetenues.contains(a.classeId)) {
         return false;
       }
+      if (_sectionFilter != null && a.sectionId != _sectionFilter) {
+        return false;
+      }
       if (nomQuery.isNotEmpty &&
           !a.nomComplet.toLowerCase().contains(nomQuery)) {
         return false;
@@ -1000,16 +1113,32 @@ extension _ImpressionListe on _ApprenantsListScreenState {
         'assets/images/armoiries_ci.png',
       )).buffer.asUint8List();
 
-      final portee = stage != null
+      // La section retenue se lit sur la pièce : une liste d'appel qui ne
+      // dit pas de qui elle est la liste ne sert à rien une fois détachée
+      // de l'écran.
+      final section = _sectionFilter == null
+          ? null
+          : (ref.read(sectionsListProvider).value ?? const <Section>[])
+                .where((s) => s.id == _sectionFilter)
+                .firstOrNull;
+      final tientDuPersonnel = division?.tientDuPersonnel ?? false;
+
+      final portee = tientDuPersonnel
+          ? "Personnel de l'école"
+          : stage != null
           ? 'Stage ${stage.nom}'
           : promotion != null
-          ? promotion.intitule
+          ? '${promotion.intitule}${section == null ? '' : ' · ${section.nom}'}'
           : 'Toutes promotions et stages';
 
       final doc = buildListeApprenantsPdf(
         apprenants,
-        titre: stage != null
+        titre: tientDuPersonnel
+            ? 'Liste du personnel'
+            : stage != null
             ? 'Liste des stagiaires'
+            : promotion != null
+            ? 'Liste des élèves'
             : 'Liste des élèves et stagiaires',
         sousTitre: '$portee · ${division?.nom ?? "Toutes divisions"}',
         armoiries: armoiries,

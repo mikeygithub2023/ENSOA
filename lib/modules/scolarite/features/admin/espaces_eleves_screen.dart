@@ -166,7 +166,11 @@ class _EspacesElevesScreenState extends ConsumerState<EspacesElevesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final divisions = ref.watch(divisionsProvider).value ?? const <Division>[];
+    // La Division de Commandement et Logistique n'ouvre pas d'espace
+    // élève : elle ne tient pas d'élèves, mais le personnel de l'école.
+    final divisions = (ref.watch(divisionsProvider).value ?? const <Division>[])
+        .where((d) => !d.tientDuPersonnel)
+        .toList();
     final classes = ref.watch(classesListProvider).value ?? const <Classe>[];
 
     final divisionFilter = _divisionFilter;

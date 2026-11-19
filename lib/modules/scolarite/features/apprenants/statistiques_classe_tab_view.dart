@@ -17,6 +17,7 @@ import '../../shared/widgets/ligne_cartes.dart';
 import '../matieres/providers/matieres_providers.dart';
 import 'bureaux.dart';
 import 'moyennes.dart';
+import 'portee_promotion.dart';
 import 'providers/absences_providers.dart';
 import 'providers/apprenants_providers.dart';
 import 'providers/consultations_medicales_providers.dart';
@@ -59,16 +60,24 @@ class StatistiquesClasseTabView extends ConsumerWidget {
     super.key,
     required this.classe,
     required this.bureau,
+    this.apprenantsRetenus,
   });
 
   final Classe classe;
   final Bureau bureau;
 
+  /// Les élèves d'une section retenue, nommément — nul sous « toutes les
+  /// sections ». Les chiffres portent alors sur elle seule : un commandant
+  /// de section lit sa section, pas la promotion.
+  final Set<String>? apprenantsRetenus;
+
   bool get _instruction => bureau == Bureau.instruction;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final apprenantsAsync = ref.watch(apprenantsByClasseProvider(classe.id));
+    final apprenantsAsync = ref
+        .watch(apprenantsByClasseProvider(classe.id))
+        .pourLesApprenants(apprenantsRetenus, (a) => a.id);
     // Un provider qu'on ne lit pas n'est pas chargé : les ressources humaines
     // n'ont pas à descendre toutes les notes de la phase pour afficher un
     // effectif, ni l'instruction toutes les consultations.
@@ -76,7 +85,9 @@ class StatistiquesClasseTabView extends ConsumerWidget {
         ? ref.watch(controlesByClasseProvider(classe.id))
         : null;
     final notesAsync = _instruction
-        ? ref.watch(notesByClasseProvider(classe.id))
+        ? ref
+              .watch(notesByClasseProvider(classe.id))
+              .pourLesApprenants(apprenantsRetenus, (n) => n.apprenantId)
         : null;
     final matiereModulesAsync = _instruction
         ? ref.watch(matiereModulesProvider)
@@ -86,13 +97,19 @@ class StatistiquesClasseTabView extends ConsumerWidget {
         : null;
     final absencesAsync = _instruction
         ? null
-        : ref.watch(absencesByClasseProvider(classe.id));
+        : ref
+              .watch(absencesByClasseProvider(classe.id))
+              .pourLesApprenants(apprenantsRetenus, (a) => a.apprenantId);
     final permissionsAsync = _instruction
         ? null
-        : ref.watch(permissionsByClasseProvider(classe.id));
+        : ref
+              .watch(permissionsByClasseProvider(classe.id))
+              .pourLesApprenants(apprenantsRetenus, (p) => p.apprenantId);
     final consultationsAsync = _instruction
         ? null
-        : ref.watch(consultationsMedicalesByClasseProvider(classe.id));
+        : ref
+              .watch(consultationsMedicalesByClasseProvider(classe.id))
+              .pourLesApprenants(apprenantsRetenus, (c) => c.apprenantId);
 
     final chargements = <AsyncValue<Object?>>[
       apprenantsAsync,

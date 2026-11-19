@@ -17,6 +17,7 @@ class ApprenantDraft {
     required this.divisionId,
     required this.classeId,
     required this.type,
+    this.sectionId,
     required this.nom,
     required this.prenom,
     this.matricule,
@@ -48,8 +49,17 @@ class ApprenantDraft {
   });
 
   final String divisionId;
-  final String classeId;
+
+  /// La phase ou le stage où la fiche est ouverte. Nulle pour le personnel
+  /// de la Division de Commandement et Logistique, qui n'est pas en
+  /// formation — la base refuse d'ailleurs de lui en donner une.
+  final String? classeId;
+
   final String type;
+
+  /// La section de sa promotion, quand la répartition est faite. Sans objet
+  /// pour un stagiaire et pour le personnel.
+  final String? sectionId;
   final String nom;
   final String prenom;
   final String? matricule;
@@ -96,6 +106,7 @@ class ApprenantDraft {
     return {
       'division_id': divisionId,
       'classe_id': classeId,
+      'section_id': sectionId,
       'type': type,
       'nom': nom,
       'prenom': prenom,

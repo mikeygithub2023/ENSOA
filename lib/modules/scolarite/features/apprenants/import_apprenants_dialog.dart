@@ -35,7 +35,12 @@ class _TemplateColumn {
 /// La colonne Grade n'existe que pour un stage : pour une classe (élève),
 /// le grade est déduit automatiquement de la classe (voir
 /// `grade_defaults.dart`), donc pas besoin de la faire saisir.
-List<_TemplateColumn> _templateColumnsFor(ClasseType type) {
+/// Les colonnes attendues, dans l'ordre.
+///
+/// [type] nul désigne le personnel de l'école : comme le stagiaire, il
+/// porte son grade depuis longtemps — on le lit au classeur plutôt que de
+/// le déduire d'une phase qu'il n'a pas.
+List<_TemplateColumn> _templateColumnsFor(ClasseType? type) {
   const matricule = _TemplateColumn(
     'matricule',
     'Matricule',
@@ -152,7 +157,7 @@ List<_TemplateColumn> _templateColumnsFor(ClasseType type) {
     diplome,
   ];
 
-  return type == ClasseType.stage
+  return type != ClasseType.phase
       ? [
           matricule,
           grade,
@@ -179,7 +184,7 @@ List<_TemplateColumn> _templateColumnsFor(ClasseType type) {
 Future<void> showImportApprenantsDialog(
   BuildContext context, {
   required Division division,
-  required Classe classe,
+  required Classe? classe,
 }) {
   return showDialog<void>(
     context: context,
@@ -224,7 +229,10 @@ class _ImportApprenantsDialog extends ConsumerStatefulWidget {
   const _ImportApprenantsDialog({required this.division, required this.classe});
 
   final Division division;
-  final Classe classe;
+
+  /// Nulle pour le personnel de l'école : la Division de Commandement et
+  /// Logistique n'a ni phase ni stage où verser les lignes du classeur.
+  final Classe? classe;
 
   @override
   ConsumerState<_ImportApprenantsDialog> createState() =>
@@ -243,7 +251,7 @@ class _ImportApprenantsDialogState
   int get _errorCount => (_rows?.length ?? 0) - _validCount;
 
   List<_TemplateColumn> get _templateColumns =>
-      _templateColumnsFor(widget.classe.type);
+      _templateColumnsFor(widget.classe?.type);
 
   int _idx(String key) => _templateColumns.indexWhere((c) => c.key == key);
 
@@ -348,7 +356,10 @@ class _ImportApprenantsDialogState
   List<String> _validateRow(List<String> values) {
     final errors = <String>[];
 
-    if (widget.classe.type == ClasseType.stage &&
+    // L'élève peut n'avoir pas encore de matricule : il le reçoit à
+    // l'incorporation. Le stagiaire et le militaire du rang en ont un
+    // depuis longtemps, et c'est par lui qu'on les retrouve.
+    if (widget.classe?.type != ClasseType.phase &&
         values[_idx('matricule')].trim().isEmpty) {
       errors.add('Matricule manquant');
     }
@@ -407,17 +418,22 @@ class _ImportApprenantsDialogState
   }
 
   ApprenantDraft _draftFromRow(_ImportRow row) {
-    final isEleve = widget.classe.type == ClasseType.phase;
+    final classe = widget.classe;
+    final isEleve = classe?.type == ClasseType.phase;
     return ApprenantDraft(
       divisionId: widget.division.id,
-      classeId: widget.classe.id,
-      type: isEleve ? 'eleve' : 'stagiaire',
+      classeId: classe?.id,
+      type: switch (classe?.type) {
+        ClasseType.phase => 'eleve',
+        ClasseType.stage => 'stagiaire',
+        null => 'personnel',
+      },
       matricule: _normalizeMatricule(row.values[_idx('matricule')]),
       nom: row.values[_idx('nom')].trim(),
       prenom: row.values[_idx('prenoms')].trim(),
       grade: isEleve
           ? defaultGradeForClasse(
-              widget.classe.nom,
+              classe!.nom,
               divisionCode: widget.division.code,
             )
           : _emptyToNull(row.values[_idx('grade')]),
@@ -452,10 +468,15 @@ class _ImportApprenantsDialogState
   Future<List<_DuplicateGroup>> _detectDuplicates(
     List<_ImportRow> validRows,
   ) async {
-    final existingApprenants = await ref
-        .read(apprenantsRepositoryProvider)
-        .fetchByClasse(widget.classe.id)
-        .timeout(const Duration(seconds: 20));
+    // Le personnel n'est dans aucune phase : c'est sa division qui le
+    // délimite, et c'est donc elle qu'on relit pour trouver les doublons.
+    final depot = ref.read(apprenantsRepositoryProvider);
+    final classe = widget.classe;
+    final existingApprenants =
+        await (classe == null
+                ? depot.fetchByDivision(widget.division.id)
+                : depot.fetchByClasse(classe.id))
+            .timeout(const Duration(seconds: 20));
 
     final existingByKey = <String, List<Apprenant>>{};
     for (final a in existingApprenants) {
@@ -710,9 +731,11 @@ class _ImportApprenantsDialogState
               children: [
                 Expanded(
                   child: Text(
-                    widget.classe.type == ClasseType.phase
-                        ? 'Importer des élèves (Excel)'
-                        : 'Importer des stagiaires (Excel)',
+                    switch (widget.classe?.type) {
+                      ClasseType.phase => 'Importer des élèves (Excel)',
+                      ClasseType.stage => 'Importer des stagiaires (Excel)',
+                      null => 'Importer du personnel (Excel)',
+                    },
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -918,7 +941,7 @@ class _ContextBanner extends StatelessWidget {
   const _ContextBanner({required this.division, required this.classe});
 
   final Division division;
-  final Classe classe;
+  final Classe? classe;
 
   @override
   Widget build(BuildContext context) {
@@ -939,7 +962,9 @@ class _ContextBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '${classe.type == ClasseType.phase ? "Classe" : "Stage"} : ${classe.nom} · ${division.nom}',
+              classe == null
+                  ? 'Personnel · ${division.nom}'
+                  : '${classe!.type == ClasseType.phase ? "Classe" : "Stage"} : ${classe!.nom} · ${division.nom}',
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 color: AppColors.blueDeep,
@@ -959,17 +984,17 @@ class _ContextBanner extends StatelessWidget {
 class _FormatTable extends StatelessWidget {
   const _FormatTable({required this.classe, required this.onDownloadTemplate});
 
-  final Classe classe;
+  final Classe? classe;
   final VoidCallback onDownloadTemplate;
 
   List<_TemplateColumn> get _templateColumns =>
-      _templateColumnsFor(classe.type);
+      _templateColumnsFor(classe?.type);
 
   String _formatFor(int index, _TemplateColumn c) {
     if (index == 0) {
-      return classe.type == ClasseType.stage
-          ? 'Obligatoire, unique'
-          : 'Optionnel, unique si renseigné';
+      return classe?.type == ClasseType.phase
+          ? 'Optionnel, unique si renseigné'
+          : 'Obligatoire, unique';
     }
     return c.format;
   }

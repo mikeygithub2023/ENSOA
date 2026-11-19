@@ -17,6 +17,8 @@ import '../../models/classe.dart';
 import '../../models/diplome.dart';
 import '../../models/division.dart';
 import '../../models/promotion.dart';
+import '../../models/section.dart';
+import '../matieres/providers/matieres_providers.dart';
 import 'data/apprenants_repository.dart';
 import 'grade_defaults.dart';
 import 'providers/apprenants_providers.dart';
@@ -51,14 +53,19 @@ const _steps = <_StepDef>[
   _StepDef('Récapitulatif'),
 ];
 
-/// Ouvre le formulaire d'enregistrement d'un élève/stagiaire — reprend les
-/// rubriques de la fiche signalétique papier (DFS), réparties en étapes. Le
-/// type, la division et la classe/stage ne sont pas demandés : on est déjà
-/// dans une classe/stage précis au moment d'ouvrir ce formulaire.
+/// Ouvre le formulaire d'enregistrement d'une fiche — reprend les rubriques
+/// de la fiche signalétique papier (DFS), réparties en étapes. Le type, la
+/// division et la classe/stage ne sont pas demandés : on est déjà dans une
+/// portée précise au moment d'ouvrir ce formulaire.
+///
+/// [classe] est nulle pour le personnel de l'école : la Division de
+/// Commandement et Logistique n'instruit personne, elle n'a ni phase ni
+/// stage où ouvrir une fiche. C'est ce qui distingue les trois types —
+/// phase : élève, stage : stagiaire, rien : personnel.
 Future<void> showRegisterApprenantDialog(
   BuildContext context, {
   required Division division,
-  required Classe classe,
+  required Classe? classe,
   Promotion? promotion,
   Apprenant? existing,
 }) {
@@ -88,8 +95,8 @@ class _RegisterApprenantDialog extends ConsumerStatefulWidget {
   final Division division;
 
   /// La phase où l'élève commence — celle où il se trouve aujourd'hui.
-  /// Pour un stagiaire, son stage.
-  final Classe classe;
+  /// Pour un stagiaire, son stage. Nulle pour le personnel de l'école.
+  final Classe? classe;
 
   /// La promotion dans laquelle l'élève est inscrit. C'est elle qui le
   /// rattache à l'école : il suivra toutes ses phases. Nulle pour un
@@ -148,21 +155,52 @@ class _RegisterApprenantDialogState
 
   bool get _isEditing => widget.existing != null;
 
+  /// La section de sa promotion, quand la répartition est faite.
+  String? _sectionId;
+
+  /// Ce que la fiche décrit, déduit de la portée : une phase tient des
+  /// élèves, un stage des stagiaires, et l'absence des deux — la Division
+  /// de Commandement et Logistique — du personnel.
+  String get _typeFiche => switch (widget.classe?.type) {
+    ClasseType.phase => 'eleve',
+    ClasseType.stage => 'stagiaire',
+    null => 'personnel',
+  };
+
+  /// La promotion où l'élève est inscrit, d'où qu'on la tienne : de
+  /// l'écran qui a ouvert le formulaire, de la fiche qu'on modifie, ou de
+  /// la phase elle-même. Nulle pour un stagiaire et pour le personnel —
+  /// c'est elle qui décide si la section se demande.
+  String? get _promotionId =>
+      widget.promotion?.id ??
+      widget.existing?.promotionId ??
+      widget.classe?.promotionId;
+
+  /// Le mot qui désigne la fiche, au singulier.
+  String get _motFiche => switch (widget.classe?.type) {
+    ClasseType.phase => 'élève',
+    ClasseType.stage => 'stagiaire',
+    null => 'membre du personnel',
+  };
+
   @override
   void initState() {
     super.initState();
     final existing = widget.existing;
     if (existing == null) {
-      if (widget.classe.type == ClasseType.phase) {
+      final classe = widget.classe;
+      if (classe != null && classe.type == ClasseType.phase) {
         _gradeCtrl.text =
             defaultGradeForClasse(
-              widget.classe.nom,
+              classe.nom,
               divisionCode: widget.division.code,
             ) ??
             '';
       }
       return;
     }
+
+    _sectionId = existing.sectionId;
 
     _matriculeCtrl.text = existing.matricule ?? '';
     _gradeCtrl.text = existing.grade ?? '';
@@ -431,8 +469,9 @@ class _RegisterApprenantDialogState
   ApprenantDraft _buildDraft() {
     return ApprenantDraft(
       divisionId: widget.division.id,
-      classeId: widget.classe.id,
-      type: widget.classe.type == ClasseType.phase ? 'eleve' : 'stagiaire',
+      classeId: widget.classe?.id,
+      type: _typeFiche,
+      sectionId: _sectionId,
       matricule: _emptyToNull(_matriculeCtrl.text),
       nom: _nomCtrl.text.trim(),
       prenom: _prenomsCtrl.text.trim(),
@@ -517,12 +556,8 @@ class _RegisterApprenantDialogState
                 Expanded(
                   child: Text(
                     _isEditing
-                        ? (widget.classe.type == ClasseType.phase
-                              ? 'Modifier un élève'
-                              : 'Modifier un stagiaire')
-                        : (widget.classe.type == ClasseType.phase
-                              ? 'Enregistrer un élève'
-                              : 'Enregistrer un stagiaire'),
+                        ? 'Modifier un $_motFiche'
+                        : 'Enregistrer un $_motFiche',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -702,6 +737,12 @@ class _RegisterApprenantDialogState
     );
   }
 
+  List<Section> get _sectionsDisponibles {
+    final promotionId = _promotionId;
+    if (promotionId == null) return const [];
+    return ref.watch(sectionsParPromotionProvider(promotionId));
+  }
+
   Widget _buildStepContent(int step) {
     switch (step) {
       case 0:
@@ -713,7 +754,7 @@ class _RegisterApprenantDialogState
               TextFormField(
                 controller: _matriculeCtrl,
                 decoration: const InputDecoration(labelText: 'Matricule'),
-                validator: widget.classe.type == ClasseType.stage
+                validator: widget.classe?.type == ClasseType.stage
                     ? (v) => (v == null || v.trim().isEmpty)
                           ? 'Champ requis'
                           : null
@@ -724,6 +765,30 @@ class _RegisterApprenantDialogState
                 decoration: const InputDecoration(labelText: 'Grade'),
               ),
             ]),
+            // La section ne paraît que là où elle existe : une promotion
+            // qui n'a pas encore été répartie, un stage ou le personnel
+            // n'ont rien à y choisir. Elle se crée depuis l'écran des
+            // promotions, pas ici — ce formulaire affecte, il n'organise
+            // pas.
+            if (_sectionsDisponibles.isNotEmpty)
+              _FieldRow([
+                DropdownButtonFormField<String?>(
+                  isExpanded: true,
+                  initialValue: _sectionId,
+                  decoration: const InputDecoration(labelText: 'Section'),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      child: Text('Non affecté'),
+                    ),
+                    for (final section in _sectionsDisponibles)
+                      DropdownMenuItem<String?>(
+                        value: section.id,
+                        child: Text(section.nom),
+                      ),
+                  ],
+                  onChanged: (value) => setState(() => _sectionId = value),
+                ),
+              ]),
             // Le statut ne se choisit pas à l'inscription — on n'inscrit
             // pas quelqu'un déjà radié — mais il doit pouvoir être repris
             // ensuite : c'est ici qu'on radie, suspend ou diplôme.
@@ -1142,7 +1207,9 @@ class _ContextBanner extends StatelessWidget {
   });
 
   final Division division;
-  final Classe classe;
+
+  /// Nulle pour le personnel : il n'a ni phase ni stage.
+  final Classe? classe;
 
   /// Renseignée pour un élève : c'est la promotion qui l'inscrit, la phase
   /// n'est que celle où il commence.
@@ -1173,8 +1240,10 @@ class _ContextBanner extends StatelessWidget {
               // l'autre.
               promotion != null
                   ? 'Promotion : ${promotion!.intitule} · ${division.nom}'
-                  : '${classe.type == ClasseType.phase ? "Phase" : "Stage"} : '
-                        '${classe.nom} · ${division.nom}',
+                  : classe == null
+                  ? 'Personnel · ${division.nom}'
+                  : '${classe!.type == ClasseType.phase ? "Phase" : "Stage"} : '
+                        '${classe!.nom} · ${division.nom}',
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
                 color: AppColors.blueDeep,
