@@ -8,6 +8,7 @@ import '../../models/apprenant.dart';
 import '../../models/classe.dart';
 import '../../models/consultation_medicale.dart';
 import '../../models/division.dart';
+import '../../models/local_disciplinaire.dart';
 import '../../models/permission.dart';
 import '../../shared/widgets/common.dart';
 import '../matieres/providers/matieres_providers.dart';
@@ -15,6 +16,7 @@ import 'portee_promotion.dart';
 import 'providers/absences_providers.dart';
 import 'providers/apprenants_providers.dart';
 import 'providers/consultations_medicales_providers.dart';
+import 'providers/locaux_disciplinaires_providers.dart';
 import 'providers/permissions_providers.dart';
 
 enum _Categorie {
@@ -23,6 +25,7 @@ enum _Categorie {
   consultant,
   reposMedical,
   hospitalise,
+  auxArrets,
   absent,
 }
 
@@ -33,6 +36,7 @@ extension _CategorieStyle on _Categorie {
     _Categorie.consultant => 'Consultants',
     _Categorie.reposMedical => 'Repos médical',
     _Categorie.hospitalise => 'Hospitalisés',
+    _Categorie.auxArrets => 'Aux arrêts',
     _Categorie.absent => 'Absents',
   };
 
@@ -42,6 +46,7 @@ extension _CategorieStyle on _Categorie {
     _Categorie.consultant => Icons.medical_services_outlined,
     _Categorie.reposMedical => Icons.hotel_outlined,
     _Categorie.hospitalise => Icons.local_hospital_outlined,
+    _Categorie.auxArrets => Icons.gavel_outlined,
     _Categorie.absent => Icons.event_busy_outlined,
   };
 
@@ -51,20 +56,26 @@ extension _CategorieStyle on _Categorie {
     _Categorie.consultant => AppColors.blue,
     _Categorie.reposMedical => AppColors.blueBright,
     _Categorie.hospitalise => AppColors.danger,
+    _Categorie.auxArrets => AppColors.navy,
     _Categorie.absent => AppColors.warning,
   };
 }
 
 /// Détermine la catégorie d'un apprenant pour la journée en cours, par
 /// ordre de priorité : hospitalisé > repos médical > consultant >
-/// permissionnaire > absent > présent (un même apprenant ne peut apparaître
-/// que dans une seule catégorie, même si plusieurs événements se
-/// chevauchent).
+/// permissionnaire > aux arrêts > absent > présent (un même apprenant ne
+/// peut apparaître que dans une seule catégorie, même si plusieurs
+/// événements se chevauchent).
+///
+/// Les arrêts passent après l'infirmerie : un puni que le médecin garde est
+/// compté là où il est. Ils passent avant l'absence, car un puni n'est pas
+/// introuvable — on sait exactement où il est.
 _Categorie _categorieDuJour({
   required String apprenantId,
   required List<Permission> permissions,
   required List<Absence> absences,
   required List<ConsultationMedicale> consultations,
+  required List<LocalDisciplinaire> locaux,
 }) {
   final aujourdhui = DateTime.now();
   final jour = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day);
@@ -93,6 +104,11 @@ _Categorie _categorieDuJour({
     (p) => p.apprenantId == apprenantId && p.statut == PermissionStatut.enCours,
   )) {
     return _Categorie.permissionnaire;
+  }
+  if (locaux.any(
+    (l) => l.apprenantId == apprenantId && l.estAuxArretsLe(jour),
+  )) {
+    return _Categorie.auxArrets;
   }
   final estAbsent = absences.any((a) {
     if (a.apprenantId != apprenantId) return false;
@@ -189,6 +205,16 @@ class SituationPriseArmesTabView extends ConsumerWidget {
                 : ref.watch(consultationsMedicalesToutesProvider))
             .dansLesClasses(portee, (c) => c.classeId)
             .pourLesApprenants(apprenantsRetenus, (c) => c.apprenantId);
+    final locauxAsync =
+        (classe != null
+                ? ref.watch(locauxDisciplinairesByClasseProvider(classe.id))
+                : division != null
+                ? ref.watch(
+                    locauxDisciplinairesByDivisionProvider(division.id),
+                  )
+                : ref.watch(locauxDisciplinairesTousProvider))
+            .dansLesClasses(portee, (l) => l.classeId)
+            .pourLesApprenants(apprenantsRetenus, (l) => l.apprenantId);
     // Sous "Toutes phases / stages", l'effectif mélange les classes : on
     // rappelle celle de chaque apprenant entre parenthèses.
     final classesById = classe != null
@@ -203,12 +229,14 @@ class SituationPriseArmesTabView extends ConsumerWidget {
         apprenantsAsync.isLoading ||
         permissionsAsync.isLoading ||
         absencesAsync.isLoading ||
-        consultationsAsync.isLoading;
+        consultationsAsync.isLoading ||
+        locauxAsync.isLoading;
     final error =
         apprenantsAsync.error ??
         permissionsAsync.error ??
         absencesAsync.error ??
-        consultationsAsync.error;
+        consultationsAsync.error ??
+        locauxAsync.error;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -233,6 +261,7 @@ class SituationPriseArmesTabView extends ConsumerWidget {
                   permissions: permissionsAsync.value ?? const [],
                   absences: absencesAsync.value ?? const [],
                   consultations: consultationsAsync.value ?? const [],
+                  locaux: locauxAsync.value ?? const [],
                   classesById: classesById,
                 ),
         ),
@@ -276,6 +305,7 @@ class _Contenu extends StatefulWidget {
     required this.permissions,
     required this.absences,
     required this.consultations,
+    required this.locaux,
     required this.classesById,
   });
 
@@ -283,6 +313,7 @@ class _Contenu extends StatefulWidget {
   final List<Permission> permissions;
   final List<Absence> absences;
   final List<ConsultationMedicale> consultations;
+  final List<LocalDisciplinaire> locaux;
 
   /// Vide quand une classe/stage précis(e) est déjà sélectionné(e) — la
   /// provenance n'est alors plus ambiguë.
@@ -313,6 +344,7 @@ class _ContenuState extends State<_Contenu> {
         permissions: widget.permissions,
         absences: widget.absences,
         consultations: widget.consultations,
+        locaux: widget.locaux,
       );
       parCategorie[categorie]!.add(apprenant);
     }

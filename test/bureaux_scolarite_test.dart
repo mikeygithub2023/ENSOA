@@ -85,6 +85,7 @@ void main() {
         OngletEffectif.consultations,
         OngletEffectif.permissions,
         OngletEffectif.absences,
+        OngletEffectif.locauxDisciplinaires,
       ]);
       expect(onglets, isNot(contains(OngletEffectif.resultats)));
       expect(onglets, isNot(contains(OngletEffectif.controles)));

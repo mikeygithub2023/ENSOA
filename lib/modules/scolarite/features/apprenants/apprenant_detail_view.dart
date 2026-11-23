@@ -14,6 +14,7 @@ import '../../models/classe.dart';
 import '../../models/consultation_medicale.dart';
 import '../../models/controle.dart';
 import '../../models/division.dart';
+import '../../models/local_disciplinaire.dart';
 import '../../models/matiere.dart';
 import '../../models/note.dart';
 import '../../models/permission.dart';
@@ -29,6 +30,7 @@ import 'moyennes.dart';
 import 'pdf_fonts.dart';
 import 'providers/absences_providers.dart';
 import 'providers/apprenants_providers.dart';
+import 'providers/locaux_disciplinaires_providers.dart';
 import 'providers/consultations_medicales_providers.dart';
 import 'providers/controles_providers.dart';
 import 'providers/permissions_providers.dart';
@@ -146,6 +148,9 @@ class ApprenantDetailView extends ConsumerWidget {
       permissionsByApprenantProvider(apprenant.id),
     );
     final absencesAsync = ref.watch(absencesByApprenantProvider(apprenant.id));
+    final locauxAsync = ref.watch(
+      locauxDisciplinairesByApprenantProvider(apprenant.id),
+    );
     final consultationsAsync = ref.watch(
       consultationsMedicalesByApprenantProvider(apprenant.id),
     );
@@ -557,6 +562,37 @@ class ApprenantDetailView extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 20),
+          // Les punitions tiennent leur propre rubrique : une faute punie
+          // n'est pas une absence constatée, et la confondre avec elle
+          // efface ce qui distingue les deux.
+          const SectionHeader(title: 'Locaux disciplinaires'),
+          const SizedBox(height: 12),
+          locauxAsync.when(
+            data: (sejours) => sejours.isEmpty
+                ? const EmptyState(
+                    message: 'Aucune punition enregistrée.',
+                    icon: Icons.gavel_outlined,
+                  )
+                : Column(
+                    children: [
+                      for (final s in sejours) ...[
+                        _LocalDisciplinaireTile(sejour: s),
+                        const SizedBox(height: 8),
+                      ],
+                    ],
+                  ),
+            loading: () => const Center(
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+            error: (error, _) => EmptyState(
+              message: 'Erreur de chargement : ${messageErreur(error)}',
+              icon: Icons.error_outline,
+            ),
+          ),
+          const SizedBox(height: 20),
           const SectionHeader(title: 'Consultations médicales'),
           const SizedBox(height: 12),
           consultationsAsync.when(
@@ -778,6 +814,62 @@ class _PermissionTile extends StatelessWidget {
             ),
             const SizedBox(width: 16),
             StatusChip(label: statut.label, level: level),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LocalDisciplinaireTile extends StatelessWidget {
+  const _LocalDisciplinaireTile({required this.sejour});
+
+  final LocalDisciplinaire sejour;
+
+  @override
+  Widget build(BuildContext context) {
+    final fmt = DateFormat('dd/MM/yyyy');
+    final fin = sejour.dateSortie ?? sejour.dateFinPrevue;
+
+    return Material(
+      color: AppColors.blueMist,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadii.card),
+        side: const BorderSide(color: AppColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${fmt.format(sejour.dateDebut)} → ${fmt.format(fin)} · '
+                    '${sejour.jours} jour${sejour.jours > 1 ? 's' : ''}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    sejour.motif +
+                        (sejour.autorite != null
+                            ? ' · ${sejour.autorite}'
+                            : ''),
+                    style: const TextStyle(
+                      color: AppColors.inkMuted,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            StatusChip(
+              label: sejour.enCours ? 'Aux arrêts' : 'Sorti',
+              level: sejour.enCours ? AlertLevel.warning : AlertLevel.info,
+            ),
           ],
         ),
       ),

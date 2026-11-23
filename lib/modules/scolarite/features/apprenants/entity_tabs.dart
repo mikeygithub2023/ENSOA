@@ -7,6 +7,7 @@ import 'absences_tab_view.dart';
 import 'bureaux.dart';
 import 'consultations_medicales_tab_view.dart';
 import 'controles_tab_view.dart';
+import 'locaux_disciplinaires_tab_view.dart';
 import 'permissions_tab_view.dart';
 import 'situation_prise_armes_tab_view.dart';
 import 'statistiques_classe_tab_view.dart';
@@ -21,6 +22,7 @@ enum OngletEffectif {
   consultations,
   permissions,
   absences,
+  locauxDisciplinaires,
 }
 
 /// Les onglets d'un bureau, dans l'ordre où ils se présentent.
@@ -49,6 +51,7 @@ List<OngletEffectif> ongletsDuBureau(
       OngletEffectif.consultations,
       OngletEffectif.permissions,
       OngletEffectif.absences,
+      OngletEffectif.locauxDisciplinaires,
     ],
   };
 }
@@ -133,6 +136,7 @@ class _EntityTabsViewState extends State<EntityTabsView>
     OngletEffectif.consultations => 'Consultations médicales',
     OngletEffectif.permissions => 'Permissions',
     OngletEffectif.absences => 'Absences',
+    OngletEffectif.locauxDisciplinaires => 'Locaux disciplinaires',
   };
 
   IconData _icone(OngletEffectif onglet) => switch (onglet) {
@@ -149,6 +153,7 @@ class _EntityTabsViewState extends State<EntityTabsView>
     OngletEffectif.consultations => Icons.medical_services_outlined,
     OngletEffectif.permissions => Icons.assignment_turned_in_outlined,
     OngletEffectif.absences => Icons.event_busy_outlined,
+    OngletEffectif.locauxDisciplinaires => Icons.gavel_outlined,
   };
 
   Widget _vue(OngletEffectif onglet) => switch (onglet) {
@@ -189,6 +194,12 @@ class _EntityTabsViewState extends State<EntityTabsView>
       apprenantsRetenus: widget.apprenantsRetenus,
     ),
     OngletEffectif.absences => AbsencesTabView(
+      division: widget.division,
+      classe: widget.classe,
+      classesRetenues: widget.classesRetenues,
+      apprenantsRetenus: widget.apprenantsRetenus,
+    ),
+    OngletEffectif.locauxDisciplinaires => LocauxDisciplinairesTabView(
       division: widget.division,
       classe: widget.classe,
       classesRetenues: widget.classesRetenues,

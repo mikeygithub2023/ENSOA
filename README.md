@@ -343,6 +343,41 @@ qui est **vide** : une case corrigée à la main depuis l'import n'est pas
 Au passage : la fiche écrivait « Née le » à tout le monde. Elle écrit « Né(e)
 le ».
 
+### Les locaux disciplinaires
+
+L'école relevait les absences et les permissions ; elle ne tenait nulle part
+les punitions (migration `20261123000000`). Un élève aux arrêts était donc
+compté **présent** à la prise d'armes du matin : il manquait aux rangs sans
+que rien ne le dise, et le seul moyen de l'expliquer était de l'inscrire en
+absence — ce qui confond une faute punie avec une absence constatée.
+
+La rubrique prend place aux Ressources humaines, à côté des Absences. Une
+ligne est un séjour : qui, depuis quand, **pour combien de jours**, pour quel
+motif, et sur décision de qui. Ce qui la distingue d'une absence tient à ce
+dernier point : une punition a une durée décidée d'avance, là où une absence
+se constate après coup.
+
+Le premier jour compte — trois jours à partir du lundi s'achèvent le mercredi
+—, et la date de sortie prévue se calcule dans la base même, pour qu'une
+correction du nombre de jours la corrige aussi. La sortie réelle se marque au
+retour : plus tôt si la punition est levée, plus tard s'il faut. Une sortie
+qu'on a oublié de noter ne retient personne au-delà du terme — on ne garde pas
+un homme aux arrêts par défaut d'écriture —, mais la ligne porte alors
+« Sortie à marquer ».
+
+La Situation de Prise d'Armes gagne sa **septième case, « Aux arrêts »**,
+placée après l'infirmerie et avant les absents : un puni que le médecin garde
+est compté là où il est, et un puni n'est pas introuvable — on sait exactement
+où il est.
+
+`classe_id` y est facultatif, à la différence de la table des absences : le
+personnel de la Division de Commandement et Logistique ne suit aucune phase,
+et un sous-officier de l'école va aux arrêts comme un élève.
+
+Punir est un acte de commandement : l'administrateur, le chef de division chez
+lui, le commandant de promotion ou de brigade sur ses élèves. Un instructeur
+ne met personne aux arrêts, et le médecin non plus — il le voit seulement.
+
 ### État à la fin de la journée
 
 - `flutter analyze` : aucun avertissement
