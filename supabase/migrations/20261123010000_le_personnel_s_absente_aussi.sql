@@ -30,8 +30,8 @@ comment on column scolarite.permissions.classe_id is
   'personnel de l''école, qui ne suit ni l''une ni l''autre.';
 
 -- ============================================================================
--- Contrôle : les deux colonnes doivent rendre « false » — c'est-à-dire
--- « n'est plus obligatoire ».
+-- Contrôle : les trois colonnes doivent rendre « YES » — information_schema
+-- répond YES/NO, et YES veut dire « n'est plus obligatoire ».
 -- ============================================================================
 select table_name, column_name, is_nullable
 from information_schema.columns
