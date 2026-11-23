@@ -60,9 +60,7 @@ class LocauxDisciplinairesTabView extends ConsumerWidget {
         (classe != null
                 ? ref.watch(locauxDisciplinairesByClasseProvider(classe.id))
                 : division != null
-                ? ref.watch(
-                    locauxDisciplinairesByDivisionProvider(division.id),
-                  )
+                ? ref.watch(locauxDisciplinairesByDivisionProvider(division.id))
                 : ref.watch(locauxDisciplinairesTousProvider))
             .dansLesClasses(portee, (s) => s.classeId)
             .pourLesApprenants(apprenantsRetenus, (s) => s.apprenantId);
@@ -131,11 +129,8 @@ class LocauxDisciplinairesTabView extends ConsumerWidget {
                         classeNom: classe == null && classeId != null
                             ? classesById[classeId]?.nom
                             : null,
-                        onDelete: () => _confirmerSuppression(
-                          context,
-                          ref,
-                          sejour,
-                        ),
+                        onDelete: () =>
+                            _confirmerSuppression(context, ref, sejour),
                         onMarquerSortie: () =>
                             _marquerSortie(context, ref, sejour),
                       );

@@ -8,9 +8,9 @@ class PermissionDraft {
   const PermissionDraft({
     required this.apprenantId,
     required this.divisionId,
-    required this.classeId,
     required this.dateDepart,
     required this.dateRetour,
+    this.classeId,
     this.localite,
     this.motif,
     this.personneContact,
@@ -18,7 +18,10 @@ class PermissionDraft {
 
   final String apprenantId;
   final String divisionId;
-  final String classeId;
+
+  /// Nulle pour le personnel de l'école, qui ne suit aucune phase.
+  final String? classeId;
+
   final DateTime dateDepart;
   final DateTime dateRetour;
   final String? localite;

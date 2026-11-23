@@ -15,7 +15,10 @@ class Absence {
   final String id;
   final String apprenantId;
   final String divisionId;
-  final String classeId;
+
+  /// La phase ou le stage où elle a été enregistrée. Nulle pour le
+  /// personnel de l'école, qui ne suit ni l'une ni l'autre.
+  final String? classeId;
   final DateTime dateDebut;
   final DateTime? dateFin;
   final bool justifiee;
@@ -28,7 +31,7 @@ class Absence {
       id: json['id'] as String,
       apprenantId: json['apprenant_id'] as String,
       divisionId: json['division_id'] as String,
-      classeId: json['classe_id'] as String,
+      classeId: json['classe_id'] as String?,
       dateDebut: DateTime.parse(json['date_debut'] as String),
       dateFin: json['date_fin'] == null
           ? null

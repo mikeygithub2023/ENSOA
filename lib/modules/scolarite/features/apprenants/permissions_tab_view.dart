@@ -12,6 +12,7 @@ import '../../models/permission.dart';
 import '../../shared/widgets/common.dart';
 import '../../shared/widgets/pdf_preview_dialog.dart';
 import '../matieres/providers/matieres_providers.dart';
+import 'bureaux.dart';
 import 'pdf_fonts.dart';
 import 'permissions_pdf.dart';
 import 'portee_promotion.dart';
@@ -75,14 +76,12 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
       final items = <PermissionPrintData>[];
       for (final permission in permissions) {
         final apprenant = apprenantsById[permission.apprenantId];
-        final classe = _classe ?? classesById[permission.classeId];
         final division = _division ?? divisionsById[permission.divisionId];
-        if (apprenant == null || classe == null || division == null) continue;
+        if (apprenant == null || division == null) continue;
         items.add(
           PermissionPrintData(
             permission: permission,
             apprenant: apprenant,
-            classe: classe,
             division: division,
           ),
         );
@@ -119,6 +118,7 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
   @override
   Widget build(BuildContext context) {
     final classe = _classe;
+    final division = _division;
     final portee = classe == null ? widget.classesRetenues : null;
     final apprenantsAsync =
         (classe != null
@@ -198,9 +198,15 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
               },
               orElse: () => const SizedBox.shrink(),
             ),
-            // La saisie demande une division ET une phase : sous « Toutes »,
-            // il n'y a rien à quoi rattacher l'enregistrement.
-            if (classe != null && _division != null) ...[
+            // La saisie demande une division, et une phase quand il y en
+            // a une. Le personnel de l'école n'en a pas : c'est sa division
+            // qui le délimite. Sous « Toutes », en revanche, il n'y a rien à
+            // quoi rattacher l'enregistrement.
+            if (division != null &&
+                ouvreUneFiche(
+                  division: division,
+                  classeInscription: classe,
+                )) ...[
               const SizedBox(width: 8),
               FilledButton.icon(
                 onPressed: apprenantsAsync.maybeWhen(
@@ -208,7 +214,7 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
                       ? null
                       : () => showRegisterPermissionDialog(
                           context,
-                          division: _division!,
+                          division: division,
                           classe: classe,
                           apprenants: apprenants,
                         ),
@@ -250,11 +256,12 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final permission = permissions[index];
+                      final classeId = permission.classeId;
                       return _PermissionTile(
                         permission: permission,
                         apprenant: apprenantsById[permission.apprenantId],
-                        classeNom: classe == null
-                            ? classesById[permission.classeId]?.nom
+                        classeNom: classe == null && classeId != null
+                            ? classesById[classeId]?.nom
                             : null,
                         selected: _selectedIds.contains(permission.id),
                         onSelectedChanged: (value) => setState(() {
@@ -265,16 +272,17 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
                           }
                         }),
                         // Sous « toutes phases », la classe vient du
-                        // référentiel plutôt que de la portée affichée. Si
-                        // ni l'une ni l'autre ne la donne, le bouton reste
-                        // fermé : mieux vaut cela qu'un écran qui se ferme
-                        // sur une erreur.
+                        // référentiel plutôt que de la portée affichée. Elle
+                        // peut rester nulle — le personnel de l'école n'en a
+                        // aucune —, mais pas la division : sans elle, on ne
+                        // saurait à quoi rattacher la correction.
                         onModifier: () {
-                          final laClasse =
-                              classesById[permission.classeId] ?? classe;
+                          final laClasse = classeId == null
+                              ? null
+                              : (classesById[classeId] ?? classe);
                           final laDivision =
                               _division ?? divisionsById[permission.divisionId];
-                          if (laClasse == null || laDivision == null) return;
+                          if (laDivision == null) return;
                           showRegisterPermissionDialog(
                             context,
                             division: laDivision,
@@ -338,7 +346,11 @@ class _PermissionsTabViewState extends ConsumerState<PermissionsTabView> {
       await ref
           .read(permissionsRepositoryProvider)
           .deletePermission(permission.id);
-      ref.invalidate(permissionsByClasseProvider(permission.classeId));
+      final classeId = permission.classeId;
+      if (classeId != null) {
+        ref.invalidate(permissionsByClasseProvider(classeId));
+      }
+      ref.invalidate(permissionsToutesProvider);
       ref.invalidate(permissionsByDivisionProvider(permission.divisionId));
       ref.invalidate(permissionsByApprenantProvider(permission.apprenantId));
       setState(() => _selectedIds.remove(permission.id));

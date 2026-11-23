@@ -5,7 +5,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../models/apprenant.dart';
-import '../../models/classe.dart';
 import '../../models/division.dart';
 import '../../models/permission.dart';
 import 'pdf_header.dart';
@@ -16,13 +15,11 @@ class PermissionPrintData {
   const PermissionPrintData({
     required this.permission,
     required this.apprenant,
-    required this.classe,
     required this.division,
   });
 
   final Permission permission;
   final Apprenant apprenant;
-  final Classe classe;
   final Division division;
 }
 

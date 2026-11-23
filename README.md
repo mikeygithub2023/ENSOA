@@ -370,19 +370,59 @@ placée après l'infirmerie et avant les absents : un puni que le médecin garde
 est compté là où il est, et un puni n'est pas introuvable — on sait exactement
 où il est.
 
-`classe_id` y est facultatif, à la différence de la table des absences : le
-personnel de la Division de Commandement et Logistique ne suit aucune phase,
-et un sous-officier de l'école va aux arrêts comme un élève.
+`classe_id` y est facultatif : le personnel de la Division de Commandement et
+Logistique ne suit aucune phase, et un sous-officier de l'école va aux arrêts
+comme un élève. Les absences et les permissions l'ont suivie le même jour
+(voir ci-dessous).
 
 Punir est un acte de commandement : l'administrateur, le chef de division chez
 lui, le commandant de promotion ou de brigade sur ses élèves. Un instructeur
 ne met personne aux arrêts, et le médecin non plus — il le voit seulement.
 
+### Le personnel s'absente aussi, et part en permission
+
+Les deux registres les plus anciens — les permissions (migration 007) et les
+absences (008) — ont été écrits quand l'école ne tenait que des élèves : la
+phase y était **obligatoire**, en base comme dans le code. La Division de
+Commandement et Logistique est arrivée depuis, avec 255 militaires qui ne
+suivent aucune phase. Résultat : leurs fiches paraissaient dans les deux
+onglets, mais le bouton d'enregistrement s'y taisait — et la base aurait de
+toute façon refusé l'écriture.
+
+Un adjudant de l'école s'absente comme un élève, et part en permission comme
+lui. La migration `20261123010000` rend donc `classe_id` facultatif dans les
+deux tables, comme il l'est déjà pour les locaux disciplinaires et pour la
+fiche elle-même. La division, elle, reste obligatoire : c'est elle qui borne
+la RLS, et les lignes déjà enregistrées gardent toutes leur phase.
+
+Les deux boutons suivent maintenant la même règle que la fiche,
+`ouvreUneFiche` : la division suffit au personnel, l'élève exige en plus une
+phase ou un stage, et sous « Toutes » les boutons se taisent — faute de savoir
+où écrire. Dans la boîte de saisie, l'en-tête annonce « Personnel · DCL » au
+lieu d'une classe, et la liste déroulante dit « Militaire » plutôt que
+« Élève / Stagiaire ».
+
+Au passage, deux détails de la même famille :
+
+- Sous « Toutes », l'onglet de l'effectif s'intitulait « Élèves/Stagiaires »
+  alors que la liste réunit tout l'école, personnel compris. Il dit désormais
+  **« Personnels/Élèves/Stagiaires »** — la règle est extraite dans
+  `intituleDeLEffectif`, vérifiable sans monter l'écran.
+- Le PDF de permission exigeait une classe qu'il n'imprimait jamais : cette
+  exigence écartait silencieusement le personnel de l'impression de la
+  sélection. Le champ est supprimé.
+- La fiche d'un apprenant portait un bouton **« Imprimer le bulletin »**. Il
+  faisait double emploi avec l'écran Bulletins, qui tire les bulletins par
+  classe, par stage ou par élève avec le choix des contrôles. Le bouton est
+  retiré ; rien n'est perdu.
+
 ### État à la fin de la journée
 
 - `flutter analyze` : aucun avertissement
-- **177 tests** passent, dont `test/bureaux_scolarite_test.dart`, né de ce
-  découpage
+- **232 tests** passent, dont `test/locaux_disciplinaires_test.dart` et
+  `test/personnel_absences_permissions_test.dart`, nés de la journée
+- **177 tests** passaient auparavant, dont `test/bureaux_scolarite_test.dart`,
+  né du découpage en bureaux
 - **147 tests** passaient dans la journée, dont cinq fichiers nés aujourd'hui :
   `test/tableau_de_bord_test.dart`, `test/taches_test.dart`,
   `test/soutien_technique_onglets_test.dart`, `test/menu_libelles_test.dart`

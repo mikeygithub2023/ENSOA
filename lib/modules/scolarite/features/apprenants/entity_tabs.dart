@@ -59,6 +59,31 @@ List<OngletEffectif> ongletsDuBureau(
 /// Onglets affichés une fois une division (et éventuellement une classe/stage)
 /// sélectionnée, sous le bureau où l'on se trouve. Tous sont branchés sur les
 /// données réelles.
+/// Ce que l'onglet de l'effectif annonce, selon ce qu'on regarde.
+///
+/// La Division de Commandement et Logistique ne tient que du personnel ; une
+/// phase ne tient que des élèves, un stage que des stagiaires. Sous
+/// « Toutes », sans division ni phase, la liste réunit tout l'effectif de
+/// l'école — le personnel de la DCL compris —, et c'est ce que l'intitulé
+/// doit dire. Sous une promotion, en revanche, il n'y a que des élèves.
+String intituleDeLEffectif({
+  required Division? division,
+  required Classe? classe,
+  required bool sousPromotion,
+}) {
+  if (division?.tientDuPersonnel ?? false) return 'Personnel';
+  return switch (classe?.type) {
+    ClasseType.phase => 'Élèves',
+    ClasseType.stage => 'Stagiaires',
+    null =>
+      sousPromotion
+          ? 'Élèves'
+          : (division == null
+                ? 'Personnels/Élèves/Stagiaires'
+                : 'Élèves/Stagiaires'),
+  };
+}
+
 class EntityTabsView extends StatefulWidget {
   const EntityTabsView({
     super.key,
@@ -110,14 +135,11 @@ class _EntityTabsViewState extends State<EntityTabsView>
   /// Commandement et Logistique du personnel — elle n'instruit personne.
   /// « Élèves/Stagiaires » ne subsiste que sous une division qui forme, ou
   /// sous « Toutes », où les deux se côtoient.
-  String get _elevesStagiairesLabel {
-    if (widget.division?.tientDuPersonnel ?? false) return 'Personnel';
-    return switch (widget.classe?.type) {
-      ClasseType.phase => 'Élèves',
-      ClasseType.stage => 'Stagiaires',
-      null => widget.sousPromotion ? 'Élèves' : 'Élèves/Stagiaires',
-    };
-  }
+  String get _elevesStagiairesLabel => intituleDeLEffectif(
+    division: widget.division,
+    classe: widget.classe,
+    sousPromotion: widget.sousPromotion,
+  );
 
   /// Les modules ne concernent que les classes (élèves) ; les stages n'ont
   /// que le contrôle continu et l'examen final.

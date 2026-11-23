@@ -1,7 +1,4 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -22,12 +19,9 @@ import 'package:sig_ensoa/modules/scolarite/compat.dart';
 import '../../models/section.dart';
 import '../../models/sous_module.dart';
 import '../../shared/widgets/common.dart';
-import '../../shared/widgets/pdf_preview_dialog.dart';
 import '../matieres/providers/matieres_providers.dart';
 import 'antecedents_medicaux_dialog.dart';
-import 'bulletins_pdf.dart';
 import 'moyennes.dart';
-import 'pdf_fonts.dart';
 import 'providers/absences_providers.dart';
 import 'providers/apprenants_providers.dart';
 import 'providers/locaux_disciplinaires_providers.dart';
@@ -622,16 +616,7 @@ class ApprenantDetailView extends ConsumerWidget {
           ),
           if (classe != null) ...[
             const SizedBox(height: 20),
-            Row(
-              children: [
-                const Expanded(child: SectionHeader(title: 'Notes')),
-                _ImprimerBulletinButton(
-                  apprenant: apprenant,
-                  classe: classe,
-                  division: division,
-                ),
-              ],
-            ),
+            const SectionHeader(title: 'Notes'),
             const SizedBox(height: 12),
             controlesAsync!.when(
               data: (controles) => notesAsync.when(
@@ -1266,135 +1251,6 @@ class _NoteTile extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Imprime le bulletin de cet apprenant, en ne prenant en compte que les
-/// contrôles cochés par l'administrateur pour sa classe/stage (menu
-/// "Bulletins" — voir [Controle.inclusBulletin]).
-class _ImprimerBulletinButton extends ConsumerStatefulWidget {
-  const _ImprimerBulletinButton({
-    required this.apprenant,
-    required this.classe,
-    required this.division,
-  });
-
-  final Apprenant apprenant;
-  final Classe classe;
-  final Division division;
-
-  @override
-  ConsumerState<_ImprimerBulletinButton> createState() =>
-      _ImprimerBulletinButtonState();
-}
-
-class _ImprimerBulletinButtonState
-    extends ConsumerState<_ImprimerBulletinButton> {
-  bool _printing = false;
-
-  Future<void> _print() async {
-    if (_printing) return;
-    setState(() => _printing = true);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      // Le bulletin d'un élève porte sur toute sa promotion, phases
-      // réunies : ses notes s'y répartissent, et n'en imprimer qu'une
-      // donnerait un bulletin partiel. Un stagiaire, lui, n'a que son
-      // stage.
-      final promotionId = widget.classe.promotionId;
-      final phases = promotionId == null
-          ? [widget.classe]
-          : (await ref.read(
-              classesListProvider.future,
-            )).where((c) => c.promotionId == promotionId).toList();
-      final promotion = promotionId == null
-          ? null
-          : (await ref.read(
-              promotionsListProvider.future,
-            )).where((p) => p.id == promotionId).firstOrNull;
-
-      final controles = <Controle>[];
-      final sousModules = <SousModule>[];
-      for (final phase in phases) {
-        controles.addAll(
-          await ref.read(controlesByClasseProvider(phase.id).future),
-        );
-        sousModules.addAll(
-          await ref.read(sousModulesRepositoryProvider).fetchByClasse(phase.id),
-        );
-      }
-      final included = controles.where((c) => c.inclusBulletin).toList();
-      if (included.isEmpty) {
-        messenger.showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Aucun contrôle coché pour le calcul des bulletins (menu Bulletins).',
-            ),
-            backgroundColor: AppColors.danger,
-          ),
-        );
-        return;
-      }
-      final notes = await ref.read(
-        notesByApprenantProvider(widget.apprenant.id).future,
-      );
-      final matieres = await ref.read(matieresCatalogueProvider.future);
-      final matiereModules = await ref.read(matiereModulesProvider.future);
-      final photoPath = widget.apprenant.photoPath;
-      Uint8List? photo;
-      if (photoPath != null) {
-        try {
-          photo = await ref
-              .read(apprenantsRepositoryProvider)
-              .downloadPhoto(photoPath);
-        } catch (_) {
-          // Pas de photo affichable -> cadre vide dans le PDF.
-        }
-      }
-      final armoiries = (await rootBundle.load(
-        'assets/images/armoiries_ci.png',
-      )).buffer.asUint8List();
-      final doc = buildBulletinsPdf(
-        [
-          BulletinPrintData(
-            apprenant: widget.apprenant,
-            classe: widget.classe,
-            division: widget.division,
-            promotion: promotion,
-            phases: promotion == null ? const [] : phases,
-            controles: included,
-            notes: notes,
-            matieres: matieres,
-            matiereModules: matiereModules,
-            sousModules: sousModules,
-            photo: photo,
-          ),
-        ],
-        armoiries: armoiries,
-        theme: await chargerThemePdf(),
-      );
-      final bytes = await doc.save();
-      if (!mounted) return;
-      await showPdfPreviewDialog(context, bytes);
-    } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Erreur : ${messageErreur(e)}'),
-          backgroundColor: AppColors.danger,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _printing = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton.icon(
-      onPressed: _printing ? null : _print,
-      icon: const Icon(Icons.print_outlined, size: 18),
-      label: const Text('Imprimer le bulletin'),
     );
   }
 }

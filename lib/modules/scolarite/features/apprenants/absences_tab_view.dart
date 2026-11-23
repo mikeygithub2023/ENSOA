@@ -10,6 +10,7 @@ import '../../models/classe.dart';
 import '../../models/division.dart';
 import '../../shared/widgets/common.dart';
 import '../matieres/providers/matieres_providers.dart';
+import 'bureaux.dart';
 import 'portee_promotion.dart';
 import 'providers/absences_providers.dart';
 import 'providers/apprenants_providers.dart';
@@ -66,9 +67,12 @@ class AbsencesTabView extends ConsumerWidget {
         Row(
           children: [
             const Expanded(child: SectionHeader(title: 'Absences')),
-            // La saisie demande une division ET une phase : sous « Toutes »,
-            // il n'y a rien à quoi rattacher l'enregistrement.
-            if (classe != null && division != null)
+            // La saisie demande une division, et une phase quand il y en a
+            // une. Le personnel de l'école n'en a pas : c'est sa division
+            // qui le délimite. Sous « Toutes », en revanche, il n'y a rien à
+            // quoi rattacher l'enregistrement.
+            if (division != null &&
+                ouvreUneFiche(division: division, classeInscription: classe))
               FilledButton.icon(
                 onPressed: apprenantsAsync.maybeWhen(
                   data: (apprenants) => apprenants.isEmpty
@@ -109,11 +113,12 @@ class AbsencesTabView extends ConsumerWidget {
                     separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final absence = absences[index];
+                      final classeId = absence.classeId;
                       return _AbsenceTile(
                         absence: absence,
                         apprenant: apprenantsById[absence.apprenantId],
-                        classeNom: classe == null
-                            ? classesById[absence.classeId]?.nom
+                        classeNom: classe == null && classeId != null
+                            ? classesById[classeId]?.nom
                             : null,
                         onDelete: () => _confirmDelete(context, ref, absence),
                         onMarkRetour: () => _markRetour(context, ref, absence),
@@ -137,6 +142,17 @@ class AbsencesTabView extends ConsumerWidget {
         ),
       ],
     );
+  }
+
+  /// Tout ce qui peut porter cette absence : la phase quand il y en a une,
+  /// la division toujours, et la vue d'ensemble.
+  void _rafraichir(WidgetRef ref, Absence absence) {
+    final classeId = absence.classeId;
+    if (classeId != null) {
+      ref.invalidate(absencesByClasseProvider(classeId));
+    }
+    ref.invalidate(absencesByDivisionProvider(absence.divisionId));
+    ref.invalidate(absencesToutesProvider);
   }
 
   Future<void> _confirmDelete(
@@ -166,8 +182,7 @@ class AbsencesTabView extends ConsumerWidget {
     if (confirmed != true) return;
     try {
       await ref.read(absencesRepositoryProvider).deleteAbsence(absence.id);
-      ref.invalidate(absencesByClasseProvider(absence.classeId));
-      ref.invalidate(absencesByDivisionProvider(absence.divisionId));
+      _rafraichir(ref, absence);
       messenger.showSnackBar(
         const SnackBar(
           content: Text('Absence supprimée.'),
@@ -204,8 +219,7 @@ class AbsencesTabView extends ConsumerWidget {
             justifiee: result.justifiee,
             motif: result.motif,
           );
-      ref.invalidate(absencesByClasseProvider(absence.classeId));
-      ref.invalidate(absencesByDivisionProvider(absence.divisionId));
+      _rafraichir(ref, absence);
       messenger.showSnackBar(
         const SnackBar(
           content: Text('Retour enregistré.'),

@@ -198,10 +198,7 @@ void main() {
       expect(find.text('NOM ET PRENOMS'), findsWidgets);
       // Le matricule identifie ; quand l'état nominatif l'a oublié, le
       // numéro mécanographique le remplace.
-      expect(
-        find.text('Unique ; à défaut, le mécano identifie'),
-        findsWidgets,
-      );
+      expect(find.text('Unique ; à défaut, le mécano identifie'), findsWidgets);
     });
   });
 
@@ -221,18 +218,20 @@ void main() {
     // n'a rien à y faire, et la proposer menait à un écran vide.
     test("l'instruction ne propose pas la division du commandement", () {
       expect(
-        divisionsDuBureau(const [initiale, commandement], Bureau.instruction)
-            .map((d) => d.nom),
+        divisionsDuBureau(const [
+          initiale,
+          commandement,
+        ], Bureau.instruction).map((d) => d.nom),
         ['Division de Formation Initiale'],
       );
     });
 
     test('les ressources humaines la tiennent comme les autres', () {
       expect(
-        divisionsDuBureau(
-          const [initiale, commandement],
-          Bureau.ressourcesHumaines,
-        ),
+        divisionsDuBureau(const [
+          initiale,
+          commandement,
+        ], Bureau.ressourcesHumaines),
         hasLength(2),
       );
     });
@@ -306,9 +305,10 @@ void main() {
 
     test('elle retient ceux qu’on lui nomme', () {
       final tout = AsyncValue.data(_effectif);
-      final retenus = tout
-          .pourLesApprenants(const {'b', 'c'}, (a) => a.id)
-          .value!;
+      final retenus = tout.pourLesApprenants(const {
+        'b',
+        'c',
+      }, (a) => a.id).value!;
       expect(retenus.map((a) => a.nom), ['BAMBA', 'CISSE']);
     });
   });
@@ -331,9 +331,7 @@ void main() {
 
     // Le volet s'ouvre sur ceux qui ne sont pas encore répartis : c'est là
     // qu'est tout le monde le jour où l'on commence.
-    testWidgets('elle s’ouvre sur ceux qui restent à répartir', (
-      tester,
-    ) async {
+    testWidgets('elle s’ouvre sur ceux qui restent à répartir', (tester) async {
       await _ouvrirLaRepartition(tester, _DepotSections());
 
       expect(find.text('ABE Jean'), findsOneWidget);

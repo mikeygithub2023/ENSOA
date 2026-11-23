@@ -10,10 +10,12 @@ import '../../models/division.dart';
 import 'data/absences_repository.dart';
 import 'providers/absences_providers.dart';
 
+/// [classe] est nulle pour le personnel de l'école : il s'absente comme un
+/// élève, sans suivre de phase.
 Future<void> showRegisterAbsenceDialog(
   BuildContext context, {
   required Division division,
-  required Classe classe,
+  required Classe? classe,
   required List<Apprenant> apprenants,
 }) {
   return showDialog<void>(
@@ -38,7 +40,7 @@ class _RegisterAbsenceDialog extends ConsumerStatefulWidget {
   });
 
   final Division division;
-  final Classe classe;
+  final Classe? classe;
   final List<Apprenant> apprenants;
 
   @override
@@ -70,11 +72,16 @@ class _RegisterAbsenceDialogState
             AbsenceDraft(
               apprenantId: _apprenant!.id,
               divisionId: widget.division.id,
-              classeId: widget.classe.id,
+              classeId: widget.classe?.id,
               dateDebut: _dateDebut!,
             ),
           );
-      ref.invalidate(absencesByClasseProvider(widget.classe.id));
+      final classe = widget.classe;
+      if (classe != null) {
+        ref.invalidate(absencesByClasseProvider(classe.id));
+      }
+      ref.invalidate(absencesByDivisionProvider(widget.division.id));
+      ref.invalidate(absencesToutesProvider);
       if (!mounted) return;
       Navigator.of(context).pop();
       messenger.showSnackBar(
@@ -97,6 +104,15 @@ class _RegisterAbsenceDialogState
         ),
       );
     }
+  }
+
+  /// La portée rappelée en tête de la boîte. Le personnel de l'école n'a ni
+  /// phase ni stage : c'est sa division qui le situe.
+  String get _portee {
+    final classe = widget.classe;
+    if (classe == null) return 'Personnel · ${widget.division.nom}';
+    final mot = classe.type == ClasseType.phase ? 'Classe' : 'Stage';
+    return '$mot : ${classe.nom} · ${widget.division.nom}';
   }
 
   @override
@@ -156,7 +172,7 @@ class _RegisterAbsenceDialogState
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            '${widget.classe.type == ClasseType.phase ? "Classe" : "Stage"} : ${widget.classe.nom} · ${widget.division.nom}',
+                            _portee,
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               color: AppColors.blueDeep,
@@ -170,8 +186,10 @@ class _RegisterAbsenceDialogState
                   const SizedBox(height: 20),
                   DropdownButtonFormField<Apprenant>(
                     initialValue: _apprenant,
-                    decoration: const InputDecoration(
-                      labelText: 'Élève / Stagiaire',
+                    decoration: InputDecoration(
+                      labelText: widget.classe == null
+                          ? 'Militaire'
+                          : 'Élève / Stagiaire',
                     ),
                     isExpanded: true,
                     items: [

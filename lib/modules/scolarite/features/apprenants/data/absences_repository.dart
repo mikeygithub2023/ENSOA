@@ -10,13 +10,15 @@ class AbsenceDraft {
   const AbsenceDraft({
     required this.apprenantId,
     required this.divisionId,
-    required this.classeId,
     required this.dateDebut,
+    this.classeId,
   });
 
   final String apprenantId;
   final String divisionId;
-  final String classeId;
+
+  /// Nulle pour le personnel de l'école, qui ne suit aucune phase.
+  final String? classeId;
   final DateTime dateDebut;
 
   Map<String, dynamic> toInsertJson() {

@@ -209,9 +209,7 @@ class SituationPriseArmesTabView extends ConsumerWidget {
         (classe != null
                 ? ref.watch(locauxDisciplinairesByClasseProvider(classe.id))
                 : division != null
-                ? ref.watch(
-                    locauxDisciplinairesByDivisionProvider(division.id),
-                  )
+                ? ref.watch(locauxDisciplinairesByDivisionProvider(division.id))
                 : ref.watch(locauxDisciplinairesTousProvider))
             .dansLesClasses(portee, (l) => l.classeId)
             .pourLesApprenants(apprenantsRetenus, (l) => l.apprenantId);

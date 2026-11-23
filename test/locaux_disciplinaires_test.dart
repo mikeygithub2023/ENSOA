@@ -101,8 +101,9 @@ class _DepotApprenants extends ApprenantsRepository {
   Future<List<Apprenant>> fetchByClasse(String classeId) async => [_eleve];
 
   @override
-  Future<List<Apprenant>> fetchByPromotion(String promotionId) async =>
-      [_eleve];
+  Future<List<Apprenant>> fetchByPromotion(String promotionId) async => [
+    _eleve,
+  ];
 
   @override
   Future<List<Apprenant>> fetchByDivision(String divisionId) async =>

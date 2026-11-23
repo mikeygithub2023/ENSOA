@@ -44,7 +44,7 @@ enum Bureau {
           "l'effectif retenu.",
     Bureau.ressourcesHumaines =>
       "La situation de l'effectif retenu : prise d'armes, statistiques, "
-          "consultations, permissions, absences.",
+          "consultations, permissions, absences, locaux disciplinaires.",
   };
 }
 

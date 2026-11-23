@@ -15,10 +15,12 @@ import 'providers/permissions_providers.dart';
 /// que d'en accorder une nouvelle. Le bénéficiaire ne se change pas — se
 /// tromper d'élève se répare en supprimant la permission et en la reprenant,
 /// car c'en est une autre.
+/// [classe] est nulle pour le personnel de l'école : il part en permission
+/// comme un élève, sans suivre de phase.
 Future<void> showRegisterPermissionDialog(
   BuildContext context, {
   required Division division,
-  required Classe classe,
+  required Classe? classe,
   required List<Apprenant> apprenants,
   Permission? existante,
 }) {
@@ -46,7 +48,7 @@ class _RegisterPermissionDialog extends ConsumerStatefulWidget {
   });
 
   final Division division;
-  final Classe classe;
+  final Classe? classe;
   final List<Apprenant> apprenants;
   final Permission? existante;
 
@@ -119,7 +121,7 @@ class _RegisterPermissionDialogState
       // En correction, on garde le rattachement d'origine : la permission
       // reste dans la classe et la division où elle a été accordée, même si
       // l'écran est ouvert sur une autre portée.
-      final classeId = widget.existante?.classeId ?? widget.classe.id;
+      final classeId = widget.existante?.classeId ?? widget.classe?.id;
 
       final draft = PermissionDraft(
         apprenantId: _apprenantId!,
@@ -143,7 +145,10 @@ class _RegisterPermissionDialogState
       // la première était rafraîchie — sous « toutes phases », la
       // modification passait en base sans que l'écran change, ce qui donnait
       // à croire qu'elle avait échoué.
-      ref.invalidate(permissionsByClasseProvider(classeId));
+      if (classeId != null) {
+        ref.invalidate(permissionsByClasseProvider(classeId));
+      }
+      ref.invalidate(permissionsToutesProvider);
       ref.invalidate(
         permissionsByDivisionProvider(
           widget.existante?.divisionId ?? widget.division.id,
@@ -178,6 +183,15 @@ class _RegisterPermissionDialogState
 
   String? _emptyToNull(String value) =>
       value.trim().isEmpty ? null : value.trim();
+
+  /// La portée rappelée en tête de la boîte. Le personnel de l'école n'a ni
+  /// phase ni stage : c'est sa division qui le situe.
+  String get _portee {
+    final classe = widget.classe;
+    if (classe == null) return 'Personnel · ${widget.division.nom}';
+    final mot = classe.type == ClasseType.phase ? 'Classe' : 'Stage';
+    return '$mot : ${classe.nom} · ${widget.division.nom}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -238,7 +252,7 @@ class _RegisterPermissionDialogState
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            '${widget.classe.type == ClasseType.phase ? "Classe" : "Stage"} : ${widget.classe.nom} · ${widget.division.nom}',
+                            _portee,
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               color: AppColors.blueDeep,
