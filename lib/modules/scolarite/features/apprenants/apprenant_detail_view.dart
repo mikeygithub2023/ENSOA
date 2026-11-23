@@ -491,13 +491,13 @@ class ApprenantDetailView extends ConsumerWidget {
           const SizedBox(height: 20),
           if (classe != null) ...[
             const SectionHeader(title: 'Statistiques personnelles'),
-          const SizedBox(height: 4),
-          const Text(
-            'Situation de l\'apprenant dans sa promotion — les listes qui '
-            'suivent en donnent le détail.',
-            style: TextStyle(color: AppColors.inkMuted, fontSize: 13),
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 4),
+            const Text(
+              'Situation de l\'apprenant dans sa promotion — les listes qui '
+              'suivent en donnent le détail.',
+              style: TextStyle(color: AppColors.inkMuted, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
             StatistiquesApprenantSection(apprenant: apprenant, classe: classe),
           ],
           const SizedBox(height: 20),
@@ -598,15 +598,26 @@ class ApprenantDetailView extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             controlesAsync!.when(
-            data: (controles) => notesAsync.when(
-              data: (notes) => matieresAsync.when(
-                data: (matieres) => _NotesSummary(
-                  classe: classe,
-                  controles: controles,
-                  notes: notes,
-                  matieres: matieres,
-                  sousModules: sousModulesAsync?.value ?? const [],
-                  performances: performancesAsync.value ?? const {},
+              data: (controles) => notesAsync.when(
+                data: (notes) => matieresAsync.when(
+                  data: (matieres) => _NotesSummary(
+                    classe: classe,
+                    controles: controles,
+                    notes: notes,
+                    matieres: matieres,
+                    sousModules: sousModulesAsync?.value ?? const [],
+                    performances: performancesAsync.value ?? const {},
+                  ),
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                  error: (error, _) => EmptyState(
+                    message: 'Erreur de chargement : ${messageErreur(error)}',
+                    icon: Icons.error_outline,
+                  ),
                 ),
                 loading: () => const Center(
                   child: Padding(
@@ -619,17 +630,6 @@ class ApprenantDetailView extends ConsumerWidget {
                   icon: Icons.error_outline,
                 ),
               ),
-              loading: () => const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(12),
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-              error: (error, _) => EmptyState(
-                message: 'Erreur de chargement : ${messageErreur(error)}',
-                icon: Icons.error_outline,
-              ),
-            ),
               loading: () => const Center(
                 child: Padding(
                   padding: EdgeInsets.all(12),

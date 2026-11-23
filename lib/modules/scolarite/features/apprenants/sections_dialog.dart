@@ -560,7 +560,8 @@ Future<void> _formulaireSection(
               controller: ordreCtrl,
               decoration: const InputDecoration(
                 labelText: 'Rang d\'affichage',
-                helperText: 'La 10ème section se range après la 9ème, '
+                helperText:
+                    'La 10ème section se range après la 9ème, '
                     'pas après la 1ère.',
               ),
               keyboardType: TextInputType.number,

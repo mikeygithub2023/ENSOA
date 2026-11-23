@@ -37,10 +37,11 @@ class _TemplateColumn {
 /// `grade_defaults.dart`), donc pas besoin de la faire saisir.
 /// Les colonnes attendues, dans l'ordre.
 ///
-/// [type] nul désigne le personnel de l'école : comme le stagiaire, il
-/// porte son grade depuis longtemps — on le lit au classeur plutôt que de
-/// le déduire d'une phase qu'il n'a pas.
+/// [type] nul désigne le personnel de l'école : il ne suit aucune phase, et
+/// son classeur n'est pas le nôtre mais celui de la DORH — voir
+/// [_colonnesEtatNominatif].
 List<_TemplateColumn> _templateColumnsFor(ClasseType? type) {
+  if (type == null) return _colonnesEtatNominatif();
   const matricule = _TemplateColumn(
     'matricule',
     'Matricule',
@@ -180,6 +181,121 @@ List<_TemplateColumn> _templateColumnsFor(ClasseType? type) {
           ...fiche,
         ];
 }
+
+/// L'état nominatif du personnel, colonne pour colonne, dans l'ordre où la
+/// Direction des Ressources Humaines l'écrit.
+///
+/// Les autres imports suivent un modèle à nous, que l'on télécharge et que
+/// l'on remplit. Celui-ci ne pouvait pas : l'école reçoit et renvoie à la
+/// DORH un état nominatif de trente colonnes, tenu à jour par d'autres
+/// mains, et demander qu'on le recopie dans un autre ordre aurait voulu
+/// dire qu'il ne serait jamais importé. C'est donc notre modèle qui épouse
+/// le sien — on choisit le fichier reçu, tel quel.
+///
+/// Quatre colonnes ne sont pas reprises : le numéro d'ordre, l'âge et la
+/// durée en unité se calculent (et la troisième portait #VALUE! dans le
+/// classeur reçu), la division est celle d'où l'import est lancé. Elles
+/// gardent leur place, puisque les lignes se lisent par position.
+///
+/// « NOM ET PRENOMS » ne tient qu'une colonne : le nom du père la départage
+/// (voir [couperNomEtPrenoms]).
+List<_TemplateColumn> _colonnesEtatNominatif() => const [
+  _TemplateColumn('ignore_numero', 'N°', 'Non reprise', '1'),
+  _TemplateColumn('categorie', 'CAT', 'OFF, SOF ou MDR', 'SOF'),
+  _TemplateColumn('code_grade', 'CD GR', 'Nombre', '7'),
+  _TemplateColumn('grade', 'GRADE', 'Texte libre', 'ADT'),
+  _TemplateColumn(
+    'nom_et_prenoms',
+    'NOM ET PRENOMS',
+    'Obligatoire, nom puis prénoms',
+    'KOUAME KOUASSI CELESTIN',
+  ),
+  _TemplateColumn(
+    'matricule',
+    'MATRICULE',
+    'Unique ; à défaut, le mécano identifie',
+    '001 93 0044',
+  ),
+  _TemplateColumn('numero_mecano', 'MECANO', 'Unique', '32914'),
+  _TemplateColumn(
+    'date_debut_service',
+    'DEBUT SERVICE',
+    'JJ/MM/AAAA',
+    '01/10/1993',
+  ),
+  _TemplateColumn(
+    'date_nomination',
+    'DATE NOMINATION',
+    'JJ/MM/AAAA',
+    '01/01/2021',
+  ),
+  _TemplateColumn('sexe', 'SEXE', 'M ou F', 'M'),
+  _TemplateColumn('nombre_enfants', 'ENF', 'Nombre', '2'),
+  _TemplateColumn(
+    'situation_matrimoniale',
+    'SITUATION',
+    'CEL, M, CCB, D ou V',
+    'M',
+  ),
+  _TemplateColumn(
+    'date_naissance',
+    'DATE DE NAISSANCE',
+    'JJ/MM/AAAA',
+    '25/12/1975',
+  ),
+  _TemplateColumn('ignore_age', 'AGE', 'Non reprise', '51'),
+  _TemplateColumn('date_retraite', 'DATE RETRAITE', 'JJ/MM/AAAA', '01/01/2031'),
+  _TemplateColumn('nom_pere', 'NOM PERE', 'Texte libre', 'KOUAME KOUAKOU'),
+  _TemplateColumn('nom_mere', 'NOM MERE', 'Texte libre', 'GOSSE BLA'),
+  _TemplateColumn('ignore_division', 'DIVISION', 'Non reprise', 'ENSOA'),
+  _TemplateColumn(
+    'ignore_duree',
+    'DUREE EN UNITE',
+    'Non reprise',
+    '3 ans1 mois',
+  ),
+  _TemplateColumn(
+    'position_statutaire',
+    'POSITION',
+    'Texte libre',
+    'PERSONNEL AU SERVICE',
+  ),
+  _TemplateColumn(
+    'service_affectation',
+    'SERVICES',
+    'Texte libre',
+    'CCAS/ENSOA',
+  ),
+  _TemplateColumn(
+    'emploi_tenu',
+    'EMPLOI TENU',
+    'Texte libre',
+    'CHEF DE SECTION',
+  ),
+  _TemplateColumn(
+    'diplome_militaire',
+    'DIPLÔME MILITAIRE',
+    'Texte libre',
+    'BA1 INF',
+  ),
+  _TemplateColumn(
+    'diplome_militaire_obtenu_le',
+    'DATE D\'OBTENTION',
+    'JJ/MM/AAAA',
+    '16/08/2022',
+  ),
+  _TemplateColumn('diplome_civil', 'DIPLÔME CIVIL', 'Texte libre', 'BAC A2'),
+  _TemplateColumn('domaine', 'DOMAINE', 'Texte libre', 'OMT-INF'),
+  _TemplateColumn('regie_dorh', 'REGIE DORH', 'Texte libre', 'CECF'),
+  _TemplateColumn('regie_solde', 'REGIE SOLDE', 'Texte libre', 'TERRE'),
+  _TemplateColumn(
+    'matricule_solde',
+    'MATRICULE SOLDE',
+    'Texte libre',
+    '00193000044',
+  ),
+  _TemplateColumn('observations', 'OBS', 'Texte libre', ''),
+];
 
 Future<void> showImportApprenantsDialog(
   BuildContext context, {
@@ -357,18 +473,28 @@ class _ImportApprenantsDialogState
     final errors = <String>[];
 
     // L'élève peut n'avoir pas encore de matricule : il le reçoit à
-    // l'incorporation. Le stagiaire et le militaire du rang en ont un
-    // depuis longtemps, et c'est par lui qu'on les retrouve.
+    // l'incorporation. Le stagiaire et le militaire de l'école en ont un
+    // depuis longtemps, et c'est par lui qu'on les retrouve — sauf quand
+    // l'état nominatif l'a oublié : le numéro mécanographique identifie
+    // alors tout aussi sûrement, et refuser la ligne ferait perdre un
+    // militaire pour une case vide.
+    final sansMatricule = _champ(values, 'matricule').trim().isEmpty;
+    final sansMecano = _champ(values, 'numero_mecano').trim().isEmpty;
     if (widget.classe?.type != ClasseType.phase &&
-        values[_idx('matricule')].trim().isEmpty) {
-      errors.add('Matricule manquant');
-    }
-    if (values[_idx('nom')].trim().isEmpty) errors.add('Nom manquant');
-    if (values[_idx('prenoms')].trim().isEmpty) {
-      errors.add('Prénoms manquants');
+        sansMatricule &&
+        sansMecano) {
+      errors.add(
+        widget.classe == null
+            ? 'Matricule et mécano manquants'
+            : 'Matricule manquant',
+      );
     }
 
-    final dateNaissance = values[_idx('date_naissance')].trim();
+    final identite = _nomEtPrenoms(values);
+    if (identite.nom.isEmpty) errors.add('Nom manquant');
+    if (identite.prenoms.isEmpty) errors.add('Prénoms manquants');
+
+    final dateNaissance = _champ(values, 'date_naissance').trim();
     if (dateNaissance.isNotEmpty && !_isValidDate(dateNaissance)) {
       errors.add('Date de naissance invalide (attendu JJ/MM/AAAA)');
     }
@@ -409,17 +535,36 @@ class _ImportApprenantsDialogState
   }
 
   /// Une colonne ajoutée après coup peut manquer d'un fichier écrit pour
-  /// l'ancien modèle : on rend alors une cellule vide plutôt que de sortir
-  /// du tableau.
-  String _valeur(_ImportRow row, String cle) {
+  /// l'ancien modèle, et le modèle du personnel n'a pas les mêmes colonnes
+  /// que celui des élèves : on rend alors une cellule vide plutôt que de
+  /// sortir du tableau.
+  String _champ(List<String> values, String cle) {
     final index = _idx(cle);
-    if (index < 0 || index >= row.values.length) return '';
-    return row.values[index];
+    if (index < 0 || index >= values.length) return '';
+    return values[index];
+  }
+
+  String _valeur(_ImportRow row, String cle) => _champ(row.values, cle);
+
+  /// Le nom et les prénoms, d'où que le classeur les tienne.
+  ///
+  /// Le modèle des élèves a deux colonnes ; l'état nominatif du personnel
+  /// n'en a qu'une, que le nom du père départage.
+  ({String nom, String prenoms}) _nomEtPrenoms(List<String> values) {
+    final ensemble = _champ(values, 'nom_et_prenoms').trim();
+    if (ensemble.isEmpty) {
+      return (
+        nom: _champ(values, 'nom').trim(),
+        prenoms: _champ(values, 'prenoms').trim(),
+      );
+    }
+    return couperNomEtPrenoms(ensemble, _champ(values, 'nom_pere'));
   }
 
   ApprenantDraft _draftFromRow(_ImportRow row) {
     final classe = widget.classe;
     final isEleve = classe?.type == ClasseType.phase;
+    final identite = _nomEtPrenoms(row.values);
     return ApprenantDraft(
       divisionId: widget.division.id,
       classeId: classe?.id,
@@ -428,19 +573,19 @@ class _ImportApprenantsDialogState
         ClasseType.stage => 'stagiaire',
         null => 'personnel',
       },
-      matricule: _normalizeMatricule(row.values[_idx('matricule')]),
-      nom: row.values[_idx('nom')].trim(),
-      prenom: row.values[_idx('prenoms')].trim(),
+      matricule: _normalizeMatricule(_valeur(row, 'matricule')),
+      nom: identite.nom,
+      prenom: identite.prenoms,
       grade: isEleve
           ? defaultGradeForClasse(
               classe!.nom,
               divisionCode: widget.division.code,
             )
-          : _emptyToNull(row.values[_idx('grade')]),
-      sexe: sexeDepuisCellule(row.values[_idx('sexe')]),
-      telephone: _emptyToNull(row.values[_idx('telephone')]),
-      dateNaissance: _parseDate(row.values[_idx('date_naissance')]),
-      lieuNaissance: _emptyToNull(row.values[_idx('lieu_naissance')]),
+          : _emptyToNull(_valeur(row, 'grade')),
+      sexe: sexeDepuisCellule(_valeur(row, 'sexe')),
+      telephone: _emptyToNull(_valeur(row, 'telephone')),
+      dateNaissance: _parseDate(_valeur(row, 'date_naissance')),
+      lieuNaissance: _emptyToNull(_valeur(row, 'lieu_naissance')),
       situationMatrimoniale: situationDepuisCellule(
         _valeur(row, 'situation_matrimoniale'),
       ),
@@ -455,6 +600,27 @@ class _ImportApprenantsDialogState
       urgenceLien: _emptyToNull(_valeur(row, 'urgence_lien')),
       urgenceContact: _emptyToNull(_valeur(row, 'urgence_contact')),
       diplomes: [?_emptyToNull(_valeur(row, 'diplome'))],
+      // L'état nominatif : vide pour un élève, dont le classeur n'a pas ces
+      // colonnes, et c'est bien ainsi — il n'a pas encore d'état nominatif.
+      categorie: _emptyToNull(_valeur(row, 'categorie')),
+      codeGrade: entierDepuisCellule(_valeur(row, 'code_grade')),
+      numeroMecano: _normalizeMatricule(_valeur(row, 'numero_mecano')),
+      dateDebutService: _parseDate(_valeur(row, 'date_debut_service')),
+      dateNomination: _parseDate(_valeur(row, 'date_nomination')),
+      dateRetraite: _parseDate(_valeur(row, 'date_retraite')),
+      positionStatutaire: _emptyToNull(_valeur(row, 'position_statutaire')),
+      serviceAffectation: _emptyToNull(_valeur(row, 'service_affectation')),
+      emploiTenu: _emptyToNull(_valeur(row, 'emploi_tenu')),
+      diplomeMilitaire: _emptyToNull(_valeur(row, 'diplome_militaire')),
+      diplomeMilitaireObtenuLe: _parseDate(
+        _valeur(row, 'diplome_militaire_obtenu_le'),
+      ),
+      diplomeCivil: _emptyToNull(_valeur(row, 'diplome_civil')),
+      domaine: _emptyToNull(_valeur(row, 'domaine')),
+      regieDorh: _emptyToNull(_valeur(row, 'regie_dorh')),
+      regieSolde: _emptyToNull(_valeur(row, 'regie_solde')),
+      matriculeSolde: _normalizeMatricule(_valeur(row, 'matricule_solde')),
+      observations: _emptyToNull(_valeur(row, 'observations')),
     );
   }
 
@@ -487,19 +653,13 @@ class _ImportApprenantsDialogState
           .add(a);
     }
 
-    final idxNom = _idx('nom');
-    final idxPrenoms = _idx('prenoms');
-    final idxDateNaissance = _idx('date_naissance');
-
     final rowsByKey = <String, List<_ImportRow>>{};
     for (final row in validRows) {
-      final date = _parseDate(row.values[idxDateNaissance]);
+      final date = _parseDate(_valeur(row, 'date_naissance'));
       if (date == null) continue;
+      final identite = _nomEtPrenoms(row.values);
       rowsByKey
-          .putIfAbsent(
-            _dupKey(row.values[idxNom], row.values[idxPrenoms], date),
-            () => [],
-          )
+          .putIfAbsent(_dupKey(identite.nom, identite.prenoms, date), () => [])
           .add(row);
     }
 
@@ -508,10 +668,12 @@ class _ImportApprenantsDialogState
       final existing = existingByKey[entry.key] ?? const <Apprenant>[];
       if (existing.isEmpty && entry.value.length <= 1) continue;
       final sample = entry.value.first;
+      final identite = _nomEtPrenoms(sample.values);
       groups.add(
         _DuplicateGroup(
           label:
-              '${sample.values[idxNom].trim()} ${sample.values[idxPrenoms].trim()} — ${sample.values[idxDateNaissance].trim()}',
+              '${identite.nom} ${identite.prenoms} — '
+              '${_valeur(sample, 'date_naissance').trim()}',
           existing: existing,
           rows: entry.value,
         ),
@@ -990,13 +1152,16 @@ class _FormatTable extends StatelessWidget {
   List<_TemplateColumn> get _templateColumns =>
       _templateColumnsFor(classe?.type);
 
+  /// Le matricule se dit obligatoire ou non selon la portée — et il n'est
+  /// plus toujours la première colonne : l'état nominatif du personnel
+  /// commence par un numéro d'ordre.
   String _formatFor(int index, _TemplateColumn c) {
-    if (index == 0) {
-      return classe?.type == ClasseType.phase
-          ? 'Optionnel, unique si renseigné'
-          : 'Obligatoire, unique';
-    }
-    return c.format;
+    if (c.key != 'matricule') return c.format;
+    return switch (classe?.type) {
+      ClasseType.phase => 'Optionnel, unique si renseigné',
+      ClasseType.stage => 'Obligatoire, unique',
+      null => 'Unique ; à défaut, le mécano identifie',
+    };
   }
 
   @override

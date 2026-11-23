@@ -701,8 +701,8 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
               for (final c in classesAsync.value ?? <Classe>[]) c.id: c,
             };
             final sectionsById = {
-              for (final s in ref.watch(sectionsListProvider).value ??
-                  <Section>[])
+              for (final s
+                  in ref.watch(sectionsListProvider).value ?? <Section>[])
                 s.id: s,
             };
             final filtered = _filtrer(apprenants, classesRetenues);
@@ -855,9 +855,7 @@ class _SectionFilters extends StatelessWidget {
           onPressed: onRepartir,
           icon: const Icon(Icons.account_tree_outlined, size: 18),
           label: Text(
-            sections.isEmpty
-                ? 'Répartir en sections'
-                : 'Gérer les sections',
+            sections.isEmpty ? 'Répartir en sections' : 'Gérer les sections',
           ),
         ),
       ],

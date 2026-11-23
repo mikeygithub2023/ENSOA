@@ -37,8 +37,15 @@ void main() {
     });
 
     test('reste vide devant un libellé inconnu', () {
-      expect(situationDepuisCellule('CONCUBINAGE'), isNull);
+      expect(situationDepuisCellule('PACSE'), isNull);
       expect(situationDepuisCellule(''), isNull);
+    });
+
+    test("lit les codes de l'état nominatif de la DORH", () {
+      expect(situationDepuisCellule('M'), 'Marié(e)');
+      expect(situationDepuisCellule('cel'), 'Célibataire');
+      expect(situationDepuisCellule('CCB'), 'Concubinage');
+      expect(situationDepuisCellule('CONCUBINAGE'), 'Concubinage');
     });
   });
 

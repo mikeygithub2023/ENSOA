@@ -781,9 +781,7 @@ class _RegisterApprenantDialogState
                   initialValue: _sectionId,
                   decoration: const InputDecoration(labelText: 'Section'),
                   items: [
-                    const DropdownMenuItem<String?>(
-                      child: Text('Non affecté'),
-                    ),
+                    const DropdownMenuItem<String?>(child: Text('Non affecté')),
                     for (final section in _sectionsDisponibles)
                       DropdownMenuItem<String?>(
                         value: section.id,

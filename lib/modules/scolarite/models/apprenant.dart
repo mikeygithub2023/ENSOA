@@ -79,6 +79,23 @@ class Apprenant {
     this.qualification,
     this.permisConduire,
     this.photoPath,
+    this.categorie,
+    this.codeGrade,
+    this.numeroMecano,
+    this.dateDebutService,
+    this.dateNomination,
+    this.dateRetraite,
+    this.positionStatutaire,
+    this.serviceAffectation,
+    this.emploiTenu,
+    this.diplomeMilitaire,
+    this.diplomeMilitaireObtenuLe,
+    this.diplomeCivil,
+    this.domaine,
+    this.regieDorh,
+    this.regieSolde,
+    this.matriculeSolde,
+    this.observations,
     this.deletionRequestedAt,
     this.deletionRequestedBy,
   });
@@ -90,6 +107,7 @@ class Apprenant {
   final String? matricule;
   final String nom;
   final String prenom;
+
   /// La phase qu'il suit aujourd'hui. Nulle pour le personnel.
   final String? classeId;
 
@@ -130,6 +148,55 @@ class Apprenant {
   final String? qualification;
   final String? permisConduire;
   final String? photoPath;
+
+  // --- L'état nominatif ----------------------------------------------------
+  // Ce que la Direction des Ressources Humaines tient d'un militaire, et que
+  // la fiche signalétique de l'école — écrite pour un élève — ignorait. Tout
+  // y est facultatif : un élève fraîchement incorporé n'en porte rien, le
+  // personnel de l'école en porte tout.
+
+  /// OFF, SOF ou MDR : officier, sous-officier, militaire du rang.
+  final String? categorie;
+
+  /// Le code hiérarchique du grade dans l'état nominatif DORH, repris tel
+  /// quel. Il n'ordonne pas une prise d'armes : plusieurs grades partagent
+  /// un code dans les listes reçues.
+  final int? codeGrade;
+
+  /// Le numéro mécanographique, unique dans toute l'armée. C'est par lui
+  /// qu'on reconnaît un militaire quand le matricule manque.
+  final String? numeroMecano;
+
+  final DateTime? dateDebutService;
+
+  /// Nomination au grade actuel — pas à l'emploi tenu.
+  final DateTime? dateNomination;
+
+  final DateTime? dateRetraite;
+
+  /// Personnel au service, mis à disposition, en stage, en opérations
+  /// extérieures, en congé sanitaire. À ne pas confondre avec [statut], qui
+  /// dit si la fiche est active.
+  final String? positionStatutaire;
+
+  final String? serviceAffectation;
+  final String? emploiTenu;
+  final String? diplomeMilitaire;
+  final DateTime? diplomeMilitaireObtenuLe;
+  final String? diplomeCivil;
+
+  /// Le domaine de spécialité DORH : OMT-INF, SAN MED, SIC-EXP...
+  final String? domaine;
+
+  final String? regieDorh;
+  final String? regieSolde;
+
+  /// Le matricule tenu par la solde, qui n'est pas toujours le matricule
+  /// militaire : les deux fichiers ont vécu séparément.
+  final String? matriculeSolde;
+
+  final String? observations;
+
   final DateTime? deletionRequestedAt;
   final String? deletionRequestedBy;
 
@@ -141,6 +208,13 @@ class Apprenant {
   /// chercher le patronyme au milieu de trois ou quatre prénoms.
   String get nomComplet => '$nom $prenom'.trim();
   bool get suppressionDemandee => deletionRequestedAt != null;
+
+  /// Une colonne `date` de Postgres, lue sans emporter la fiche quand elle
+  /// contient autre chose qu'une date.
+  static DateTime? _jour(Object? valeur) {
+    if (valeur is! String || valeur.isEmpty) return null;
+    return DateTime.tryParse(valeur);
+  }
 
   factory Apprenant.fromJson(Map<String, dynamic> json) {
     return Apprenant(
@@ -178,6 +252,23 @@ class Apprenant {
       qualification: json['qualification'] as String?,
       permisConduire: json['permis_conduire'] as String?,
       photoPath: json['photo_path'] as String?,
+      categorie: json['categorie'] as String?,
+      codeGrade: (json['code_grade'] as num?)?.toInt(),
+      numeroMecano: json['numero_mecano'] as String?,
+      dateDebutService: _jour(json['date_debut_service']),
+      dateNomination: _jour(json['date_nomination']),
+      dateRetraite: _jour(json['date_retraite']),
+      positionStatutaire: json['position_statutaire'] as String?,
+      serviceAffectation: json['service_affectation'] as String?,
+      emploiTenu: json['emploi_tenu'] as String?,
+      diplomeMilitaire: json['diplome_militaire'] as String?,
+      diplomeMilitaireObtenuLe: _jour(json['diplome_militaire_obtenu_le']),
+      diplomeCivil: json['diplome_civil'] as String?,
+      domaine: json['domaine'] as String?,
+      regieDorh: json['regie_dorh'] as String?,
+      regieSolde: json['regie_solde'] as String?,
+      matriculeSolde: json['matricule_solde'] as String?,
+      observations: json['observations'] as String?,
       deletionRequestedAt: json['deletion_requested_at'] == null
           ? null
           : DateTime.parse(json['deletion_requested_at'] as String),

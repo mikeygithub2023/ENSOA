@@ -192,12 +192,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Importer du personnel (Excel)'), findsOneWidget);
-      // Le militaire porte son grade depuis longtemps : on le lit au
-      // classeur, on ne le déduit pas d'une phase qu'il n'a pas.
-      expect(find.text('Grade'), findsWidgets);
-      // Et il a un matricule, lui — contrairement à l'élève qui ne le
-      // reçoit qu'à l'incorporation.
-      expect(find.text('Obligatoire, unique'), findsWidgets);
+      // Le classeur attendu est l'état nominatif de la DORH, tel quel : le
+      // grade s'y lit, on ne le déduit pas d'une phase qu'il n'a pas.
+      expect(find.text('GRADE'), findsWidgets);
+      expect(find.text('NOM ET PRENOMS'), findsWidgets);
+      // Le matricule identifie ; quand l'état nominatif l'a oublié, le
+      // numéro mécanographique le remplace.
+      expect(
+        find.text('Unique ; à défaut, le mécano identifie'),
+        findsWidgets,
+      );
     });
   });
 

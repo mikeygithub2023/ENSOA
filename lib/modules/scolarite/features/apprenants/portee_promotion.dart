@@ -43,7 +43,8 @@ extension PorteeNominative<T> on AsyncValue<List<T>> {
   ) {
     if (apprenants == null) return this;
     return whenData(
-      (liste) => liste.where((e) => apprenants.contains(apprenantDe(e))).toList(),
+      (liste) =>
+          liste.where((e) => apprenants.contains(apprenantDe(e))).toList(),
     );
   }
 }

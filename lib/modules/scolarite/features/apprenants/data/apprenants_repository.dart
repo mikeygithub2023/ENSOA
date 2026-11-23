@@ -42,6 +42,23 @@ class ApprenantDraft {
     this.groupeSanguin,
     this.qualification,
     this.permisConduire,
+    this.categorie,
+    this.codeGrade,
+    this.numeroMecano,
+    this.dateDebutService,
+    this.dateNomination,
+    this.dateRetraite,
+    this.positionStatutaire,
+    this.serviceAffectation,
+    this.emploiTenu,
+    this.diplomeMilitaire,
+    this.diplomeMilitaireObtenuLe,
+    this.diplomeCivil,
+    this.domaine,
+    this.regieDorh,
+    this.regieSolde,
+    this.matriculeSolde,
+    this.observations,
     this.diplomes = const [],
     this.photoBytes,
     this.photoFileName,
@@ -91,6 +108,29 @@ class ApprenantDraft {
   final String? groupeSanguin;
   final String? qualification;
   final String? permisConduire;
+
+  // --- L'état nominatif ----------------------------------------------------
+  // Les rubriques que la DORH tient d'un militaire. Facultatives comme le
+  // reste : elles se remplissent surtout pour le personnel de l'école, qui
+  // arrive avec son état nominatif.
+  final String? categorie;
+  final int? codeGrade;
+  final String? numeroMecano;
+  final DateTime? dateDebutService;
+  final DateTime? dateNomination;
+  final DateTime? dateRetraite;
+  final String? positionStatutaire;
+  final String? serviceAffectation;
+  final String? emploiTenu;
+  final String? diplomeMilitaire;
+  final DateTime? diplomeMilitaireObtenuLe;
+  final String? diplomeCivil;
+  final String? domaine;
+  final String? regieDorh;
+  final String? regieSolde;
+  final String? matriculeSolde;
+  final String? observations;
+
   final List<String> diplomes;
 
   /// Photo choisie mais pas encore envoyée — présente uniquement le temps
@@ -101,6 +141,9 @@ class ApprenantDraft {
   /// Demande explicite de suppression de la photo existante, quand aucune
   /// nouvelle photo n'est fournie (édition uniquement).
   final bool removePhoto;
+
+  static String? _jour(DateTime? date) =>
+      date == null ? null : DateFormat('yyyy-MM-dd').format(date);
 
   Map<String, dynamic> toInsertJson() {
     return {
@@ -134,6 +177,23 @@ class ApprenantDraft {
       'groupe_sanguin': groupeSanguin,
       'qualification': qualification,
       'permis_conduire': permisConduire,
+      'categorie': categorie,
+      'code_grade': codeGrade,
+      'numero_mecano': numeroMecano,
+      'date_debut_service': _jour(dateDebutService),
+      'date_nomination': _jour(dateNomination),
+      'date_retraite': _jour(dateRetraite),
+      'position_statutaire': positionStatutaire,
+      'service_affectation': serviceAffectation,
+      'emploi_tenu': emploiTenu,
+      'diplome_militaire': diplomeMilitaire,
+      'diplome_militaire_obtenu_le': _jour(diplomeMilitaireObtenuLe),
+      'diplome_civil': diplomeCivil,
+      'domaine': domaine,
+      'regie_dorh': regieDorh,
+      'regie_solde': regieSolde,
+      'matricule_solde': matriculeSolde,
+      'observations': observations,
     };
   }
 }

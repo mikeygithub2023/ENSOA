@@ -139,9 +139,10 @@ class _EntityTabsViewState extends State<EntityTabsView>
     OngletEffectif.priseArmes => Icons.groups_outlined,
     // L'icône suit le mot : on ne coiffe pas le personnel de l'école d'une
     // toque d'étudiant.
-    OngletEffectif.effectif => (widget.division?.tientDuPersonnel ?? false)
-        ? Icons.badge_outlined
-        : Icons.school_outlined,
+    OngletEffectif.effectif =>
+      (widget.division?.tientDuPersonnel ?? false)
+          ? Icons.badge_outlined
+          : Icons.school_outlined,
     OngletEffectif.resultats => Icons.insights_outlined,
     OngletEffectif.statistiques => Icons.bar_chart_outlined,
     OngletEffectif.controles => Icons.grading_outlined,
