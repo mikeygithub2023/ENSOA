@@ -46,7 +46,11 @@ class _CoursScreenState extends ConsumerState<CoursScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final divisions = ref.watch(divisionsProvider).value ?? const <Division>[];
+    // La Division de Commandement et Logistique n'instruit personne : elle
+    // n'a ni cours à déposer ni phase où les verser.
+    final divisions = (ref.watch(divisionsProvider).value ?? const <Division>[])
+        .where((d) => !d.tientDuPersonnel)
+        .toList();
     final classes = ref.watch(classesListProvider).value ?? const <Classe>[];
     final profil = ref.watch(currentProfileProvider).value;
     // Le Commandant de Brigade relève de l'encadrement au même titre que les

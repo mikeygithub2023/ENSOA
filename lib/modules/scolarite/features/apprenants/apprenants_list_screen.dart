@@ -18,7 +18,6 @@ import '../matieres/providers/matieres_providers.dart';
 import 'bureaux.dart';
 import 'entity_tabs.dart';
 import 'import_apprenants_dialog.dart';
-import 'import_photos_dialog.dart';
 import 'liste_apprenants_pdf.dart';
 import 'pdf_fonts.dart';
 import 'providers/apprenants_providers.dart';
@@ -598,26 +597,6 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
                       icon: const Icon(Icons.upload_file_outlined, size: 18),
                       label: const Text('Importer un fichier Excel'),
                     ),
-                    // Les photos se rapprochent de la portée affichée, pas
-                    // de ce que la recherche par nom laisse voir.
-                    OutlinedButton.icon(
-                      onPressed: () => showImportPhotosDialog(
-                        context,
-                        effectif: _dansLaPortee(
-                          apprenantsAsync.value ?? const [],
-                          classesRetenues,
-                        ),
-                        portee: _libellePortee(
-                          division: selectedDivision,
-                          promotion: promotionInscription,
-                          stage: selectedClasse?.type == ClasseType.stage
-                              ? selectedClasse
-                              : null,
-                        ),
-                      ),
-                      icon: const Icon(Icons.photo_library_outlined, size: 18),
-                      label: const Text('Importer les photos'),
-                    ),
                     FilledButton.icon(
                       onPressed: () => showRegisterApprenantDialog(
                         context,
@@ -1123,6 +1102,12 @@ extension _ListeApprenants on _ApprenantsListScreenState {
     Set<String>? classesRetenues,
   ) {
     return apprenants.where((a) {
+      // Le bureau Instruction écarte la DCL de ses divisions ; sous
+      // « Toutes », il écarte aussi son personnel de la liste.
+      if (widget.bureau != Bureau.ressourcesHumaines &&
+          a.type == ApprenantType.personnel) {
+        return false;
+      }
       if (_divisionFilter != null && a.divisionId != _divisionFilter) {
         return false;
       }

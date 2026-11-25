@@ -2,8 +2,8 @@
 // pension, et les décorations.
 //
 // Ils sont livrés vides. Les pièces qu'exige la Direction des Ressources
-// Humaines et les décorations en usage à l'école ne sont pas de notre
-// ressort : les deviner, c'est risquer qu'un dossier soit déclaré complet
+// Humaines et les décorations que décerne le Chef d'État-Major ne sont
+// pas de notre ressort : les deviner, c'est risquer qu'un dossier soit déclaré complet
 // parce qu'il contient les pièces qu'on avait supposées. Cet écran est donc
 // le premier à ouvrir — sans lui, les deux onglets n'ont rien à montrer, et
 // ils le disent.
@@ -151,8 +151,9 @@ Future<void> showCatalogueDecorationsDialog(BuildContext context) {
     _Pilote(
       titre: 'Catalogue des décorations',
       consigne:
-          'Les décorations en usage à l\'école, dans leur ordre de '
-          'préséance — qui n\'est ni alphabétique ni chronologique.',
+          'Les décorations que décerne le Chef d\'État-Major, dans leur '
+          'ordre de préséance — qui n\'est ni alphabétique ni '
+          'chronologique.',
       nomSingulier: 'décoration',
       avecObligatoire: false,
       lire: (ref) => [
@@ -417,7 +418,7 @@ class _CatalogueDialogState extends ConsumerState<_CatalogueDialog> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(
                       child: TextField(
@@ -431,7 +432,7 @@ class _CatalogueDialogState extends ConsumerState<_CatalogueDialog> {
                     ),
                     const SizedBox(width: 12),
                     SizedBox(
-                      width: 90,
+                      width: 120,
                       child: TextField(
                         controller: _ordreCtrl,
                         keyboardType: TextInputType.number,
@@ -442,10 +443,13 @@ class _CatalogueDialogState extends ConsumerState<_CatalogueDialog> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    FilledButton.icon(
-                      onPressed: _occupe ? null : _ajouter,
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Ajouter'),
+                    SizedBox(
+                      height: 52,
+                      child: FilledButton.icon(
+                        onPressed: _occupe ? null : _ajouter,
+                        icon: const Icon(Icons.add, size: 18),
+                        label: const Text('Ajouter'),
+                      ),
                     ),
                   ],
                 ),

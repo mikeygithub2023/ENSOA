@@ -75,10 +75,13 @@ List<OngletEffectif> ongletsDuBureau(
 /// « Toutes », sans division ni phase, la liste réunit tout l'effectif de
 /// l'école — le personnel de la DCL compris —, et c'est ce que l'intitulé
 /// doit dire. Sous une promotion, en revanche, il n'y a que des élèves.
+///
+/// [avecPersonnel] : faux au bureau Instruction, qui n'en montre pas.
 String intituleDeLEffectif({
   required Division? division,
   required Classe? classe,
   required bool sousPromotion,
+  bool avecPersonnel = true,
 }) {
   if (division?.tientDuPersonnel ?? false) return 'Personnel';
   return switch (classe?.type) {
@@ -87,9 +90,9 @@ String intituleDeLEffectif({
     null =>
       sousPromotion
           ? 'Élèves'
-          : (division == null
-                ? 'Personnels/Élèves/Stagiaires'
-                : 'Élèves/Stagiaires'),
+          : (division == null && avecPersonnel
+                ? 'Personnel / Élèves / Stagiaires'
+                : 'Élèves / Stagiaires'),
   };
 }
 
@@ -142,12 +145,13 @@ class _EntityTabsViewState extends State<EntityTabsView>
   /// Le mot suit la portée : une promotion et ses phases ne contiennent
   /// que des élèves, un stage que des stagiaires, et la Division de
   /// Commandement et Logistique du personnel — elle n'instruit personne.
-  /// « Élèves/Stagiaires » ne subsiste que sous une division qui forme, ou
+  /// « Élèves / Stagiaires » ne subsiste que sous une division qui forme, ou
   /// sous « Toutes », où les deux se côtoient.
   String get _elevesStagiairesLabel => intituleDeLEffectif(
     division: widget.division,
     classe: widget.classe,
     sousPromotion: widget.sousPromotion,
+    avecPersonnel: widget.bureau == Bureau.ressourcesHumaines,
   );
 
   /// Les modules ne concernent que les classes (élèves) ; les stages n'ont

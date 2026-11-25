@@ -140,7 +140,19 @@ void main() {
     test('sous « Toutes », il nomme aussi les personnels', () {
       expect(
         intituleDeLEffectif(division: null, classe: null, sousPromotion: false),
-        'Personnels/Élèves/Stagiaires',
+        'Personnel / Élèves / Stagiaires',
+      );
+    });
+
+    test("au bureau Instruction, « Toutes » ne compte pas le personnel", () {
+      expect(
+        intituleDeLEffectif(
+          division: null,
+          classe: null,
+          sousPromotion: false,
+          avecPersonnel: false,
+        ),
+        'Élèves / Stagiaires',
       );
     });
 
@@ -162,7 +174,7 @@ void main() {
           classe: null,
           sousPromotion: false,
         ),
-        'Élèves/Stagiaires',
+        'Élèves / Stagiaires',
       );
     });
 

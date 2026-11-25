@@ -196,8 +196,9 @@ class _RegisterDecorationDialogState
               const SizedBox(height: 8),
               if (catalogue.isEmpty) ...[
                 const Text(
-                  'Le catalogue des décorations est vide. Il se saisit une '
-                  'fois, par l\'administrateur, et sert à toute l\'école.',
+                  'Le catalogue des décorations est vide. Il reprend les '
+                  'décorations que décerne le Chef d\'État-Major ; '
+                  'l\'administrateur le saisit une fois.',
                   style: TextStyle(color: AppColors.inkMuted, fontSize: 13),
                 ),
                 const SizedBox(height: 12),
@@ -276,7 +277,7 @@ class _RegisterDecorationDialogState
                     Expanded(
                       child: InputDecorator(
                         decoration: const InputDecoration(
-                          labelText: 'Date d\'attribution',
+                          labelText: 'Décernée le',
                         ),
                         child: Text(
                           _date == null
@@ -319,16 +320,17 @@ class _RegisterDecorationDialogState
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Facultative : une médaille dont le texte ne se retrouve '
-                  'plus vaut mieux inscrite sans date que pas inscrite.',
+                  'Facultative : une médaille dont la décision ne se '
+                  'retrouve plus vaut mieux inscrite sans date que pas '
+                  'inscrite.',
                   style: TextStyle(color: AppColors.inkMuted, fontSize: 12),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _referenceCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'Référence du texte',
-                    hintText: 'Décret, arrêté, décision, ordre général',
+                    labelText: 'Décision du Chef d\'État-Major',
+                    hintText: 'Numéro et date de la décision, ordre général',
                   ),
                 ),
                 const SizedBox(height: 12),

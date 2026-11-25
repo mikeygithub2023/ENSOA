@@ -312,7 +312,7 @@ class _BlocScolarite extends ConsumerWidget {
               _Tuile(
                 icone: Icons.groups_rounded,
                 valeur: '${a.apprenants}',
-                titre: 'Personnels, élèves et stagiaires',
+                titre: 'Personnel / Élèves / Stagiaires',
                 legende: 'Effectif suivi',
               ),
               _Tuile(

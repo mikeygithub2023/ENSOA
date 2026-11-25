@@ -87,8 +87,10 @@ class _BulletinsScreenState extends ConsumerState<BulletinsScreen> {
         const SectionHeader(title: 'Bulletins'),
         const SizedBox(height: 16),
         divisionsAsync.when(
+          // La Division de Commandement et Logistique n'instruit
+          // personne : elle n'a pas de bulletin à produire.
           data: (divisions) => _DivisionFilters(
-            divisions: divisions,
+            divisions: divisions.where((d) => !d.tientDuPersonnel).toList(),
             selected: _divisionFilter,
             onSelect: (id) => setState(() {
               _divisionFilter = id;

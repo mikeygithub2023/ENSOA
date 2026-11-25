@@ -1,4 +1,5 @@
-/// Les décorations : le catalogue de l'école, et ce que chacun porte.
+/// Les décorations : celles que décerne le Chef d'État-Major, et ce que
+/// chacun porte.
 ///
 /// [TypeDecoration] est la nomenclature — les décorations en usage, tenues
 /// par l'administrateur. [DecorationRecue] est une attribution : telle
@@ -9,7 +10,8 @@
 /// seule, mais par la décoration et sa date.
 library;
 
-/// Une décoration du catalogue de l'école.
+/// Une décoration du catalogue : l'une de celles que décerne le Chef
+/// d'État-Major.
 ///
 /// Nommée `TypeDecoration` et non `Decoration` : Flutter porte déjà une
 /// classe `Decoration` (celle dont `BoxDecoration` hérite), et tout écran
@@ -58,7 +60,7 @@ class DecorationRecue {
   /// retrouve pas vaut mieux qu'une ligne qu'on n'a pas pu saisir.
   final DateTime? dateAttribution;
 
-  /// Le texte qui l'attribue : décret, arrêté, décision, ordre général.
+  /// La décision du Chef d'État-Major qui la décerne.
   final String? reference;
 
   /// Échelon, agrafe, palme — ce qui distingue deux attributions de la
