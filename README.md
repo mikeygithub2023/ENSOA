@@ -490,11 +490,36 @@ Au passage, deux détails de la même famille :
   de l'ENSOA. Le reversé est aujourd'hui indistinguable — à corriger avant de
   pouvoir gérer les changements de statut.
 
+### Un compte RH borné à la DCL
+
+- L'école demandait « un utilisateur RH pour gérer que la DCL ». Vérification
+  faite, **la base le bornait déjà** : `divisions_select` ne rend à un
+  commandant que sa division, `apprenants_select_division_staff` que son
+  effectif, et les deux registres nés ce matin que les dossiers de sa
+  division par `releve_de_ma_division`. Ni vue ni fonction `security definer`
+  d'agrégat n'existe dans la scolarité — aucun chemin de traverse.
+- Ce qui manquait était la colonne de gauche : elle offrait au commandant de
+  la DCL « Élèves & Stagiaires », « Cours » et « Matières », **trois écrans que
+  sa division ne peut pas remplir** — `divisionsDuBureau` écarte déjà la DCL
+  du bureau Instruction. La section Instruction ne paraît donc plus pour qui
+  commande une division qui n'instruit personne.
+- **Le doute ne retranche rien** : tant que la liste des divisions n'est pas
+  lue, ou si le compte n'est rattaché à aucune, la colonne reste entière. Le
+  menu se trompe du côté de l'ouverture, le serveur du côté du refus — ce
+  n'est pas la barre qui protège.
+- **Aucun rôle nouveau, aucune politique nouvelle.** Le compte s'ouvre au
+  poste « Commandant de division » avec la DCL pour division : les
+  soixante-dix-neuf règles d'accès qui nomment `chef_division` valent pour
+  lui sans être réécrites. Seul son nom à l'écran change — le dialogue
+  d'ouverture propose alors le titre **« Chef du bureau RH »**, et dit à
+  l'administrateur ce que ce compte verra.
+
 ### État à la fin de la journée
 
 - `flutter analyze` : aucun avertissement
-- **272 tests** passent, dont `test/import_photos_test.dart` et
-  `test/pension_decorations_test.dart`, nés de la journée
+- **283 tests** passent, dont `test/import_photos_test.dart`,
+  `test/pension_decorations_test.dart` et `test/cloisonnement_rh_test.dart`,
+  nés de la journée
 - **232 tests** passaient la veille, dont
   `test/locaux_disciplinaires_test.dart` et
   `test/personnel_absences_permissions_test.dart`

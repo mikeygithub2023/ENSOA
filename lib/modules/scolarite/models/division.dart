@@ -31,6 +31,25 @@ extension DivisionCursus on Division {
   bool get tientDuPersonnel => code == codeDivisionCommandement;
 }
 
+/// La division portant cet identifiant instruit-elle des élèves ?
+///
+/// La Division de Commandement et Logistique n'instruit personne : elle tient
+/// le personnel de l'école. Le commandant qui en répond est, de fait, le chef
+/// du bureau des ressources humaines — les cours, les matières et les
+/// bulletins ne le concernent pas.
+///
+/// Rend `null` quand on ne peut pas le dire : aucune division retenue, liste
+/// pas encore lue, ou identifiant qu'elle ne porte pas. L'appelant ne retire
+/// alors rien : le menu se trompe du côté de l'ouverture, le serveur du côté
+/// du refus — c'est la RLS qui borne, pas la barre de navigation.
+bool? divisionInstruit(String? divisionId, List<Division>? divisions) {
+  if (divisionId == null || divisions == null) return null;
+  for (final d in divisions) {
+    if (d.id == divisionId) return !d.tientDuPersonnel;
+  }
+  return null;
+}
+
 final divisionsProvider = FutureProvider.autoDispose<List<Division>>((
   ref,
 ) async {

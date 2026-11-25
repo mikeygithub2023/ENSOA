@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/erreurs.dart';
 import '../../core/postes.dart';
+import '../../modules/scolarite/models/division.dart';
 import '../../modules/scolarite/models/promotion.dart';
 import '../../core/theme.dart';
 import '../../models/profil.dart';
@@ -97,6 +98,16 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
         : posteDepuisRoles(moi.roleScolarite, moi.roleLogistique);
     final postesOuverts = (postesCreables[monPoste] ?? const <Poste>{})
         .toList();
+
+    // Le titre proposé suit la division de ce compte : commander une
+    // division qui n'instruit personne, c'est tenir le personnel de l'école.
+    final titrePropose = titreDUsage(
+      _poste,
+      divisionInstruit: divisionInstruit(
+        widget.compte.divisionId,
+        ref.watch(divisionsProvider).value,
+      ),
+    );
 
     return AlertDialog(
       scrollable: true,
@@ -211,15 +222,15 @@ class _ModifierCompteDialogState extends ConsumerState<ModifierCompteDialog> {
               ),
               // Le titre d'usage à portée de doigt : c'est par là qu'un
               // compte d'administrateur devient « Commandant de l'école ».
-              if (titreDUsage(_poste) != null) ...[
+              if (titrePropose != null) ...[
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerLeft,
                   child: ActionChip(
                     avatar: const Icon(Icons.military_tech_outlined, size: 16),
-                    label: Text(titreDUsage(_poste)!),
+                    label: Text(titrePropose),
                     onPressed: () =>
-                        setState(() => _titre.text = titreDUsage(_poste)!),
+                        setState(() => _titre.text = titrePropose),
                   ),
                 ),
               ],

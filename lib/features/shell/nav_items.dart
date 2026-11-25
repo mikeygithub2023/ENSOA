@@ -300,8 +300,32 @@ const elementsNav = <ElementNav>[
 ];
 
 /// Les entrées visibles pour ce profil, dans l'ordre de déclaration.
-List<ElementNav> elementsPour(Profil profil) =>
-    elementsNav.where((e) => e.ouvertA(profil)).toList();
+///
+/// [divisionInstruit] dit si la division où le compte est rattaché instruit
+/// des élèves. Quand elle n'en instruit pas — c'est le cas de la Division de
+/// Commandement et Logistique, qui tient le personnel de l'école —, la
+/// section Instruction ne paraît pas : `divisionsDuBureau` écarte déjà cette
+/// division du bureau Instruction, et les trois entrées n'ouvraient donc que
+/// des écrans vides. Celui qui en répond ne tient que les ressources
+/// humaines, et c'est tout ce que sa colonne doit lui offrir.
+///
+/// Laissé nul — la liste des divisions se charge, ou le compte n'est
+/// rattaché à aucune —, rien n'est retiré. Ce n'est de toute façon pas la
+/// barre qui protège : la RLS borne ce commandant à sa seule division, qu'il
+/// voie l'entrée ou non.
+List<ElementNav> elementsPour(Profil profil, {bool? divisionInstruit}) {
+  final ouvertes = elementsNav.where((e) => e.ouvertA(profil)).toList();
+
+  // Celui qui administre l'école voit toutes les divisions, quelle que soit
+  // celle où son compte est rattaché : la règle ne vise que le commandant
+  // borné à la sienne.
+  final borneASaDivision =
+      !profil.peut(Permission.administrerScolarite) &&
+      !profil.peut(Permission.administrerPlateforme);
+
+  if (divisionInstruit != false || !borneASaDivision) return ouvertes;
+  return ouvertes.where((e) => e.section != SectionNav.instruction).toList();
+}
 
 /// Les sections qu'un profil voit, dans l'ordre où ses entrées se présentent.
 ///

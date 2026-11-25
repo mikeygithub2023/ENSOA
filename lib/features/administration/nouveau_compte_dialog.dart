@@ -118,6 +118,12 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
         .toList();
     final divisions = ref.watch(divisionsProvider);
 
+    // La nature de la division retenue change le nom du poste : commander
+    // une division qui n'instruit personne, c'est tenir le personnel de
+    // l'école, non des élèves.
+    final instruit = divisionInstruit(_divisionId, divisions.value);
+    final titrePropose = titreDUsage(_poste, divisionInstruit: instruit);
+
     return AlertDialog(
       scrollable: true,
       title: const Text('Ouvrir un compte'),
@@ -271,11 +277,20 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                     data: (liste) => DropdownButtonFormField<String>(
                       initialValue: _divisionId,
                       isExpanded: true,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Division commandée',
-                        helperText:
+                        helperText: switch (instruit) {
+                          // La DCL n'instruit personne : son commandant tient
+                          // le personnel de l'école, et le bureau des
+                          // ressources humaines est tout ce qu'il ouvre.
+                          false =>
+                            "Cette division n'instruit personne : il ne verra "
+                                'que son personnel, et seules les ressources '
+                                'humaines lui seront ouvertes.',
+                          _ =>
                             'Il ne verra que les élèves de cette division.',
-                        helperMaxLines: 2,
+                        },
+                        helperMaxLines: 3,
                       ),
                       items: [
                         for (final d in liste)
@@ -351,7 +366,7 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                     helperMaxLines: 2,
                   ),
                 ),
-                if (titreDUsage(_poste) != null) ...[
+                if (titrePropose != null) ...[
                   const SizedBox(height: 8),
                   Align(
                     alignment: Alignment.centerLeft,
@@ -360,9 +375,9 @@ class _NouveauCompteDialogState extends ConsumerState<NouveauCompteDialog> {
                         Icons.military_tech_outlined,
                         size: 16,
                       ),
-                      label: Text(titreDUsage(_poste)!),
+                      label: Text(titrePropose),
                       onPressed: () =>
-                          setState(() => _titre.text = titreDUsage(_poste)!),
+                          setState(() => _titre.text = titrePropose),
                     ),
                   ),
                 ],

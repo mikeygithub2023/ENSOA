@@ -131,7 +131,14 @@ const postesCreables = <Poste, Set<Poste>>{
 /// Ce n'est qu'une proposition, offerte au moment de l'ouverture du compte.
 /// Le champ « Titre affiché » reste libre, et laissé vide il rend au compte le
 /// libellé de son poste.
-String? titreDUsage(Poste? poste) => switch (poste) {
+///
+/// [divisionInstruit] dit si la division retenue instruit des élèves. Celui
+/// qui commande une division qui n'en instruit pas — la Division de
+/// Commandement et Logistique — ne commande pas des élèves mais le personnel
+/// de l'école : « Commandant de division » le nommerait mal. Le poste ne
+/// change pas, ni ses droits ; seul le nom qu'on lui donne à l'écran change.
+String? titreDUsage(Poste? poste, {bool? divisionInstruit}) => switch (poste) {
   Poste.administrateur => "Commandant de l'école",
+  Poste.chefDivision when divisionInstruit == false => 'Chef du bureau RH',
   _ => null,
 };

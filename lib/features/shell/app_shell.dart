@@ -16,6 +16,7 @@ import '../../modules/logistique/data/repositories/misc_providers.dart';
 import '../../modules/logistique/data/repositories/oa_providers.dart';
 import '../../modules/logistique/data/repositories/police_providers.dart';
 import '../../modules/scolarite/features/dashboard/providers/dashboard_providers.dart';
+import '../../modules/scolarite/models/division.dart';
 import '../accueil/providers/apercu_providers.dart';
 import '../auth/ecran_demarrage.dart';
 import '../auth/providers/auth_providers.dart';
@@ -229,8 +230,16 @@ class _AppShellState extends ConsumerState<AppShell>
         // Le journal d'audit garde sa place réservée en bas de la barre. Les
         // notifications, elles, remontent en deuxième position : ce qui
         // attend une réponse doit se voir dès l'ouverture.
+        //
+        // La nature de sa division décide aussi : celui qui commande la
+        // Division de Commandement et Logistique ne tient que du personnel,
+        // et l'instruction ne lui ouvrirait que des écrans vides.
         final entrees = elementsPour(
           profil,
+          divisionInstruit: divisionInstruit(
+            profil.divisionId,
+            ref.watch(divisionsProvider).value,
+          ),
         ).where((e) => e.chemin != '/audit').toList();
         final large = MediaQuery.of(context).size.width > 900;
         final poste = posteDepuisRoles(
