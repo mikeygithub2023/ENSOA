@@ -28,10 +28,12 @@ import 'import_photos.dart';
 import 'moyennes.dart';
 import 'pension_bilan.dart';
 import 'register_decoration_dialog.dart';
+import 'register_mouvement_dialog.dart';
 import 'verifier_dossier_pension_dialog.dart';
 import 'providers/absences_providers.dart';
 import 'providers/apprenants_providers.dart';
 import 'providers/decorations_providers.dart';
+import 'providers/mouvements_providers.dart';
 import 'providers/pension_providers.dart';
 import 'providers/locaux_disciplinaires_providers.dart';
 import 'providers/consultations_medicales_providers.dart';
@@ -699,6 +701,14 @@ class ApprenantDetailView extends ConsumerWidget {
           const SectionHeader(title: 'Décorations'),
           const SizedBox(height: 12),
           _DecorationsSection(apprenant: apprenant, peutEcrire: showActions),
+          // Le journal des mouvements ne tient que le personnel : un élève
+          // change de phase, pas de service.
+          if (apprenant.type == ApprenantType.personnel) ...[
+            const SizedBox(height: 20),
+            const SectionHeader(title: 'Mouvements'),
+            const SizedBox(height: 12),
+            _MouvementsSection(apprenant: apprenant, peutEcrire: showActions),
+          ],
           if (classe != null) ...[
             const SizedBox(height: 20),
             const SectionHeader(title: 'Notes'),
@@ -828,6 +838,94 @@ class _InfoRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Le journal des mouvements de ce militaire : d'où il vient, où il est.
+class _MouvementsSection extends ConsumerWidget {
+  const _MouvementsSection({required this.apprenant, required this.peutEcrire});
+
+  final Apprenant apprenant;
+  final bool peutEcrire;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mouvementsAsync = ref.watch(
+      mouvementsByApprenantProvider(apprenant.id),
+    );
+    final fmt = DateFormat('dd/MM/yyyy');
+
+    return mouvementsAsync.when(
+      data: (mouvements) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (apprenant.statut == ApprenantStatut.reverse)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                'Reversé${(apprenant.unite ?? '').isEmpty ? '' : ' à ${apprenant.unite}'}'
+                ' : ne compte plus dans l\'effectif de l\'école.',
+                style: const TextStyle(
+                  color: AppColors.warning,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          if (mouvements.isEmpty)
+            const EmptyState(
+              message: 'Aucun mouvement inscrit.',
+              icon: Icons.swap_horiz_rounded,
+            )
+          else
+            for (final m in mouvements) ...[
+              Card(
+                child: ListTile(
+                  dense: true,
+                  leading: const Icon(
+                    Icons.swap_horiz_rounded,
+                    color: AppColors.blueDeep,
+                  ),
+                  title: Text(
+                    '${m.nature.libelle} — le ${fmt.format(m.dateEffet)}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Text(
+                    [
+                      ?m.trajet,
+                      if ((m.reference ?? '').trim().isNotEmpty)
+                        m.reference!.trim(),
+                      if ((m.observation ?? '').trim().isNotEmpty)
+                        m.observation!.trim(),
+                    ].join(' · '),
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          if (peutEcrire)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    showRegisterMouvementDialog(context, apprenant: apprenant),
+                icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+                label: const Text('Enregistrer un mouvement'),
+              ),
+            ),
+        ],
+      ),
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(12),
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      error: (error, _) => EmptyState(
+        message: 'Erreur de chargement : ${messageErreur(error)}',
+        icon: Icons.error_outline,
       ),
     );
   }

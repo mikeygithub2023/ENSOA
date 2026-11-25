@@ -801,8 +801,12 @@ class _RegisterApprenantDialogState
                   initialValue: _statut,
                   decoration: const InputDecoration(labelText: 'Statut'),
                   items: [
+                    // « Reversé » vient d'un mouvement, qui dit où et
+                    // quand : il ne se pose pas d'ici.
                     for (final s in ApprenantStatut.values)
-                      DropdownMenuItem(value: s, child: Text(s.label)),
+                      if (s != ApprenantStatut.reverse ||
+                          _statut == ApprenantStatut.reverse)
+                        DropdownMenuItem(value: s, child: Text(s.label)),
                   ],
                   onChanged: (value) =>
                       setState(() => _statut = value ?? _statut),

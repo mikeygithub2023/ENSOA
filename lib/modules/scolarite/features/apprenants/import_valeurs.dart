@@ -176,3 +176,11 @@ int? entierDepuisCellule(String valeur) {
   final m = RegExp(r'(\d+)').firstMatch(valeur);
   return m == null ? null : int.tryParse(m.group(1)!);
 }
+
+/// Un militaire que l'état nominatif porte dans une autre unité que l'école
+/// y a été reversé. Une cellule vide ne dit rien : on ne reverse personne
+/// sur un oubli.
+bool estReverse(String unite) {
+  final u = unite.trim().toUpperCase();
+  return u.isNotEmpty && u != 'ENSOA';
+}

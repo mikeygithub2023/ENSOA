@@ -247,7 +247,12 @@ List<_TemplateColumn> _colonnesEtatNominatif() => const [
   _TemplateColumn('date_retraite', 'DATE RETRAITE', 'JJ/MM/AAAA', '01/01/2031'),
   _TemplateColumn('nom_pere', 'NOM PERE', 'Texte libre', 'KOUAME KOUAKOU'),
   _TemplateColumn('nom_mere', 'NOM MERE', 'Texte libre', 'GOSSE BLA'),
-  _TemplateColumn('ignore_division', 'DIVISION', 'Non reprise', 'ENSOA'),
+  _TemplateColumn(
+    'unite',
+    'DIVISION',
+    'ENSOA, ou l\'unité d\'un reversé',
+    'ENSOA',
+  ),
   _TemplateColumn(
     'ignore_duree',
     'DUREE EN UNITE',
@@ -620,6 +625,12 @@ class _ImportApprenantsDialogState
       regieDorh: _emptyToNull(_valeur(row, 'regie_dorh')),
       regieSolde: _emptyToNull(_valeur(row, 'regie_solde')),
       matriculeSolde: _normalizeMatricule(_valeur(row, 'matricule_solde')),
+      // L'état nominatif dit l'unité de chacun : un militaire qu'il porte
+      // dans une autre unité que l'école y a été reversé.
+      unite: _emptyToNull(_valeur(row, 'unite'))?.toUpperCase(),
+      statut: estReverse(_valeur(row, 'unite'))
+          ? ApprenantStatut.reverse
+          : ApprenantStatut.actif,
       observations: _emptyToNull(_valeur(row, 'observations')),
     );
   }

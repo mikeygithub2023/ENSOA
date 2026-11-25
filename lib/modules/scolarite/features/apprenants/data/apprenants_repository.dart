@@ -58,6 +58,7 @@ class ApprenantDraft {
     this.regieDorh,
     this.regieSolde,
     this.matriculeSolde,
+    this.unite,
     this.observations,
     this.diplomes = const [],
     this.photoBytes,
@@ -129,6 +130,9 @@ class ApprenantDraft {
   final String? regieDorh;
   final String? regieSolde;
   final String? matriculeSolde;
+
+  /// L'unité d'appartenance : ENSOA, ou celle d'un militaire reversé.
+  final String? unite;
   final String? observations;
 
   final List<String> diplomes;
@@ -193,6 +197,7 @@ class ApprenantDraft {
       'regie_dorh': regieDorh,
       'regie_solde': regieSolde,
       'matricule_solde': matriculeSolde,
+      'unite': unite,
       'observations': observations,
     };
   }

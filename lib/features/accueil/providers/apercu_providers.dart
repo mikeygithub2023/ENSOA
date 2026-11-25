@@ -28,7 +28,8 @@ class ApercuScolarite {
 
 final apercuScolariteProvider = FutureProvider<ApercuScolarite>((ref) async {
   final resultats = await Future.wait([
-    scolarite.from('apprenants').count(),
+    // Un reversé a quitté l'école : il ne compte plus dans l'effectif.
+    scolarite.from('apprenants').count().neq('statut', 'reverse'),
     scolarite.from('promotions').count(),
     scolarite.from('classes').count(),
     scolarite.from('cours').count(),

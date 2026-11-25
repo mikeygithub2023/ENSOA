@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../models/apprenant.dart';
 import '../../../models/division.dart';
 import '../../apprenants/providers/apprenants_providers.dart';
 
@@ -22,7 +23,10 @@ class DashboardStats {
 final dashboardStatsProvider = FutureProvider.autoDispose<DashboardStats>((
   ref,
 ) async {
-  final apprenants = await ref.watch(apprenantsListProvider.future);
+  // Un reversé a quitté l'école : sa fiche reste, il ne compte plus.
+  final apprenants = (await ref.watch(
+    apprenantsListProvider.future,
+  )).where((a) => a.statut != ApprenantStatut.reverse).toList();
   final divisions = await ref.watch(divisionsProvider.future);
   final divisionsById = {for (final d in divisions) d.id: d};
 

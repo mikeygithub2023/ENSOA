@@ -23,7 +23,10 @@ extension ApprenantTypeLabel on ApprenantType {
   };
 }
 
-enum ApprenantStatut { actif, radie, diplome, suspendu }
+/// [reverse] : un militaire de l'école reversé dans une autre unité. Sa
+/// fiche reste, mais il ne compte plus dans l'effectif. Il ne se pose que
+/// par un mouvement (voir `mouvement_personnel.dart`).
+enum ApprenantStatut { actif, radie, diplome, suspendu, reverse }
 
 ApprenantStatut apprenantStatutFromString(String value) {
   return ApprenantStatut.values.firstWhere(
@@ -38,6 +41,7 @@ extension ApprenantStatutLabel on ApprenantStatut {
     ApprenantStatut.radie => 'Radié',
     ApprenantStatut.diplome => 'Diplômé',
     ApprenantStatut.suspendu => 'Suspendu',
+    ApprenantStatut.reverse => 'Reversé',
   };
 }
 
@@ -86,6 +90,7 @@ class Apprenant {
     this.dateNomination,
     this.dateRetraite,
     this.positionStatutaire,
+    this.unite,
     this.serviceAffectation,
     this.emploiTenu,
     this.diplomeMilitaire,
@@ -179,6 +184,10 @@ class Apprenant {
   /// dit si la fiche est active.
   final String? positionStatutaire;
 
+  /// L'unité d'appartenance (colonne UNITES de l'état nominatif) : ENSOA,
+  /// ou l'unité d'accueil d'un militaire reversé.
+  final String? unite;
+
   final String? serviceAffectation;
   final String? emploiTenu;
   final String? diplomeMilitaire;
@@ -259,6 +268,7 @@ class Apprenant {
       dateNomination: _jour(json['date_nomination']),
       dateRetraite: _jour(json['date_retraite']),
       positionStatutaire: json['position_statutaire'] as String?,
+      unite: json['unite'] as String?,
       serviceAffectation: json['service_affectation'] as String?,
       emploiTenu: json['emploi_tenu'] as String?,
       diplomeMilitaire: json['diplome_militaire'] as String?,
