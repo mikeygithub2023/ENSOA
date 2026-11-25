@@ -416,11 +416,88 @@ Au passage, deux détails de la même famille :
   classe, par stage ou par élève avec le choix des contrôles. Le bouton est
   retiré ; rien n'est perdu.
 
+## 25 novembre 2026
+
+### La rubrique Carburant repart de zéro
+
+- Les soutes, les quantités et les mouvements en base venaient des essais de
+  recette. Avant d'y porter les données réelles de l'école, on fait table
+  rase : `20261124000000_la_rubrique_carburant_repart_de_zero.sql` vide les
+  cinq tables et remet les compteurs d'identité à 1.
+- **Les deux référentiels restent** : Gasoil/Super, sans quoi aucun dépotage
+  n'est possible, et la liste des répartitions, dont « Activités Ordinaires »
+  qu'exige le déclencheur de création de soute.
+
+### Les photos s'importent par dossier
+
+- `apprenants.photo_path` et le dépôt `apprenant-photos` existaient depuis la
+  migration 004, mais il fallait ouvrir le formulaire entier et traverser ses
+  cinq étapes pour poser un visage. Deux cent cinquante-six fiches à ce
+  régime-là restent sans photo.
+- **Un bouton « Importer les photos »** dans la barre de chaque liste
+  d'effectif, et **un bouton sur la fiche** à côté de « Modifier ». Le premier
+  prend un dossier entier et rapproche chaque fichier de son militaire par le
+  **matricule, le matricule solde, le numéro mécanographique ou le nom
+  complet** — espaces, tirets, apostrophes et accents indifférents, et le
+  « (1) » de Windows ignoré.
+- **Rien n'est posé sans avoir été relu** : l'écran montre fichier par fichier
+  à qui il sera rattaché, ce qu'il remplacerait, et pourquoi les autres
+  restent de côté. Deux fichiers qui désignent le même homme sont tous deux
+  écartés — rien ne dit lequel est le bon.
+- La règle est en fonction pure (`import_photos.dart`), éprouvée par
+  `test/import_photos_test.dart` : une photo sur la mauvaise fiche ne se voit
+  pas.
+- Limites annoncées à l'écran : **100 fichiers à la fois**, **3 Mo par
+  photo**. Les octets tiennent en mémoire avant le premier envoi, et le dépôt
+  de l'école n'est pas sans fond.
+
+### Le dossier de pension, et les décorations
+
+- Deux rubriques que l'école tenait sur le papier. Elles prennent la forme des
+  autres registres du bureau : **un onglet** au niveau de la liste et **une
+  section** sur la fiche.
+- **Le dossier de pension liste des gens, pas des faits** : la question n'est
+  pas « qu'est-il arrivé ? » mais « lesquels sont prêts ? ». L'ordre suit donc
+  la date de retraite, celui qui part le plus tôt d'abord ; ceux dont la date
+  n'est pas connue ferment la liste.
+- **Trois états par pièce, pas deux** : présente, manquante, non vérifiée.
+  Confondre les deux dernières, c'est accuser un bureau d'un manquement là où
+  il n'y a qu'un travail non commencé.
+- **Les décorations sont un registre d'attributions** : la même décoration
+  peut revenir à deux dates, avec la référence du décret ou de l'arrêté.
+- **Les deux catalogues sont livrés vides**, et c'est voulu : les pièces
+  qu'exige la DORH et les décorations en usage à l'école ne sont pas de notre
+  ressort. Un dossier déclaré complet parce qu'il contient les pièces qu'on
+  avait supposées serait pire qu'un dossier non vérifié. L'administrateur les
+  saisit depuis l'écran.
+- `20261125000000_dossier_pension_et_decorations.sql` : quatre tables, vingt
+  politiques, et **pas de `division_id` dénormalisée** contrairement aux
+  autres registres — il n'y a pas ici de fait daté mais un état courant, et un
+  militaire muté emporterait sinon un dossier que son nouveau chef ne verrait
+  pas.
+
+### L'état nominatif DORH relu, et ce qu'il révèle
+
+- Le classeur du 15 mai 2026 porte **256 personnes**, mais la synthèse ne
+  compte que **255** par position : la ligne « ETANT A DISPOSITION » manque à
+  son tableau.
+- **Ce n'est pas `POSITION` qui sépare le reversé du mis à disposition, c'est
+  `UNITES`** : ENSOA sur 255 lignes, AFA sur une seule — le reversé, qui
+  travaille ici et relève d'ailleurs. Les 7 « MIS A DISPOSITION » ont tous
+  `UNITES` = ENSOA : de l'école, envoyés dehors.
+- **L'import déclare cette colonne « non reprise »** et la base n'a pas de
+  colonne pour elle : les 256 fiches sont entrées comme si toutes relevaient
+  de l'ENSOA. Le reversé est aujourd'hui indistinguable — à corriger avant de
+  pouvoir gérer les changements de statut.
+
 ### État à la fin de la journée
 
 - `flutter analyze` : aucun avertissement
-- **232 tests** passent, dont `test/locaux_disciplinaires_test.dart` et
-  `test/personnel_absences_permissions_test.dart`, nés de la journée
+- **272 tests** passent, dont `test/import_photos_test.dart` et
+  `test/pension_decorations_test.dart`, nés de la journée
+- **232 tests** passaient la veille, dont
+  `test/locaux_disciplinaires_test.dart` et
+  `test/personnel_absences_permissions_test.dart`
 - **177 tests** passaient auparavant, dont `test/bureaux_scolarite_test.dart`,
   né du découpage en bureaux
 - **147 tests** passaient dans la journée, dont cinq fichiers nés aujourd'hui :

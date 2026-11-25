@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,10 +11,12 @@ import '../../models/apprenant.dart';
 import '../../models/classe.dart';
 import '../../models/consultation_medicale.dart';
 import '../../models/controle.dart';
+import '../../models/decoration.dart';
 import '../../models/division.dart';
 import '../../models/local_disciplinaire.dart';
 import '../../models/matiere.dart';
 import '../../models/note.dart';
+import '../../models/pension.dart';
 import '../../models/permission.dart';
 import 'package:sig_ensoa/modules/scolarite/compat.dart';
 import '../../models/section.dart';
@@ -21,9 +24,15 @@ import '../../models/sous_module.dart';
 import '../../shared/widgets/common.dart';
 import '../matieres/providers/matieres_providers.dart';
 import 'antecedents_medicaux_dialog.dart';
+import 'import_photos.dart';
 import 'moyennes.dart';
+import 'pension_bilan.dart';
+import 'register_decoration_dialog.dart';
+import 'verifier_dossier_pension_dialog.dart';
 import 'providers/absences_providers.dart';
 import 'providers/apprenants_providers.dart';
+import 'providers/decorations_providers.dart';
+import 'providers/pension_providers.dart';
 import 'providers/locaux_disciplinaires_providers.dart';
 import 'providers/consultations_medicales_providers.dart';
 import 'providers/controles_providers.dart';
@@ -80,6 +89,64 @@ class ApprenantDetailView extends ConsumerWidget {
   /// fiche plutôt que de s'y afficher vide.
   final Classe? classe;
   final bool showActions;
+
+  /// Pose une photo sur cette fiche, directement.
+  ///
+  /// Le formulaire de modification sait le faire, mais il faut l'ouvrir,
+  /// traverser ses cinq étapes et tout réenregistrer pour un seul visage.
+  /// Ici, on choisit le fichier et c'est fait.
+  Future<void> _importerLaPhoto(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final choix = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        withData: true,
+      );
+      if (choix == null) return;
+      final fichier = choix.files.single;
+      final octets = fichier.bytes;
+      if (octets == null) return;
+      // Même limite que l'import en masse : le dépôt de l'école est le
+      // même, et une photo de fiche n'a pas besoin de plus.
+      if (octets.lengthInBytes > poidsMaxPhoto) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              'Photo trop lourde (${formatPoids(octets.lengthInBytes)}) : '
+              '${formatPoids(poidsMaxPhoto)} au plus.',
+            ),
+            backgroundColor: AppColors.danger,
+          ),
+        );
+        return;
+      }
+      await ref
+          .read(apprenantsRepositoryProvider)
+          .poserPhoto(
+            apprenantId: apprenant.id,
+            bytes: octets,
+            fileName: fichier.name,
+          );
+      // Le chemin ne change pas quand l'extension est la même : c'est
+      // l'URL signée qu'il faut refaire, sinon l'écran garde l'ancienne.
+      ref.invalidate(apprenantsListProvider);
+      ref.invalidate(apprenantByIdProvider(apprenant.id));
+      ref.invalidate(apprenantPhotoUrlProvider);
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Photo posée.'),
+          backgroundColor: AppColors.success,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Photo refusée : ${messageErreur(e)}'),
+          backgroundColor: AppColors.danger,
+        ),
+      );
+    }
+  }
 
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -246,6 +313,13 @@ class ApprenantDetailView extends ConsumerWidget {
               ],
               if (showActions) ...[
                 const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.add_a_photo_outlined),
+                  tooltip: apprenant.photoPath == null
+                      ? 'Importer la photo'
+                      : 'Remplacer la photo',
+                  onPressed: () => _importerLaPhoto(context, ref),
+                ),
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
                   tooltip: 'Modifier',
@@ -614,6 +688,17 @@ class ApprenantDetailView extends ConsumerWidget {
               icon: Icons.error_outline,
             ),
           ),
+          // Le dossier de pension et les décorations. Ils ne tiennent pas
+          // à la phase : un stagiaire comme un membre du personnel porte
+          // des décorations, et tout militaire a un dossier de pension.
+          const SizedBox(height: 20),
+          const SectionHeader(title: 'Dossier de pension'),
+          const SizedBox(height: 12),
+          _DossierPensionSection(apprenant: apprenant),
+          const SizedBox(height: 20),
+          const SectionHeader(title: 'Décorations'),
+          const SizedBox(height: 12),
+          _DecorationsSection(apprenant: apprenant, peutEcrire: showActions),
           if (classe != null) ...[
             const SizedBox(height: 20),
             const SectionHeader(title: 'Notes'),
@@ -1250,6 +1335,156 @@ class _NoteTile extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Où en est le dossier de pension de ce militaire, et par quoi l'ouvrir.
+///
+/// La fiche ne refait pas la liste des pièces — c'est l'écran de
+/// vérification qui la tient. Elle dit l'essentiel : ce qui manque, et
+/// quand l'intéressé part.
+class _DossierPensionSection extends ConsumerWidget {
+  const _DossierPensionSection({required this.apprenant});
+
+  final Apprenant apprenant;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final piecesAsync = ref.watch(piecesPensionProvider);
+    final lignesAsync = ref.watch(
+      lignesPensionByApprenantProvider(apprenant.id),
+    );
+    final profil = ref.watch(currentProfileProvider).value;
+    final peutEcrire =
+        profil?.role == AppRole.admin || profil?.role == AppRole.chefDivision;
+
+    final pieces = piecesAsync.value ?? const <PiecePension>[];
+    final lignes = lignesAsync.value ?? const <LignePension>[];
+    if (piecesAsync.isLoading || lignesAsync.isLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(12),
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+    final bilan = bilanDuDossier(pieces: pieces, lignes: lignes);
+
+    return Card(
+      child: ListTile(
+        onTap: () => showVerifierDossierPensionDialog(
+          context,
+          apprenant: apprenant,
+          peutEcrire: peutEcrire,
+        ),
+        leading: const Icon(
+          Icons.folder_shared_outlined,
+          color: AppColors.blueDeep,
+        ),
+        title: Text(bilan.libelle),
+        subtitle: Text(
+          [
+            if (bilan.etat != EtatDossier.sansCatalogue)
+              '${bilan.verifiees} pièce(s) vérifiée(s) sur '
+                  '${bilan.piecesActives}',
+            apprenant.dateRetraite == null
+                ? 'Retraite non renseignée'
+                : 'Retraite le '
+                      '${DateFormat('dd/MM/yyyy').format(apprenant.dateRetraite!)}',
+          ].join(' · '),
+          style: const TextStyle(fontSize: 12),
+        ),
+        trailing: const Icon(Icons.chevron_right, color: AppColors.inkMuted),
+      ),
+    );
+  }
+}
+
+/// Ce que porte ce militaire.
+class _DecorationsSection extends ConsumerWidget {
+  const _DecorationsSection({
+    required this.apprenant,
+    required this.peutEcrire,
+  });
+
+  final Apprenant apprenant;
+  final bool peutEcrire;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recuesAsync = ref.watch(
+      decorationsRecuesByApprenantProvider(apprenant.id),
+    );
+    final catalogue = {
+      for (final d
+          in ref.watch(catalogueDecorationsProvider).value ??
+              const <TypeDecoration>[])
+        d.id: d,
+    };
+
+    return recuesAsync.when(
+      data: (recues) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (recues.isEmpty)
+            const EmptyState(
+              message: 'Aucune décoration inscrite.',
+              icon: Icons.military_tech_outlined,
+            )
+          else
+            for (final r in recues) ...[
+              Card(
+                child: ListTile(
+                  dense: true,
+                  leading: const Icon(
+                    Icons.military_tech_outlined,
+                    color: AppColors.blueDeep,
+                  ),
+                  title: Text(
+                    catalogue[r.decorationId]?.libelle ??
+                        'Décoration retirée du catalogue',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  subtitle: Text(
+                    [
+                      r.dateAttribution == null
+                          ? 'Date non renseignée'
+                          : 'Le '
+                                '${DateFormat('dd/MM/yyyy').format(r.dateAttribution!)}',
+                      if (r.echelon != null && r.echelon!.trim().isNotEmpty)
+                        r.echelon!.trim(),
+                      if (r.reference != null && r.reference!.trim().isNotEmpty)
+                        r.reference!.trim(),
+                    ].join(' · '),
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          if (peutEcrire)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    showRegisterDecorationDialog(context, apprenant: apprenant),
+                icon: const Icon(Icons.military_tech_outlined, size: 18),
+                label: const Text('Inscrire une décoration'),
+              ),
+            ),
+        ],
+      ),
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(12),
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      error: (error, _) => EmptyState(
+        message: 'Erreur de chargement : ${messageErreur(error)}',
+        icon: Icons.error_outline,
       ),
     );
   }

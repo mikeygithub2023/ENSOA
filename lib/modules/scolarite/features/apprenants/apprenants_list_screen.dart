@@ -18,6 +18,7 @@ import '../matieres/providers/matieres_providers.dart';
 import 'bureaux.dart';
 import 'entity_tabs.dart';
 import 'import_apprenants_dialog.dart';
+import 'import_photos_dialog.dart';
 import 'liste_apprenants_pdf.dart';
 import 'pdf_fonts.dart';
 import 'providers/apprenants_providers.dart';
@@ -565,8 +566,13 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
                     division: selectedDivision,
                     classeInscription: classeInscription,
                   )) ...[
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                // Un `Wrap` et non un `Row` : quatre boutons ne tiennent
+                // pas sur la largeur d'une tablette, et un débordement
+                // coupe le dernier au lieu de le renvoyer à la ligne.
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  spacing: 12,
+                  runSpacing: 8,
                   children: [
                     OutlinedButton.icon(
                       onPressed: () => _imprimerListe(
@@ -583,7 +589,6 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
                       icon: const Icon(Icons.print_outlined, size: 18),
                       label: const Text('Imprimer la liste'),
                     ),
-                    const SizedBox(width: 12),
                     OutlinedButton.icon(
                       onPressed: () => showImportApprenantsDialog(
                         context,
@@ -593,7 +598,26 @@ class _ApprenantsListScreenState extends ConsumerState<ApprenantsListScreen> {
                       icon: const Icon(Icons.upload_file_outlined, size: 18),
                       label: const Text('Importer un fichier Excel'),
                     ),
-                    const SizedBox(width: 12),
+                    // Les photos se rapprochent de la portée affichée, pas
+                    // de ce que la recherche par nom laisse voir.
+                    OutlinedButton.icon(
+                      onPressed: () => showImportPhotosDialog(
+                        context,
+                        effectif: _dansLaPortee(
+                          apprenantsAsync.value ?? const [],
+                          classesRetenues,
+                        ),
+                        portee: _libellePortee(
+                          division: selectedDivision,
+                          promotion: promotionInscription,
+                          stage: selectedClasse?.type == ClasseType.stage
+                              ? selectedClasse
+                              : null,
+                        ),
+                      ),
+                      icon: const Icon(Icons.photo_library_outlined, size: 18),
+                      label: const Text('Importer les photos'),
+                    ),
                     FilledButton.icon(
                       onPressed: () => showRegisterApprenantDialog(
                         context,
@@ -1087,12 +1111,17 @@ extension _ListeApprenants on _ApprenantsListScreenState {
   /// stage) et les deux recherches. La même règle sert à l'affichage et à
   /// l'impression — imprimer autre chose que ce qu'on voit serait une
   /// surprise.
-  List<Apprenant> _filtrer(
+  /// L'effectif que l'écran délimite : division, phase/stage retenus,
+  /// section. Pas les recherches par nom et par matricule, qui ne
+  /// restreignent pas la portée mais l'affichage.
+  ///
+  /// La distinction compte pour l'import des photos : celui qui vient de
+  /// chercher un nom dans la barre de recherche ne s'attend pas à ce que
+  /// l'import oublie tous les autres.
+  List<Apprenant> _dansLaPortee(
     List<Apprenant> apprenants,
     Set<String>? classesRetenues,
   ) {
-    final nomQuery = _nomSearchCtrl.text.trim().toLowerCase();
-    final matriculeQuery = _matriculeSearchCtrl.text.trim().toLowerCase();
     return apprenants.where((a) {
       if (_divisionFilter != null && a.divisionId != _divisionFilter) {
         return false;
@@ -1103,6 +1132,17 @@ extension _ListeApprenants on _ApprenantsListScreenState {
       if (_sectionFilter != null && a.sectionId != _sectionFilter) {
         return false;
       }
+      return true;
+    }).toList();
+  }
+
+  List<Apprenant> _filtrer(
+    List<Apprenant> apprenants,
+    Set<String>? classesRetenues,
+  ) {
+    final nomQuery = _nomSearchCtrl.text.trim().toLowerCase();
+    final matriculeQuery = _matriculeSearchCtrl.text.trim().toLowerCase();
+    return _dansLaPortee(apprenants, classesRetenues).where((a) {
       if (nomQuery.isNotEmpty &&
           !a.nomComplet.toLowerCase().contains(nomQuery)) {
         return false;
@@ -1113,6 +1153,26 @@ extension _ListeApprenants on _ApprenantsListScreenState {
       }
       return true;
     }).toList();
+  }
+
+  /// Comment nommer la liste affichée — sur une feuille imprimée comme
+  /// dans l'écran d'import des photos, qui doit dire contre quoi il
+  /// rapproche les fichiers.
+  String _libellePortee({
+    required Division? division,
+    required Promotion? promotion,
+    required Classe? stage,
+  }) {
+    if (division?.tientDuPersonnel ?? false) return "Personnel de l'école";
+    if (stage != null) return 'Stage ${stage.nom}';
+    if (promotion == null) return 'Toutes promotions et stages';
+    final section = _sectionFilter == null
+        ? null
+        : (ref.read(sectionsListProvider).value ?? const <Section>[])
+              .where((s) => s.id == _sectionFilter)
+              .firstOrNull;
+    return '${promotion.intitule}'
+        '${section == null ? '' : ' · ${section.nom}'}';
   }
 }
 
@@ -1143,21 +1203,14 @@ extension _ImpressionListe on _ApprenantsListScreenState {
 
       // La section retenue se lit sur la pièce : une liste d'appel qui ne
       // dit pas de qui elle est la liste ne sert à rien une fois détachée
-      // de l'écran.
-      final section = _sectionFilter == null
-          ? null
-          : (ref.read(sectionsListProvider).value ?? const <Section>[])
-                .where((s) => s.id == _sectionFilter)
-                .firstOrNull;
+      // de l'écran. Le libellé est celui de l'écran — voir
+      // [_libellePortee].
       final tientDuPersonnel = division?.tientDuPersonnel ?? false;
-
-      final portee = tientDuPersonnel
-          ? "Personnel de l'école"
-          : stage != null
-          ? 'Stage ${stage.nom}'
-          : promotion != null
-          ? '${promotion.intitule}${section == null ? '' : ' · ${section.nom}'}'
-          : 'Toutes promotions et stages';
+      final portee = _libellePortee(
+        division: division,
+        promotion: promotion,
+        stage: stage,
+      );
 
       final doc = buildListeApprenantsPdf(
         apprenants,

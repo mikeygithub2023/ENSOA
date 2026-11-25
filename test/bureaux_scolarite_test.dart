@@ -86,6 +86,10 @@ void main() {
         OngletEffectif.permissions,
         OngletEffectif.absences,
         OngletEffectif.locauxDisciplinaires,
+        // Les deux dernières ne relèvent pas du jour mais du dossier :
+        // elles ferment la barre.
+        OngletEffectif.dossierPension,
+        OngletEffectif.decorations,
       ]);
       expect(onglets, isNot(contains(OngletEffectif.resultats)));
       expect(onglets, isNot(contains(OngletEffectif.controles)));

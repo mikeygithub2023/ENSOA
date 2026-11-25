@@ -417,23 +417,44 @@ class ApprenantsRepository {
     return ImportResult(inserted: inserted, failed: failed);
   }
 
+  /// Pose une photo sur une fiche, sans toucher au reste.
+  ///
+  /// Le formulaire d'enregistrement envoie la photo avec les trente autres
+  /// rubriques ; l'import en masse et le bouton de la fiche n'ont que la
+  /// photo à porter. Passer par un brouillon complet obligerait à
+  /// reconstruire la fiche entière pour changer un visage — et à risquer
+  /// d'écraser au passage ce qu'une autre main vient de corriger.
+  Future<void> poserPhoto({
+    required String apprenantId,
+    required Uint8List bytes,
+    required String fileName,
+  }) => _televerserPhoto(apprenantId, bytes, fileName);
+
+  Future<void> _televerserPhoto(
+    String apprenantId,
+    Uint8List bytes,
+    String fileName,
+  ) async {
+    final ext = fileName.contains('.') ? fileName.split('.').last : 'jpg';
+    final path = '$apprenantId.$ext';
+    await supabase.storage
+        .from(_photoBucket)
+        .uploadBinary(
+          path,
+          bytes,
+          fileOptions: const FileOptions(upsert: true),
+        );
+    await scolarite
+        .from('apprenants')
+        .update({'photo_path': path})
+        .eq('id', apprenantId);
+  }
+
   Future<void> _applyPhoto(String apprenantId, ApprenantDraft draft) async {
     final bytes = draft.photoBytes;
     final fileName = draft.photoFileName;
     if (bytes != null && fileName != null) {
-      final ext = fileName.contains('.') ? fileName.split('.').last : 'jpg';
-      final path = '$apprenantId.$ext';
-      await supabase.storage
-          .from(_photoBucket)
-          .uploadBinary(
-            path,
-            bytes,
-            fileOptions: const FileOptions(upsert: true),
-          );
-      await scolarite
-          .from('apprenants')
-          .update({'photo_path': path})
-          .eq('id', apprenantId);
+      await _televerserPhoto(apprenantId, bytes, fileName);
     } else if (draft.removePhoto) {
       await scolarite
           .from('apprenants')

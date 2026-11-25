@@ -7,6 +7,8 @@ import 'absences_tab_view.dart';
 import 'bureaux.dart';
 import 'consultations_medicales_tab_view.dart';
 import 'controles_tab_view.dart';
+import 'decorations_tab_view.dart';
+import 'dossier_pension_tab_view.dart';
 import 'locaux_disciplinaires_tab_view.dart';
 import 'permissions_tab_view.dart';
 import 'situation_prise_armes_tab_view.dart';
@@ -23,6 +25,8 @@ enum OngletEffectif {
   permissions,
   absences,
   locauxDisciplinaires,
+  dossierPension,
+  decorations,
 }
 
 /// Les onglets d'un bureau, dans l'ordre où ils se présentent.
@@ -52,6 +56,11 @@ List<OngletEffectif> ongletsDuBureau(
       OngletEffectif.permissions,
       OngletEffectif.absences,
       OngletEffectif.locauxDisciplinaires,
+      // Les deux dernières rubriques ne sont pas des faits du jour mais
+      // l'état d'un dossier : elles ferment la barre, après ce qui se
+      // relève au quotidien.
+      OngletEffectif.dossierPension,
+      OngletEffectif.decorations,
     ],
   };
 }
@@ -159,6 +168,8 @@ class _EntityTabsViewState extends State<EntityTabsView>
     OngletEffectif.permissions => 'Permissions',
     OngletEffectif.absences => 'Absences',
     OngletEffectif.locauxDisciplinaires => 'Locaux disciplinaires',
+    OngletEffectif.dossierPension => 'Dossier pension',
+    OngletEffectif.decorations => 'Décorations',
   };
 
   IconData _icone(OngletEffectif onglet) => switch (onglet) {
@@ -176,6 +187,8 @@ class _EntityTabsViewState extends State<EntityTabsView>
     OngletEffectif.permissions => Icons.assignment_turned_in_outlined,
     OngletEffectif.absences => Icons.event_busy_outlined,
     OngletEffectif.locauxDisciplinaires => Icons.gavel_outlined,
+    OngletEffectif.dossierPension => Icons.folder_shared_outlined,
+    OngletEffectif.decorations => Icons.military_tech_outlined,
   };
 
   Widget _vue(OngletEffectif onglet) => switch (onglet) {
@@ -222,6 +235,18 @@ class _EntityTabsViewState extends State<EntityTabsView>
       apprenantsRetenus: widget.apprenantsRetenus,
     ),
     OngletEffectif.locauxDisciplinaires => LocauxDisciplinairesTabView(
+      division: widget.division,
+      classe: widget.classe,
+      classesRetenues: widget.classesRetenues,
+      apprenantsRetenus: widget.apprenantsRetenus,
+    ),
+    OngletEffectif.dossierPension => DossierPensionTabView(
+      division: widget.division,
+      classe: widget.classe,
+      classesRetenues: widget.classesRetenues,
+      apprenantsRetenus: widget.apprenantsRetenus,
+    ),
+    OngletEffectif.decorations => DecorationsTabView(
       division: widget.division,
       classe: widget.classe,
       classesRetenues: widget.classesRetenues,
