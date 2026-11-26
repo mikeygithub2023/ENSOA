@@ -3,12 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:sig_ensoa/modules/logistique/compat.dart';
+import '../../data/models/oa.dart';
 import '../../data/repositories/misc_providers.dart';
 import '../../data/repositories/oa_providers.dart';
 import '../../shared/widgets/widgets.dart';
 
+/// Crée une activité, ou corrige une activité existante — la même boîte :
+/// les champs sont les mêmes, seul le verbe change.
 class ActiviteFormDialog extends ConsumerStatefulWidget {
-  const ActiviteFormDialog({super.key});
+  /// L'activité à corriger. Nulle pour une création.
+  final Activite? activite;
+
+  const ActiviteFormDialog({super.key, this.activite});
 
   @override
   ConsumerState<ActiviteFormDialog> createState() => _ActiviteFormDialogState();
@@ -16,11 +22,21 @@ class ActiviteFormDialog extends ConsumerStatefulWidget {
 
 class _ActiviteFormDialogState extends ConsumerState<ActiviteFormDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _titreCtrl = TextEditingController();
-  final _descriptionCtrl = TextEditingController();
-  final _lieuCtrl = TextEditingController();
-  DateTime _date = DateTime.now().add(const Duration(days: 1));
+  late final _titreCtrl = TextEditingController(
+    text: widget.activite?.titre ?? '',
+  );
+  late final _descriptionCtrl = TextEditingController(
+    text: widget.activite?.description ?? '',
+  );
+  late final _lieuCtrl = TextEditingController(
+    text: widget.activite?.lieu ?? '',
+  );
+  late DateTime _date =
+      widget.activite?.dateActivite.toLocal() ??
+      DateTime.now().add(const Duration(days: 1));
   bool _envoi = false;
+
+  bool get _correction => widget.activite != null;
 
   @override
   void dispose() {
@@ -34,7 +50,11 @@ class _ActiviteFormDialogState extends ConsumerState<ActiviteFormDialog> {
     final date = await showDatePicker(
       context: context,
       initialDate: _date,
-      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      // Une activité déjà passée se corrige encore : sa date doit rester
+      // proposée.
+      firstDate: _date.isBefore(DateTime.now())
+          ? _date
+          : DateTime.now().subtract(const Duration(days: 1)),
       lastDate: DateTime.now().add(const Duration(days: 730)),
     );
     if (date == null || !mounted) return;
@@ -60,7 +80,7 @@ class _ActiviteFormDialogState extends ConsumerState<ActiviteFormDialog> {
         '${_date.hour.toString().padLeft(2, '0')}:${_date.minute.toString().padLeft(2, '0')}';
     return AlertDialog(
       scrollable: true,
-      title: const Text('Nouvelle activité'),
+      title: Text(_correction ? "Modifier l'activité" : 'Nouvelle activité'),
       content: SizedBox(
         width: 400,
         child: Form(
@@ -111,7 +131,7 @@ class _ActiviteFormDialogState extends ConsumerState<ActiviteFormDialog> {
         ),
         FilledButton(
           onPressed: _envoi ? null : _submit,
-          child: const Text('Créer'),
+          child: Text(_correction ? 'Enregistrer' : 'Créer'),
         ),
       ],
     );
@@ -121,26 +141,40 @@ class _ActiviteFormDialogState extends ConsumerState<ActiviteFormDialog> {
     if (!validerFormulaire(context, _formKey)) return;
     setState(() => _envoi = true);
     final user = ref.read(sessionProvider)!.user;
+    final description = _descriptionCtrl.text.trim().isEmpty
+        ? null
+        : _descriptionCtrl.text.trim();
+    final lieu = _lieuCtrl.text.trim().isEmpty ? null : _lieuCtrl.text.trim();
     try {
-      await ref
-          .read(activitesProvider.notifier)
-          .creer(
-            titre: _titreCtrl.text.trim(),
-            description: _descriptionCtrl.text.trim().isEmpty
-                ? null
-                : _descriptionCtrl.text.trim(),
-            dateActivite: _date,
-            lieu: _lieuCtrl.text.trim().isEmpty ? null : _lieuCtrl.text.trim(),
-          );
+      final activites = ref.read(activitesProvider.notifier);
+      if (_correction) {
+        await activites.modifier(
+          id: widget.activite!.id,
+          titre: _titreCtrl.text.trim(),
+          description: description,
+          dateActivite: _date,
+          lieu: lieu,
+        );
+      } else {
+        await activites.creer(
+          titre: _titreCtrl.text.trim(),
+          description: description,
+          dateActivite: _date,
+          lieu: lieu,
+        );
+      }
       ref
           .read(auditProvider.notifier)
           .log(
             auteurId: user.id,
-            action: 'ACTIVITE_CREEE',
+            action: _correction ? 'ACTIVITE_MODIFIEE' : 'ACTIVITE_CREEE',
             cible: _titreCtrl.text.trim(),
           );
       if (mounted) {
-        showSuccessSnackBar(context, 'Activité créée avec succès.');
+        showSuccessSnackBar(
+          context,
+          _correction ? 'Activité modifiée.' : 'Activité créée avec succès.',
+        );
         Navigator.of(context).pop();
       }
     } catch (e) {

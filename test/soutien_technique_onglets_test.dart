@@ -15,10 +15,12 @@ import 'package:sig_ensoa/models/profil.dart';
 import 'package:sig_ensoa/modules/logistique/data/models/armement.dart';
 import 'package:sig_ensoa/modules/logistique/data/models/carburant.dart';
 import 'package:sig_ensoa/modules/logistique/data/models/maintenance.dart';
+import 'package:sig_ensoa/modules/logistique/data/models/oa.dart';
 import 'package:sig_ensoa/modules/logistique/data/models/vehicule.dart';
 import 'package:sig_ensoa/modules/logistique/data/repositories/armament_providers.dart';
 import 'package:sig_ensoa/modules/logistique/data/repositories/fleet_providers.dart';
 import 'package:sig_ensoa/modules/logistique/data/repositories/fuel_providers.dart';
+import 'package:sig_ensoa/modules/logistique/data/repositories/oa_providers.dart';
 import 'package:sig_ensoa/modules/logistique/features/dashboard/soutien_technique_screen.dart';
 import 'package:sig_ensoa/features/auth/providers/auth_providers.dart';
 
@@ -193,6 +195,14 @@ class _Mouvements extends MouvementsArticleNotifier {
   List<MouvementArticle> build() => const [];
 }
 
+class _Taches extends TachesNotifier {
+  @override
+  Future<void> refresh() async {}
+
+  @override
+  List<TacheActivite> build() => const [];
+}
+
 Future<void> _ouvrir(
   WidgetTester tester, {
   Size taille = const Size(1600, 1400),
@@ -205,6 +215,7 @@ Future<void> _ouvrir(
     ProviderScope(
       overrides: [
         chargementProvider.overrideWith(_ToutCharge.new),
+        tachesProvider.overrideWith(_Taches.new),
         vehiculesProvider.overrideWith(_Vehicules.new),
         reparationsProvider.overrideWith(_Reparations.new),
         soutesProvider.overrideWith(_Soutes.new),

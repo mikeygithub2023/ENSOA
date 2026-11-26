@@ -9,7 +9,8 @@ import '../../data/repositories/oa_providers.dart';
 import 'package:sig_ensoa/features/administration/providers/profils_personnalises_providers.dart';
 import '../../shared/widgets/widgets.dart';
 
-/// Le destinataire d'une tâche, tel que la liste déroulante le manipule.
+/// Le service destinataire d'une tâche, tel que la liste déroulante le
+/// manipule.
 ///
 /// Deux familles cohabitent : les quatre services écrits dans le code et
 /// les profils que l'administrateur crée en base. Une clé de texte les
@@ -17,6 +18,10 @@ import '../../shared/widgets/widgets.dart';
 /// qui évite deux listes côte à côte où l'on choisirait les deux.
 String _cleActeur(ActeurTache a) => 'acteur:${a.name}';
 String _cleProfil(String id) => 'profil:$id';
+
+/// À qui la tâche va : à un service (et, au besoin, à l'une de ses
+/// personnes), ou à un membre du personnel de l'école, sans service.
+enum _Destination { service, personnel }
 
 /// Assigne une tâche, ou corrige une tâche déjà assignée — la même boîte
 /// pour les deux : les champs sont les mêmes, seul le verbe change.
@@ -37,17 +42,39 @@ class _TacheFormDialogState extends ConsumerState<TacheFormDialog> {
   late final _descriptionCtrl = TextEditingController(
     text: widget.tache?.description ?? '',
   );
-  late String _destinataire = widget.tache?.profilPersonnaliseId != null
+  final _personnelCtrl = TextEditingController();
+
+  late _Destination _destination =
+      widget.tache != null &&
+          widget.tache!.acteur == null &&
+          widget.tache!.profilPersonnaliseId == null
+      ? _Destination.personnel
+      : _Destination.service;
+
+  late String _service = widget.tache?.profilPersonnaliseId != null
       ? _cleProfil(widget.tache!.profilPersonnaliseId!)
       : _cleActeur(widget.tache?.acteur ?? ActeurTache.st);
+
+  /// La personne désignée, dans le service ou seule.
+  late String? _personne = widget.tache?.assigneA;
+
   late DateTime? _dateLimite = widget.tache?.dateLimite;
   bool _envoi = false;
+  String? _erreurPersonnel;
 
   bool get _correction => widget.tache != null;
+
+  ActeurTache? get _acteurChoisi => _service.startsWith('acteur:')
+      ? ActeurTache.values.firstWhere((a) => _cleActeur(a) == _service)
+      : null;
+
+  String? get _profilChoisi =>
+      _service.startsWith('profil:') ? _service.substring(7) : null;
 
   @override
   void dispose() {
     _descriptionCtrl.dispose();
+    _personnelCtrl.dispose();
     super.dispose();
   }
 
@@ -67,6 +94,18 @@ class _TacheFormDialogState extends ConsumerState<TacheFormDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final personnes =
+        ref.watch(personnesPourTachesProvider).value ??
+        const <PersonneAssignable>[];
+    final duService = personnes
+        .where(
+          (p) => p.estDuService(
+            acteur: _acteurChoisi,
+            profilPersonnaliseId: _profilChoisi,
+          ),
+        )
+        .toList();
+
     return AlertDialog(
       scrollable: true,
       title: Text(
@@ -74,34 +113,113 @@ class _TacheFormDialogState extends ConsumerState<TacheFormDialog> {
         ' — ${widget.activite.titre}',
       ),
       content: SizedBox(
-        width: 400,
+        width: 440,
         child: Form(
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              DropdownButtonFormField<String>(
-                isExpanded: true,
-                initialValue: _destinataire,
-                decoration: const InputDecoration(labelText: 'Acteur'),
-                items: [
-                  for (final a in ActeurTache.values)
-                    DropdownMenuItem(
-                      value: _cleActeur(a),
-                      child: Text(a.label),
-                    ),
-                  // Les services créés par l'administrateur. Ceux qui ont
-                  // été retirés ne paraissent plus : on ne confie pas de
-                  // travail à un service dissous.
-                  for (final p in ref.watch(profilsPersonnalisesActifsProvider))
-                    DropdownMenuItem(
-                      value: _cleProfil(p.id),
-                      child: Text(p.libelle),
-                    ),
+              SegmentedButton<_Destination>(
+                segments: const [
+                  ButtonSegment(
+                    value: _Destination.service,
+                    icon: Icon(Icons.groups_outlined),
+                    label: Text('Un service'),
+                  ),
+                  ButtonSegment(
+                    value: _Destination.personnel,
+                    icon: Icon(Icons.person_outline),
+                    label: Text("Un personnel de l'école"),
+                  ),
                 ],
-                onChanged: (v) =>
-                    setState(() => _destinataire = v ?? _destinataire),
+                selected: {_destination},
+                onSelectionChanged: (s) => setState(() {
+                  _destination = s.first;
+                  _personne = null;
+                  _personnelCtrl.clear();
+                  _erreurPersonnel = null;
+                }),
               ),
+              const SizedBox(height: 16),
+              if (_destination == _Destination.service) ...[
+                DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  initialValue: _service,
+                  decoration: const InputDecoration(labelText: 'Service'),
+                  items: [
+                    for (final a in ActeurTache.values)
+                      DropdownMenuItem(
+                        value: _cleActeur(a),
+                        child: Text(a.label),
+                      ),
+                    // Les services créés par l'administrateur. Ceux qui ont
+                    // été retirés ne paraissent plus : on ne confie pas de
+                    // travail à un service dissous.
+                    for (final p in ref.watch(
+                      profilsPersonnalisesActifsProvider,
+                    ))
+                      DropdownMenuItem(
+                        value: _cleProfil(p.id),
+                        child: Text(p.libelle),
+                      ),
+                  ],
+                  onChanged: (v) => setState(() {
+                    _service = v ?? _service;
+                    // Une personne d'un autre service ne suit pas.
+                    _personne = null;
+                  }),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String?>(
+                  // La clé suit le service : changer de service repart
+                  // d'une liste neuve.
+                  key: ValueKey('personne-$_service'),
+                  isExpanded: true,
+                  initialValue: duService.any((p) => p.id == _personne)
+                      ? _personne
+                      : null,
+                  decoration: InputDecoration(
+                    labelText: 'Personne du service (facultatif)',
+                    helperText: duService.isEmpty
+                        ? 'Aucun compte rattaché à ce service.'
+                        : null,
+                  ),
+                  items: [
+                    const DropdownMenuItem<String?>(
+                      value: null,
+                      child: Text('Tout le service'),
+                    ),
+                    for (final p in duService)
+                      DropdownMenuItem<String?>(
+                        value: p.id,
+                        child: Text(p.nom, overflow: TextOverflow.ellipsis),
+                      ),
+                  ],
+                  onChanged: (v) => setState(() => _personne = v),
+                ),
+              ] else
+                LayoutBuilder(
+                  builder: (context, contraintes) => DropdownMenu<String>(
+                    controller: _personnelCtrl,
+                    width: contraintes.maxWidth,
+                    menuHeight: 320,
+                    enableFilter: true,
+                    requestFocusOnTap: true,
+                    initialSelection: _personne,
+                    label: const Text("Personnel de l'école"),
+                    hintText: 'Tapez un nom',
+                    errorText: _erreurPersonnel,
+                    dropdownMenuEntries: [
+                      for (final p in personnes)
+                        DropdownMenuEntry(value: p.id, label: p.nom),
+                    ],
+                    onSelected: (v) => setState(() {
+                      _personne = v;
+                      _erreurPersonnel = null;
+                    }),
+                  ),
+                ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _descriptionCtrl,
@@ -151,21 +269,36 @@ class _TacheFormDialogState extends ConsumerState<TacheFormDialog> {
   }
 
   Future<void> _submit() async {
+    final versPersonnel = _destination == _Destination.personnel;
+    if (versPersonnel && _personne == null) {
+      setState(() => _erreurPersonnel = 'Choisissez la personne dans la liste');
+    }
     if (!validerFormulaire(context, _formKey)) return;
+    if (versPersonnel && _personne == null) return;
     setState(() => _envoi = true);
     final user = ref.read(sessionProvider)!.user;
 
-    final versProfil = _destinataire.startsWith('profil:');
-    final profilId = versProfil ? _destinataire.substring(7) : null;
-    final acteur = versProfil
-        ? null
-        : ActeurTache.values.firstWhere((a) => _cleActeur(a) == _destinataire);
-    final nomDestinataire = versProfil
-        ? ref
-              .read(profilsPersonnalisesActifsProvider)
-              .firstWhere((p) => p.id == profilId)
-              .libelle
-        : acteur!.label;
+    final acteur = versPersonnel ? null : _acteurChoisi;
+    final profilId = versPersonnel ? null : _profilChoisi;
+    final personnes =
+        ref.read(personnesPourTachesProvider).value ??
+        const <PersonneAssignable>[];
+    String? nomPersonne;
+    for (final p in personnes) {
+      if (p.id == _personne) nomPersonne = p.nom;
+    }
+    final nomService =
+        acteur?.label ??
+        (profilId == null
+            ? null
+            : ref
+                  .read(profilsPersonnalisesActifsProvider)
+                  .firstWhere((p) => p.id == profilId)
+                  .libelle);
+    final nomDestinataire = [
+      nomService,
+      nomPersonne,
+    ].whereType<String>().join(' — ');
     try {
       if (_correction) {
         await ref
@@ -174,6 +307,7 @@ class _TacheFormDialogState extends ConsumerState<TacheFormDialog> {
               id: widget.tache!.id,
               acteur: acteur,
               profilPersonnaliseId: profilId,
+              assigneA: _personne,
               description: _descriptionCtrl.text.trim(),
               dateLimite: _dateLimite,
             );
@@ -184,6 +318,7 @@ class _TacheFormDialogState extends ConsumerState<TacheFormDialog> {
               activiteId: widget.activite.id,
               acteur: acteur,
               profilPersonnaliseId: profilId,
+              assigneA: _personne,
               description: _descriptionCtrl.text.trim(),
               dateLimite: _dateLimite,
               titreActivite: widget.activite.titre,

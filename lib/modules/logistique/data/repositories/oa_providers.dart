@@ -86,7 +86,51 @@ class ActivitesNotifier extends Notifier<List<Activite>> {
         .eq('id', int.parse(id));
     await refresh();
   }
+
+  /// Corrige le titre, la description, la date ou le lieu.
+  Future<void> modifier({
+    required String id,
+    required String titre,
+    String? description,
+    required DateTime dateActivite,
+    String? lieu,
+  }) async {
+    await logistique
+        .from('activite')
+        .update({
+          'titre': titre,
+          'description': description,
+          'date_activite': dateActivite.toIso8601String(),
+          'lieu': lieu,
+        })
+        .eq('id', int.parse(id));
+    await refresh();
+  }
+
+  /// Efface l'activité ; la base emporte ses tâches (`on delete cascade`)
+  /// et prévient ceux qui en avaient une encore ouverte.
+  Future<void> supprimer(String id) async {
+    await logistique.from('activite').delete().eq('id', int.parse(id));
+    await refresh();
+    await ref.read(tachesProvider.notifier).refresh();
+  }
 }
+
+/// Les comptes à qui l'on peut confier une tâche. Lue par une fonction de la
+/// base : l'Officier Adjoint ne lit pas toutes les fiches des comptes.
+final personnesPourTachesProvider =
+    FutureProvider.autoDispose<List<PersonneAssignable>>((ref) async {
+      final rows = await logistique.rpc('personnes_pour_les_taches');
+      return [
+        for (final r in (rows as List).cast<Map<String, dynamic>>())
+          PersonneAssignable(
+            id: r['id'] as String,
+            nom: ((r['nom'] as String?) ?? '').trim(),
+            roleLogistique: r['role_logistique'] as String?,
+            profilPersonnaliseId: r['profil_personnalise_id']?.toString(),
+          ),
+      ]..sort((a, b) => a.nom.compareTo(b.nom));
+    });
 
 final activitesProvider = NotifierProvider<ActivitesNotifier, List<Activite>>(
   ActivitesNotifier.new,
@@ -124,6 +168,8 @@ TacheActivite _tacheFromRow(Map<String, dynamic> row) => TacheActivite(
   acteur: row['acteur'] == null ? null : _acteurFromDb(row['acteur'] as String),
   profilPersonnaliseId: row['profil_personnalise_id']?.toString(),
   profilPersonnaliseLibelle: row['_libelle_profil'] as String?,
+  assigneA: row['assigne_a'] as String?,
+  assigneNom: (row['assigne_nom'] as String?) ?? '',
   description: row['description'] as String,
   dateLimite: row['date_limite'] != null
       ? DateTime.parse(row['date_limite'] as String)
@@ -179,25 +225,28 @@ class TachesNotifier extends Notifier<List<TacheActivite>> {
     ref.read(chargementProvider.notifier).marquerCharge('taches');
   }
 
-  /// Confie une tâche, soit à l'un des quatre services d'origine, soit à un
-  /// profil créé en base. Exactement l'un des deux : la base le vérifie, et
-  /// l'écran n'offre jamais les deux à la fois.
+  /// Confie une tâche à un service (l'un des quatre d'origine ou un profil
+  /// créé en base), à un service et une personne de ce service, ou à une
+  /// personne seule. La base vérifie que la personne est bien du service.
   Future<void> assigner({
     required String activiteId,
     ActeurTache? acteur,
     String? profilPersonnaliseId,
+    String? assigneA,
     required String description,
     DateTime? dateLimite,
     required String titreActivite,
   }) async {
     assert(
-      (acteur == null) != (profilPersonnaliseId == null),
-      'une tâche a un destinataire, et un seul',
+      !(acteur != null && profilPersonnaliseId != null) &&
+          (acteur != null || profilPersonnaliseId != null || assigneA != null),
+      'une tâche a au plus un service, et un destinataire au moins',
     );
     await logistique.from('tache_activite').insert({
       'activite_id': int.parse(activiteId),
       'acteur': acteur?.name,
       'profil_personnalise_id': profilPersonnaliseId,
+      'assigne_a': assigneA,
       'description': description,
       'date_limite': dateLimite?.toIso8601String(),
     });
@@ -220,18 +269,21 @@ class TachesNotifier extends Notifier<List<TacheActivite>> {
     required String id,
     ActeurTache? acteur,
     String? profilPersonnaliseId,
+    String? assigneA,
     required String description,
     DateTime? dateLimite,
   }) async {
     assert(
-      (acteur == null) != (profilPersonnaliseId == null),
-      'une tâche a un destinataire, et un seul',
+      !(acteur != null && profilPersonnaliseId != null) &&
+          (acteur != null || profilPersonnaliseId != null || assigneA != null),
+      'une tâche a au plus un service, et un destinataire au moins',
     );
     await logistique
         .from('tache_activite')
         .update({
           'acteur': acteur?.name,
           'profil_personnalise_id': profilPersonnaliseId,
+          'assigne_a': assigneA,
           'description': description,
           'date_limite': dateLimite?.toIso8601String(),
         })
@@ -408,22 +460,22 @@ final tachesQuotidiennesProvider =
 /// Tâches assignées à l'acteur correspondant au rôle actuellement connecté —
 /// null (donc liste vide) si ce rôle n'a pas d'acteur (ex. soutien pétrolier).
 final mesTachesProvider = Provider<List<TacheActivite>>((ref) {
+  final profil = ref.watch(profilCourantProvider).value;
   // Un profil créé reconnaît les siennes à son identifiant, non à son rôle :
   // tous les profils créés portent le même rôle.
-  final monProfil = ref
-      .watch(profilCourantProvider)
-      .value
-      ?.profilPersonnaliseId;
-  if (monProfil != null) {
-    return ref
-        .watch(tachesProvider)
-        .where((t) => t.profilPersonnaliseId == monProfil)
-        .toList();
-  }
-
+  final monProfil = profil?.profilPersonnaliseId;
   final role = ref.watch(sessionProvider)?.user.role;
-  if (role == null) return [];
-  final acteur = acteurPourRole(role);
-  if (acteur == null) return [];
-  return ref.watch(tachesProvider).where((t) => t.acteur == acteur).toList();
+  final acteur = monProfil == null && role != null
+      ? acteurPourRole(role)
+      : null;
+  // Sans compte lu ni service, rien ne peut lui revenir : inutile de lire
+  // les tâches.
+  if (profil == null && monProfil == null && acteur == null) return [];
+
+  // Les tâches de son service, et celles où on est nommément désigné.
+  return ref.watch(tachesProvider).where((t) {
+    if (profil != null && t.assigneA == profil.id) return true;
+    if (monProfil != null) return t.profilPersonnaliseId == monProfil;
+    return acteur != null && t.acteur == acteur;
+  }).toList();
 });

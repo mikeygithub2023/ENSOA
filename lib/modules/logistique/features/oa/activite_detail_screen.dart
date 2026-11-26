@@ -6,6 +6,11 @@ import 'package:intl/intl.dart';
 
 import 'package:sig_ensoa/core/theme.dart';
 import 'package:sig_ensoa/core/chargement.dart';
+import 'package:sig_ensoa/core/roles.dart';
+import 'package:sig_ensoa/features/auth/providers/auth_providers.dart';
+import '../../data/repositories/misc_providers.dart';
+import 'package:sig_ensoa/modules/logistique/compat.dart';
+import 'activite_form_dialog.dart';
 import '../../data/models/oa.dart';
 import '../../data/repositories/oa_providers.dart';
 import '../../shared/widgets/skeleton.dart';
@@ -58,6 +63,70 @@ class ActiviteDetailScreen extends ConsumerWidget {
     }
   }
 
+  /// Effacer une activité emporte ses tâches : la confirmation le dit, avec
+  /// leur nombre.
+  Future<void> _confirmerSuppressionActivite(
+    BuildContext context,
+    WidgetRef ref,
+    Activite activite,
+    int nombreTaches,
+  ) async {
+    final messager = ScaffoldMessenger.of(context);
+    final routeur = GoRouter.of(context);
+    final confirme = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        scrollable: true,
+        title: const Text("Supprimer l'activité"),
+        content: Text(
+          '« ${activite.titre} » sera supprimée'
+          '${nombreTaches == 0
+              ? '.'
+              : nombreTaches == 1
+              ? ', avec la tâche qui lui est assignée.'
+              : ', avec les $nombreTaches tâches qui lui sont assignées.'}'
+          '\n\nCeux qui avaient une tâche en cours en seront prévenus. '
+          'Cette suppression est définitive.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.danger),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+    if (confirme != true) return;
+
+    try {
+      await ref.read(activitesProvider.notifier).supprimer(activite.id);
+      final user = ref.read(sessionProvider)?.user;
+      if (user != null) {
+        ref
+            .read(auditProvider.notifier)
+            .log(
+              auteurId: user.id,
+              action: 'ACTIVITE_SUPPRIMEE',
+              cible: activite.titre,
+              detail: '$nombreTaches tâche(s) retirée(s)',
+            );
+      }
+      messager.showSnackBar(
+        SnackBar(content: Text('Activité « ${activite.titre} » supprimée.')),
+      );
+      routeur.go('/logistique/taches?onglet=activites');
+    } catch (e) {
+      messager.showSnackBar(
+        SnackBar(content: Text('Suppression impossible : ${messageErreur(e)}')),
+      );
+    }
+  }
+
   AlertLevel _levelPourTache(TacheActivite t) {
     if (t.enRetard) return AlertLevel.critical;
     switch (t.statut) {
@@ -87,6 +156,12 @@ class ActiviteDetailScreen extends ConsumerWidget {
         .toList();
     final charge = estCharge(ref, ['activites', 'taches']);
     final df = DateFormat('dd/MM/yyyy HH:mm');
+    final organise =
+        ref
+            .watch(profilCourantProvider)
+            .value
+            ?.peut(Permission.gererActivites) ??
+        false;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -149,7 +224,32 @@ class ActiviteDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 Wrap(
                   spacing: 10,
+                  runSpacing: 10,
                   children: [
+                    if (organise) ...[
+                      OutlinedButton.icon(
+                        onPressed: () => showDialog(
+                          context: context,
+                          builder: (_) => ActiviteFormDialog(activite: current),
+                        ),
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text('Modifier'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => _confirmerSuppressionActivite(
+                          context,
+                          ref,
+                          current,
+                          taches.length,
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppColors.danger),
+                          foregroundColor: AppColors.danger,
+                        ),
+                        icon: const Icon(Icons.delete_outline, size: 18),
+                        label: const Text('Supprimer'),
+                      ),
+                    ],
                     if (current.statut != StatutActivite.terminee &&
                         current.statut != StatutActivite.annulee) ...[
                       OutlinedButton(

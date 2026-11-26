@@ -157,9 +157,9 @@ class TacheActivite {
   final String activiteId;
 
   /// Le service d'origine à qui la tâche est confiée — null quand elle va
-  /// à un profil créé en base. Exactement l'un des deux est renseigné ; la
-  /// base le vérifie, car une tâche sans destinataire ne paraîtrait sur
-  /// l'écran de personne.
+  /// à un profil créé en base, ou à une personne seule. Au plus un service,
+  /// et un destinataire au moins : la base le vérifie, car une tâche sans
+  /// destinataire ne paraîtrait sur l'écran de personne.
   final ActeurTache? acteur;
 
   final String? profilPersonnaliseId;
@@ -167,6 +167,13 @@ class TacheActivite {
   /// Le nom du service, lu en même temps que la tâche. Sans lui, l'écran
   /// afficherait un identifiant.
   final String? profilPersonnaliseLibelle;
+
+  /// La personne désignée : dans le service, ou seule, sans service.
+  final String? assigneA;
+
+  /// Son nom, recopié par la base.
+  final String assigneNom;
+
   final String description;
   final DateTime? dateLimite;
   final StatutTache statut;
@@ -181,6 +188,8 @@ class TacheActivite {
     this.acteur,
     this.profilPersonnaliseId,
     this.profilPersonnaliseLibelle,
+    this.assigneA,
+    this.assigneNom = '',
     required this.description,
     this.dateLimite,
     this.statut = StatutTache.aFaire,
@@ -190,12 +199,57 @@ class TacheActivite {
     this.commentaire,
   });
 
-  /// Comment on nomme son destinataire à l'écran.
-  String get destinataire =>
-      acteur?.label ?? profilPersonnaliseLibelle ?? 'Service retiré';
+  /// Le service, s'il y en a un.
+  String? get service =>
+      acteur?.label ??
+      profilPersonnaliseLibelle ??
+      (profilPersonnaliseId != null ? 'Service retiré' : null);
+
+  /// Comment on nomme son destinataire à l'écran : le service, la personne,
+  /// ou les deux.
+  String get destinataire {
+    final s = service;
+    final p = assigneNom.trim();
+    if (s != null && p.isNotEmpty) return '$s — $p';
+    if (p.isNotEmpty) return p;
+    return s ?? 'Destinataire retiré';
+  }
 
   bool get enRetard =>
       statut == StatutTache.aFaire &&
       dateLimite != null &&
       dateLimite!.isBefore(DateTime.now());
+}
+
+/// Quelqu'un à qui l'on peut confier une tâche d'activité : un compte actif
+/// de l'école.
+class PersonneAssignable {
+  final String id;
+  final String nom;
+  final String? roleLogistique;
+  final String? profilPersonnaliseId;
+
+  const PersonneAssignable({
+    required this.id,
+    required this.nom,
+    this.roleLogistique,
+    this.profilPersonnaliseId,
+  });
+
+  /// Travaille-t-elle pour ce service ? La même règle que
+  /// `logistique.est_du_service`, côté base.
+  bool estDuService({ActeurTache? acteur, String? profilPersonnaliseId}) {
+    if (profilPersonnaliseId != null) {
+      return this.profilPersonnaliseId == profilPersonnaliseId;
+    }
+    return switch (acteur) {
+      ActeurTache.st =>
+        roleLogistique == 'chef_soutien_technique' ||
+            roleLogistique == 'soutien_petrolier',
+      ActeurTache.garage => roleLogistique == 'garage',
+      ActeurTache.armurerie => roleLogistique == 'armurerie',
+      ActeurTache.sante => roleLogistique == 'sante',
+      null => false,
+    };
+  }
 }
