@@ -112,6 +112,8 @@ class LignePension {
     this.verifieLe,
     this.verifiePar,
     this.observation,
+    this.fichierPath,
+    this.fichierNom,
   });
 
   final String id;
@@ -127,6 +129,11 @@ class LignePension {
   final String? verifiePar;
   final String? observation;
 
+  /// La pièce numérisée, quand on l'a jointe : son chemin dans le dépôt
+  /// `dossiers-pension`, et le nom du fichier d'origine.
+  final String? fichierPath;
+  final String? fichierNom;
+
   factory LignePension.fromJson(Map<String, dynamic> json) => LignePension(
     id: json['id'] as String,
     apprenantId: json['apprenant_id'] as String,
@@ -137,5 +144,7 @@ class LignePension {
         : DateTime.parse(json['verifie_le'] as String),
     verifiePar: json['verifie_par'] as String?,
     observation: json['observation'] as String?,
+    fichierPath: json['fichier_path'] as String?,
+    fichierNom: json['fichier_nom'] as String?,
   );
 }

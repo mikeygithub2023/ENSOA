@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:intl/intl.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:sig_ensoa/core/supabase_client.dart';
 import '../../../models/pension.dart';
@@ -17,6 +20,8 @@ class LignePensionDraft {
     this.verifieLe,
     this.verifiePar,
     this.observation,
+    this.fichierPath,
+    this.fichierNom,
   });
 
   final String apprenantId;
@@ -25,6 +30,10 @@ class LignePensionDraft {
   final DateTime? verifieLe;
   final String? verifiePar;
   final String? observation;
+
+  /// Un scan qu'on vient de déposer. Nul : la ligne garde celui qu'elle a.
+  final String? fichierPath;
+  final String? fichierNom;
 
   Map<String, dynamic> toUpsertJson() => {
     'apprenant_id': apprenantId,
@@ -35,12 +44,41 @@ class LignePensionDraft {
         : DateFormat('yyyy-MM-dd').format(verifieLe!),
     'verifie_par': verifiePar,
     'observation': observation,
+    if (fichierPath != null) 'fichier_path': fichierPath,
+    if (fichierPath != null) 'fichier_nom': fichierNom,
   };
+}
+
+/// Les formats qu'on accepte pour une pièce numérisée — ceux que le dépôt
+/// accepte aussi, et sa taille maximale.
+const extensionsPiecePension = ['pdf', 'jpg', 'jpeg', 'png'];
+const tailleMaxPiecePension = 10 * 1024 * 1024;
+
+/// Le type du fichier, d'après son extension.
+String typeDuFichierPension(String nom) {
+  final ext = nom.contains('.') ? nom.split('.').last.toLowerCase() : '';
+  return switch (ext) {
+    'pdf' => 'application/pdf',
+    'png' => 'image/png',
+    _ => 'image/jpeg',
+  };
+}
+
+/// Le chemin d'un scan : `<militaire>/<pièce>.<extension>`. La RLS du
+/// dépôt lit le militaire dans ce chemin.
+String cheminPiecePension({
+  required String apprenantId,
+  required String pieceId,
+  required String nom,
+}) {
+  final ext = nom.contains('.') ? nom.split('.').last.toLowerCase() : 'pdf';
+  return '$apprenantId/$pieceId.${ext == 'jpeg' ? 'jpg' : ext}';
 }
 
 class PensionRepository {
   static const _catalogue = 'pieces_pension';
   static const _dossiers = 'dossiers_pension';
+  static const _depot = 'dossiers-pension';
 
   // --- Le catalogue des pièces ---------------------------------------------
 
@@ -51,7 +89,11 @@ class PensionRepository {
   Future<List<PiecePension>> fetchPieces({bool toutes = false}) async {
     var requete = scolarite.from(_catalogue).select();
     if (!toutes) requete = requete.eq('active', true);
-    final rows = await requete.order('ordre').order('libelle');
+    // `order` trie par défaut du plus grand au plus petit : l'ordre du
+    // dossier se lit, lui, du premier au dernier.
+    final rows = await requete
+        .order('ordre', ascending: true)
+        .order('libelle', ascending: true);
     return rows.map(PiecePension.fromJson).toList();
   }
 
@@ -121,11 +163,53 @@ class PensionRepository {
   Future<void> effacer({
     required String apprenantId,
     required String pieceId,
+    String? fichierPath,
   }) async {
     await scolarite
         .from(_dossiers)
         .delete()
         .eq('apprenant_id', apprenantId)
         .eq('piece_id', pieceId);
+    // Sans sa ligne, le scan ne serait plus rattaché à rien.
+    if (fichierPath != null) {
+      await supabase.storage.from(_depot).remove([fichierPath]);
+    }
+  }
+
+  // --- Les pièces numérisées -------------------------------------------------
+
+  /// Dépose le scan d'une pièce et rend son chemin. Un scan déjà déposé sous
+  /// une autre extension est retiré : la pièce n'en garde qu'un.
+  Future<String> deposerFichier({
+    required String apprenantId,
+    required String pieceId,
+    required Uint8List octets,
+    required String nom,
+    String? ancienChemin,
+  }) async {
+    final chemin = cheminPiecePension(
+      apprenantId: apprenantId,
+      pieceId: pieceId,
+      nom: nom,
+    );
+    await supabase.storage
+        .from(_depot)
+        .uploadBinary(
+          chemin,
+          octets,
+          fileOptions: FileOptions(
+            upsert: true,
+            contentType: typeDuFichierPension(nom),
+          ),
+        );
+    if (ancienChemin != null && ancienChemin != chemin) {
+      await supabase.storage.from(_depot).remove([ancienChemin]);
+    }
+    return chemin;
+  }
+
+  /// Les octets d'un scan, pour le revoir ou l'enregistrer sur le poste.
+  Future<Uint8List> telechargerFichier(String chemin) {
+    return supabase.storage.from(_depot).download(chemin);
   }
 }

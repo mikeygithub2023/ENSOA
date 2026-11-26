@@ -1,6 +1,7 @@
 // Les pièces du dossier de pension qui ne se demandent qu'à certains : au
 // militaire marié, à celui qui a des enfants.
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sig_ensoa/modules/scolarite/features/apprenants/data/pension_repository.dart';
 import 'package:sig_ensoa/modules/scolarite/features/apprenants/pension_bilan.dart';
 import 'package:sig_ensoa/modules/scolarite/models/pension.dart';
 
@@ -91,5 +92,58 @@ void main() {
       ],
     );
     expect(bilan.etat, EtatDossier.complet);
+  });
+
+  group('les pièces numérisées', () {
+    test('le chemin commence par le militaire, que la RLS y lise', () {
+      expect(
+        cheminPiecePension(
+          apprenantId: 'a1',
+          pieceId: 'p1',
+          nom: 'Acte Naissance.JPEG',
+        ),
+        'a1/p1.jpg',
+      );
+      expect(
+        cheminPiecePension(apprenantId: 'a1', pieceId: 'p1', nom: 'x.pdf'),
+        'a1/p1.pdf',
+      );
+    });
+
+    test("le type suit l'extension", () {
+      expect(typeDuFichierPension('scan.PDF'), 'application/pdf');
+      expect(typeDuFichierPension('scan.png'), 'image/png');
+      expect(typeDuFichierPension('scan.jpg'), 'image/jpeg');
+    });
+
+    test('la ligne garde son scan', () {
+      final l = LignePension.fromJson({
+        'id': 'l',
+        'apprenant_id': 'a',
+        'piece_id': 'p',
+        'presente': true,
+        'fichier_path': 'a/p.pdf',
+        'fichier_nom': 'livret.pdf',
+      });
+      expect(l.fichierPath, 'a/p.pdf');
+      expect(l.fichierNom, 'livret.pdf');
+    });
+
+    test("un enregistrement sans nouveau scan n'efface pas l'ancien", () {
+      const sans = LignePensionDraft(
+        apprenantId: 'a',
+        pieceId: 'p',
+        presente: true,
+      );
+      expect(sans.toUpsertJson().containsKey('fichier_path'), isFalse);
+      const avec = LignePensionDraft(
+        apprenantId: 'a',
+        pieceId: 'p',
+        presente: true,
+        fichierPath: 'a/p.pdf',
+        fichierNom: 'livret.pdf',
+      );
+      expect(avec.toUpsertJson()['fichier_path'], 'a/p.pdf');
+    });
   });
 }

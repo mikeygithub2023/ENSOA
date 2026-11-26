@@ -46,7 +46,9 @@ class DecorationsRepository {
   Future<List<TypeDecoration>> fetchCatalogue({bool toutes = false}) async {
     var requete = scolarite.from(_catalogue).select();
     if (!toutes) requete = requete.eq('active', true);
-    final rows = await requete.order('ordre').order('libelle');
+    final rows = await requete
+        .order('ordre', ascending: true)
+        .order('libelle', ascending: true);
     return rows.map(TypeDecoration.fromJson).toList();
   }
 

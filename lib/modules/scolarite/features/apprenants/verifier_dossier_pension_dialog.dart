@@ -11,7 +11,14 @@
 // partent. L'école travaille sur une liaison qui n'est pas toujours là :
 // une vingtaine d'allers-retours pour cocher une liste serait une liste
 // qu'on ne coche pas.
+//
+// LA PIÈCE SE JOINT. Cocher « présente » propose d'importer son scan, ou de
+// le revoir s'il y est déjà. Le fichier choisi part, lui aussi, à
+// l'enregistrement.
 
+import 'dart:typed_data';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -22,6 +29,7 @@ import 'package:sig_ensoa/modules/scolarite/compat.dart';
 import '../../models/apprenant.dart';
 import '../../models/pension.dart';
 import '../../shared/widgets/common.dart';
+import 'apercu_piece_pension.dart';
 import 'catalogues_rh_dialog.dart';
 import 'data/pension_repository.dart';
 import 'pension_bilan.dart';
@@ -44,22 +52,49 @@ Future<void> showVerifierDossierPensionDialog(
 
 /// Ce qu'on a décidé pour une pièce, à l'écran, avant d'enregistrer.
 class _Avis {
-  const _Avis({this.presente, this.observation, this.verifieLe});
+  const _Avis({
+    this.presente,
+    this.observation,
+    this.verifieLe,
+    this.fichierPath,
+    this.fichierNom,
+    this.nouveauFichier,
+    this.nouveauNom,
+  });
 
   /// Nul : personne ne s'est encore prononcé.
   final bool? presente;
   final String? observation;
   final DateTime? verifieLe;
 
+  /// Le scan déjà déposé, s'il y en a un.
+  final String? fichierPath;
+  final String? fichierNom;
+
+  /// Le scan qu'on vient de choisir, pas encore envoyé.
+  final Uint8List? nouveauFichier;
+  final String? nouveauNom;
+
+  bool get aUnFichier => nouveauFichier != null || fichierPath != null;
+
+  /// Le nom à afficher : celui du fichier choisi, sinon du fichier déposé.
+  String? get nomDuFichier => nouveauNom ?? fichierNom;
+
   _Avis copier({
     bool? presente,
     bool effacerPresente = false,
     String? observation,
     DateTime? verifieLe,
+    Uint8List? nouveauFichier,
+    String? nouveauNom,
   }) => _Avis(
     presente: effacerPresente ? null : (presente ?? this.presente),
     observation: observation ?? this.observation,
     verifieLe: verifieLe ?? this.verifieLe,
+    fichierPath: fichierPath,
+    fichierNom: fichierNom,
+    nouveauFichier: nouveauFichier ?? this.nouveauFichier,
+    nouveauNom: nouveauNom ?? this.nouveauNom,
   );
 }
 
@@ -92,6 +127,8 @@ class _VerifierDialogState extends ConsumerState<_VerifierDialog> {
         presente: l?.presente,
         observation: l?.observation,
         verifieLe: l?.verifieLe,
+        fichierPath: l?.fichierPath,
+        fichierNom: l?.fichierNom,
       );
     }
     _initial = Map.of(_avis);
@@ -103,7 +140,8 @@ class _VerifierDialogState extends ConsumerState<_VerifierDialog> {
     final apres = _avis[pieceId];
     return avant?.presente != apres?.presente ||
         (avant?.observation ?? '') != (apres?.observation ?? '') ||
-        avant?.verifieLe != apres?.verifieLe;
+        avant?.verifieLe != apres?.verifieLe ||
+        apres?.nouveauFichier != null;
   }
 
   int get _nbChangements => _avis.keys.where(_aChange).length;
@@ -124,8 +162,25 @@ class _VerifierDialogState extends ConsumerState<_VerifierDialog> {
           // Retour à « non vérifiée » : la ligne s'efface. Garder une
           // ligne qui ne dit rien ferait passer l'absence d'avis pour un
           // avis.
-          await depot.effacer(apprenantId: widget.apprenant.id, pieceId: p.id);
+          await depot.effacer(
+            apprenantId: widget.apprenant.id,
+            pieceId: p.id,
+            fichierPath: avis.fichierPath,
+          );
           continue;
+        }
+        // Le scan part d'abord : la ligne n'en porte le chemin qu'une fois
+        // le fichier en place.
+        String? chemin;
+        final octets = avis.nouveauFichier;
+        if (octets != null) {
+          chemin = await depot.deposerFichier(
+            apprenantId: widget.apprenant.id,
+            pieceId: p.id,
+            octets: octets,
+            nom: avis.nouveauNom!,
+            ancienChemin: avis.fichierPath,
+          );
         }
         await depot.enregistrer(
           LignePensionDraft(
@@ -138,6 +193,8 @@ class _VerifierDialogState extends ConsumerState<_VerifierDialog> {
             observation: (avis.observation ?? '').trim().isEmpty
                 ? null
                 : avis.observation!.trim(),
+            fichierPath: chemin,
+            fichierNom: chemin == null ? null : avis.nouveauNom,
           ),
         );
       }
@@ -158,6 +215,100 @@ class _VerifierDialogState extends ConsumerState<_VerifierDialog> {
         _envoi = false;
         _erreur = 'Enregistrement refusé : ${messageErreur(e)}';
       });
+    }
+  }
+
+  /// Choisit le scan d'une pièce sur le poste. La pièce passe « présente » :
+  /// on ne joint pas le scan d'une pièce qui manque.
+  Future<void> _choisirFichier(PiecePension piece) async {
+    final choix = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: extensionsPiecePension,
+      withData: true,
+    );
+    final fichier = choix?.files.single;
+    final octets = fichier?.bytes;
+    if (fichier == null || octets == null || !mounted) return;
+    if (octets.length > tailleMaxPiecePension) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Ce fichier dépasse 10 Mo. Numérisez la pièce en qualité '
+            'moindre, ou en PDF.',
+          ),
+        ),
+      );
+      return;
+    }
+    setState(() {
+      _avis[piece.id] = (_avis[piece.id] ?? const _Avis()).copier(
+        presente: true,
+        nouveauFichier: octets,
+        nouveauNom: fichier.name,
+      );
+    });
+  }
+
+  /// Revoit le scan d'une pièce : celui qu'on vient de choisir, sinon celui
+  /// du dépôt.
+  Future<void> _voirFichier(PiecePension piece) async {
+    final avis = _avis[piece.id] ?? const _Avis();
+    if (!avis.aUnFichier) return;
+    final enAttente = avis.nouveauFichier;
+    final choix = await showApercuPiecePension(
+      context,
+      titre: piece.libelle,
+      nom: avis.nomDuFichier ?? 'piece',
+      peutRemplacer: widget.peutEcrire && !_envoi,
+      charger: () async =>
+          enAttente ??
+          await ref
+              .read(pensionRepositoryProvider)
+              .telechargerFichier(avis.fichierPath!),
+    );
+    if (choix == ChoixApercu.remplacer && mounted) {
+      await _choisirFichier(piece);
+    }
+  }
+
+  /// Une pièce qu'on vient de cocher « présente » : on propose d'en
+  /// importer le scan, ou de le revoir s'il y est déjà.
+  Future<void> _proposerFichier(PiecePension piece) async {
+    final avis = _avis[piece.id] ?? const _Avis();
+    final dejaLa = avis.aUnFichier;
+    final importer = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        scrollable: true,
+        title: Text(piece.libelle),
+        content: Text(
+          dejaLa
+              ? 'La pièce numérisée est déjà au dossier '
+                    '(« ${avis.nomDuFichier} »).'
+              : 'Pièce présente. Voulez-vous en joindre la version '
+                    'numérisée (PDF, JPEG ou PNG, 10 Mo au plus) ?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(dejaLa ? 'Fermer' : 'Plus tard'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(context).pop(true),
+            icon: Icon(
+              dejaLa ? Icons.visibility_outlined : Icons.upload_file,
+              size: 18,
+            ),
+            label: Text(dejaLa ? 'Voir la pièce' : 'Importer le fichier'),
+          ),
+        ],
+      ),
+    );
+    if (importer != true || !mounted) return;
+    if (dejaLa) {
+      await _voirFichier(piece);
+    } else {
+      await _choisirFichier(piece);
     }
   }
 
@@ -317,15 +468,22 @@ class _VerifierDialogState extends ConsumerState<_VerifierDialog> {
                       piece: piece,
                       avis: avis,
                       peutEcrire: widget.peutEcrire && !_envoi,
-                      onBascule: () => setState(() {
-                        // présente → manquante → non vérifiée → présente
-                        _avis[piece.id] = switch (avis.presente) {
-                          true => avis.copier(presente: false),
-                          false => avis.copier(effacerPresente: true),
-                          null => avis.copier(presente: true),
-                        };
-                      }),
+                      onBascule: () {
+                        setState(() {
+                          // présente → manquante → non vérifiée → présente
+                          _avis[piece.id] = switch (avis.presente) {
+                            true => avis.copier(presente: false),
+                            false => avis.copier(effacerPresente: true),
+                            null => avis.copier(presente: true),
+                          };
+                        });
+                        // Cochée « présente » : son scan, à joindre ou à
+                        // revoir.
+                        if (avis.presente == null) _proposerFichier(piece);
+                      },
                       onObservation: () => _observation(piece),
+                      onImporter: () => _choisirFichier(piece),
+                      onVoir: () => _voirFichier(piece),
                     );
                   },
                 );
@@ -427,6 +585,8 @@ class _LignePieceTile extends StatelessWidget {
     required this.peutEcrire,
     required this.onBascule,
     required this.onObservation,
+    required this.onImporter,
+    required this.onVoir,
   });
 
   final PiecePension piece;
@@ -434,6 +594,8 @@ class _LignePieceTile extends StatelessWidget {
   final bool peutEcrire;
   final VoidCallback onBascule;
   final VoidCallback onObservation;
+  final VoidCallback onImporter;
+  final VoidCallback onVoir;
 
   @override
   Widget build(BuildContext context) {
@@ -488,6 +650,32 @@ class _LignePieceTile extends StatelessWidget {
               ],
             ],
           ),
+          if (avis.aUnFichier)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.attach_file,
+                    size: 14,
+                    color: AppColors.inkMuted,
+                  ),
+                  const SizedBox(width: 2),
+                  Flexible(
+                    child: Text(
+                      avis.nouveauFichier != null
+                          ? '${avis.nomDuFichier} — à enregistrer'
+                          : avis.nomDuFichier ?? 'Pièce numérisée',
+                      style: const TextStyle(
+                        color: AppColors.inkMuted,
+                        fontSize: 12,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           if (observation != null && observation.trim().isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 2),
@@ -502,10 +690,27 @@ class _LignePieceTile extends StatelessWidget {
             ),
         ],
       ),
-      trailing: IconButton(
-        icon: const Icon(Icons.notes_outlined, size: 18),
-        tooltip: 'Observation et date',
-        onPressed: peutEcrire ? onObservation : null,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (avis.aUnFichier)
+            IconButton(
+              icon: const Icon(Icons.visibility_outlined, size: 18),
+              tooltip: 'Voir la pièce',
+              onPressed: onVoir,
+            )
+          else if (peutEcrire)
+            IconButton(
+              icon: const Icon(Icons.upload_file, size: 18),
+              tooltip: 'Importer la pièce',
+              onPressed: onImporter,
+            ),
+          IconButton(
+            icon: const Icon(Icons.notes_outlined, size: 18),
+            tooltip: 'Observation et date',
+            onPressed: peutEcrire ? onObservation : null,
+          ),
+        ],
       ),
     );
   }
