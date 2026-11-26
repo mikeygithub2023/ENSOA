@@ -35,12 +35,17 @@ class _Entree {
     required this.ordre,
     required this.active,
     required this.obligatoire,
+    this.condition,
   });
 
   final String id;
   final String libelle;
   final int ordre;
   final bool active;
+
+  /// À qui la pièce se demande, quand ce n'est pas à tous : « Si le
+  /// militaire est marié ».
+  final String? condition;
 
   /// Sans objet pour les décorations : l'écran ne l'affiche pas alors.
   final bool obligatoire;
@@ -106,6 +111,7 @@ Future<void> showPiecesPensionDialog(BuildContext context) {
             ordre: p.ordre,
             active: p.active,
             obligatoire: p.obligatoire,
+            condition: p.condition.libelle,
           ),
       ],
       creer: (ref, {required libelle, required ordre, required obligatoire}) =>
@@ -513,7 +519,9 @@ class _CatalogueDialogState extends ConsumerState<_CatalogueDialog> {
                                 : TextDecoration.lineThrough,
                           ),
                         ),
-                        subtitle: Row(
+                        subtitle: Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
                           children: [
                             if (widget.pilote.avecObligatoire)
                               StatusChip(
@@ -524,13 +532,16 @@ class _CatalogueDialogState extends ConsumerState<_CatalogueDialog> {
                                     ? AlertLevel.warning
                                     : AlertLevel.info,
                               ),
-                            if (!e.active) ...[
-                              const SizedBox(width: 8),
+                            if (e.condition != null)
+                              StatusChip(
+                                label: e.condition!,
+                                level: AlertLevel.info,
+                              ),
+                            if (!e.active)
                               const StatusChip(
                                 label: 'Désactivée',
                                 level: AlertLevel.critical,
                               ),
-                            ],
                           ],
                         ),
                         trailing: Row(

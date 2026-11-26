@@ -18,6 +18,7 @@ class PiecePension {
     required this.ordre,
     required this.obligatoire,
     required this.active,
+    this.condition = ConditionPiece.aucune,
   });
 
   final String id;
@@ -34,13 +35,71 @@ class PiecePension {
   /// disparaître : les vérifications déjà faites gardent leur objet.
   final bool active;
 
+  /// À qui la pièce se demande. L'acte de mariage ne se demande qu'au
+  /// militaire marié, l'acte de naissance des enfants qu'à celui qui en a :
+  /// pour les autres, la pièce ne manque pas — elle n'a pas lieu d'être.
+  final ConditionPiece condition;
+
   factory PiecePension.fromJson(Map<String, dynamic> json) => PiecePension(
     id: json['id'] as String,
     libelle: json['libelle'] as String,
     ordre: (json['ordre'] as num?)?.toInt() ?? 0,
     obligatoire: json['obligatoire'] as bool? ?? true,
     active: json['active'] as bool? ?? true,
+    condition: ConditionPiece.depuis(json['condition'] as String?),
   );
+}
+
+/// La situation matrimoniale dit-elle « marié » ? Les fiches portent
+/// « Marié(e) », parfois « MARIE » ou « M » à l'import.
+bool estMarie(String? situationMatrimoniale) {
+  final s = (situationMatrimoniale ?? '').trim().toUpperCase();
+  return s == 'M' || s.startsWith('MARI');
+}
+
+/// À qui une pièce du dossier se demande.
+enum ConditionPiece {
+  /// À tous.
+  aucune(null, null),
+
+  /// Au militaire marié.
+  marie('marie', 'Si le militaire est marié'),
+
+  /// Au militaire qui a des enfants.
+  enfants('enfants', 'Si le militaire a des enfants');
+
+  const ConditionPiece(this.valeur, this.libelle);
+
+  /// La valeur en base (`pieces_pension.condition`).
+  final String? valeur;
+
+  /// Ce que le catalogue affiche.
+  final String? libelle;
+
+  static ConditionPiece depuis(String? valeur) => ConditionPiece.values
+      .firstWhere((c) => c.valeur == valeur, orElse: () => aucune);
+}
+
+/// Les pièces qu'on demande à ce militaire : tout le catalogue, moins celles
+/// réservées aux mariés s'il ne l'est pas, et aux parents s'il n'a pas
+/// d'enfant. Un nombre d'enfants inconnu ne retire rien : mieux vaut
+/// demander une pièce de trop que d'en oublier une.
+List<PiecePension> piecesPour(
+  List<PiecePension> pieces, {
+  String? situationMatrimoniale,
+  int? nombreEnfants,
+}) {
+  final marie = estMarie(situationMatrimoniale);
+  final sansEnfant = nombreEnfants == 0;
+  return pieces
+      .where(
+        (p) => switch (p.condition) {
+          ConditionPiece.aucune => true,
+          ConditionPiece.marie => marie,
+          ConditionPiece.enfants => !sansEnfant,
+        },
+      )
+      .toList();
 }
 
 /// Ce qu'on a constaté sur une pièce, pour un militaire.

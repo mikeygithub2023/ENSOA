@@ -247,7 +247,13 @@ class _VerifierDialogState extends ConsumerState<_VerifierDialog> {
     final largeur = taille.width - 48 < 760 ? taille.width - 48 : 760.0;
     final hauteur = taille.height - 48 < 700 ? taille.height - 48 : 700.0;
 
-    final pieces = piecesAsync.value ?? const <PiecePension>[];
+    // Les pièces réservées aux mariés, ou aux parents, ne se demandent pas
+    // aux autres.
+    final pieces = piecesPour(
+      piecesAsync.value ?? const <PiecePension>[],
+      situationMatrimoniale: widget.apprenant.situationMatrimoniale,
+      nombreEnfants: widget.apprenant.nombreEnfants,
+    );
     final lignes = lignesAsync.value ?? const <LignePension>[];
     if (piecesAsync.hasValue && lignesAsync.hasValue) {
       _amorcer(pieces, lignes);
@@ -295,7 +301,7 @@ class _VerifierDialogState extends ConsumerState<_VerifierDialog> {
           const SizedBox(height: 12),
           Expanded(
             child: piecesAsync.when(
-              data: (pieces) {
+              data: (_) {
                 if (pieces.isEmpty) {
                   return _CatalogueVide(estAdmin: estAdmin);
                 }

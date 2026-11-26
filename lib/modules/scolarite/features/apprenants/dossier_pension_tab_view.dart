@@ -110,7 +110,11 @@ class DossierPensionTabView extends ConsumerWidget {
               final bilans = {
                 for (final a in ranges)
                   a.id: bilanDuDossier(
-                    pieces: pieces,
+                    pieces: piecesPour(
+                      pieces,
+                      situationMatrimoniale: a.situationMatrimoniale,
+                      nombreEnfants: a.nombreEnfants,
+                    ),
                     lignes: lignesParApprenant[a.id] ?? const [],
                   ),
               };

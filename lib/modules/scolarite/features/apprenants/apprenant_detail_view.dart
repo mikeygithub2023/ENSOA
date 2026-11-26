@@ -1458,7 +1458,11 @@ class _DossierPensionSection extends ConsumerWidget {
     final peutEcrire =
         profil?.role == AppRole.admin || profil?.role == AppRole.chefDivision;
 
-    final pieces = piecesAsync.value ?? const <PiecePension>[];
+    final pieces = piecesPour(
+      piecesAsync.value ?? const <PiecePension>[],
+      situationMatrimoniale: apprenant.situationMatrimoniale,
+      nombreEnfants: apprenant.nombreEnfants,
+    );
     final lignes = lignesAsync.value ?? const <LignePension>[];
     if (piecesAsync.isLoading || lignesAsync.isLoading) {
       return const Center(
