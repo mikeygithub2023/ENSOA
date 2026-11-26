@@ -14,6 +14,11 @@ import 'package:sig_ensoa/modules/logistique/data/repositories/oa_providers.dart
 import 'package:sig_ensoa/modules/logistique/features/oa/activites_cellule_tab.dart';
 
 final _demain = DateTime.now().add(const Duration(days: 1));
+final _aujourdhui = DateTime(
+  DateTime.now().year,
+  DateTime.now().month,
+  DateTime.now().day,
+);
 
 Activite _activite(String id, DateTime date, {StatutActivite? statut}) =>
     Activite(
@@ -29,8 +34,10 @@ Activite _activite(String id, DateTime date, {StatutActivite? statut}) =>
 class _Activites extends ActivitesNotifier {
   @override
   List<Activite> build() => [
-    _activite('passee', DateTime.now().subtract(const Duration(hours: 2))),
+    _activite('hier', _aujourdhui.subtract(const Duration(hours: 2))),
     _activite('future', _demain),
+    // Ce matin à 0 h 01 : passée d'heure, mais du jour — elle reste.
+    _activite('matin', _aujourdhui.add(const Duration(minutes: 1))),
     _activite('close', _demain, statut: StatutActivite.terminee),
     _activite('annulee', _demain, statut: StatutActivite.annulee),
   ];
@@ -54,7 +61,7 @@ class _Taches extends TachesNotifier {
     ),
     TacheActivite(
       id: '3',
-      activiteId: 'passee',
+      activiteId: 'matin',
       acteur: ActeurTache.garage,
       assigneA: 'p9',
       assigneNom: 'SGT KONE Ali',
@@ -166,23 +173,20 @@ void main() {
     );
   });
 
-  test("en cours dès que l'heure est passée", () {
-    final maintenant = DateTime.now();
-    expect(
-      activiteEnCours(
-        _activite('p', maintenant.subtract(const Duration(minutes: 1))),
-        maintenant,
+  test("d'aujourd'hui ou plus tard, de la plus proche à la plus loin", () {
+    final maintenant = _aujourdhui.add(const Duration(hours: 15));
+    final retenues = activitesDeLaCellule([
+      _activite('loin', _aujourdhui.add(const Duration(days: 30))),
+      _activite('hier', _aujourdhui.subtract(const Duration(minutes: 1))),
+      _activite('ce matin', _aujourdhui.add(const Duration(hours: 8))),
+      _activite('demain', _aujourdhui.add(const Duration(days: 1))),
+      _activite(
+        'annulee',
+        _aujourdhui.add(const Duration(days: 2)),
+        statut: StatutActivite.annulee,
       ),
-      isTrue,
-    );
-    expect(activiteEnCours(_activite('f', _demain), maintenant), isFalse);
-    expect(
-      activiteEnCours(
-        _activite('f', _demain, statut: StatutActivite.enCours),
-        maintenant,
-      ),
-      isTrue,
-    );
+    ], maintenant);
+    expect(retenues.map((a) => a.id), ['ce matin', 'demain', 'loin']);
   });
 
   for (final (nom, taille) in [
@@ -193,9 +197,9 @@ void main() {
       await _ouvrir(tester, taille);
       expect(tester.takeException(), isNull);
 
-      expect(find.text('En cours (1)'), findsOneWidget);
-      expect(find.text('À venir (1)'), findsOneWidget);
-      // Ni l'activité terminée, ni l'annulée.
+      expect(find.text('Activités à venir (2)'), findsOneWidget);
+      // Ni celle d'hier, ni la terminée, ni l'annulée.
+      expect(find.text('Activité hier'), findsNothing);
       expect(find.text('Activité close'), findsNothing);
       expect(find.text('Activité annulee'), findsNothing);
 

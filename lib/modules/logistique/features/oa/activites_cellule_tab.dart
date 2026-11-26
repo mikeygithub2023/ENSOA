@@ -16,10 +16,24 @@ import '../../shared/widgets/widgets.dart';
 bool activiteVivante(Activite a) =>
     a.statut == StatutActivite.planifiee || a.statut == StatutActivite.enCours;
 
-/// Commencée : déclarée en cours, ou dont l'heure est passée sans qu'on l'ait
-/// close.
-bool activiteEnCours(Activite a, DateTime maintenant) =>
-    a.statut == StatutActivite.enCours || !a.dateActivite.isAfter(maintenant);
+/// Ce qu'une cellule voit : les activités ni terminées ni annulées dont la
+/// date est aujourd'hui ou plus tard, de la plus proche à la plus lointaine.
+/// Une activité d'aujourd'hui reste, même si son heure est passée.
+List<Activite> activitesDeLaCellule(
+  List<Activite> activites,
+  DateTime maintenant,
+) {
+  final aujourdhui = DateTime(
+    maintenant.year,
+    maintenant.month,
+    maintenant.day,
+  );
+  return activites.where((a) {
+    final d = a.dateActivite.toLocal();
+    return activiteVivante(a) &&
+        !DateTime(d.year, d.month, d.day).isBefore(aujourdhui);
+  }).toList()..sort((a, b) => a.dateActivite.compareTo(b.dateActivite));
+}
 
 /// Les tâches qu'une cellule a à faire dans une activité : celles confiées à
 /// son service, et celles où l'on est nommément désigné. Une tâche annulée
@@ -38,8 +52,9 @@ List<TacheActivite> tachesDeLaCellule(
     )
     .toList();
 
-/// L'onglet « Activités » d'une cellule : les activités de l'école en cours et
-/// à venir, et sous chacune ce que la cellule doit y faire.
+/// L'onglet « Activités » d'une cellule : les activités de l'école datées
+/// d'aujourd'hui ou plus tard, par date croissante, et sous chacune ce que la
+/// cellule doit y faire.
 ///
 /// Toutes les activités paraissent, même celles où la cellule n'a rien : elle
 /// sait ainsi ce qui se prépare à l'école. Celles où elle a du travail le
@@ -65,19 +80,12 @@ class ActivitesCelluleTab extends ConsumerWidget {
       );
     }
 
-    final maintenant = DateTime.now();
-    final activites =
-        ref.watch(activitesProvider).where(activiteVivante).toList()
-          ..sort((a, b) => a.dateActivite.compareTo(b.dateActivite));
+    final activites = activitesDeLaCellule(
+      ref.watch(activitesProvider),
+      DateTime.now(),
+    );
     final taches = ref.watch(tachesProvider);
     final mes = {for (final t in ref.watch(mesTachesProvider)) t.id};
-
-    final enCours = activites
-        .where((a) => activiteEnCours(a, maintenant))
-        .toList();
-    final aVenir = activites
-        .where((a) => !activiteEnCours(a, maintenant))
-        .toList();
 
     Widget carte(Activite a) => _CarteActivite(
       activite: a,
@@ -99,17 +107,10 @@ class ActivitesCelluleTab extends ConsumerWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(4, 4, 4, 100),
         children: [
+          SectionHeader(title: 'Activités à venir (${activites.length})'),
           if (activites.isEmpty)
-            const EmptyState(message: 'Aucune activité en cours ni à venir'),
-          if (enCours.isNotEmpty) ...[
-            SectionHeader(title: 'En cours (${enCours.length})'),
-            for (final a in enCours) carte(a),
-            const SizedBox(height: 12),
-          ],
-          if (aVenir.isNotEmpty) ...[
-            SectionHeader(title: 'À venir (${aVenir.length})'),
-            for (final a in aVenir) carte(a),
-          ],
+            const EmptyState(message: 'Aucune activité à venir'),
+          for (final a in activites) carte(a),
         ],
       ),
     );
