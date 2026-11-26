@@ -1,3 +1,6 @@
+import 'package:sig_ensoa/modules/logistique/data/models/oa.dart';
+import 'package:sig_ensoa/modules/logistique/data/repositories/oa_providers.dart';
+import 'package:sig_ensoa/modules/logistique/features/oa/activites_cellule_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,7 +44,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 7, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() {});
@@ -84,6 +87,9 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
         ref.read(souteStocksProvider.notifier).refresh();
       case 5:
         ref.read(distributionsProvider.notifier).refresh();
+      case 6:
+        ref.read(activitesProvider.notifier).refresh();
+        ref.read(tachesProvider.notifier).refresh();
     }
   }
 
@@ -134,6 +140,7 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
                 Tab(text: 'Ventilation'),
                 Tab(text: 'Répartitions'),
                 Tab(text: 'Distributions'),
+                Tab(text: 'Activités'),
               ],
             ),
             const SizedBox(height: 12),
@@ -156,6 +163,12 @@ class _FuelScreenState extends ConsumerState<FuelScreen>
                   const DepotagesInternesTabContent(),
                   const RepartitionsTabContent(),
                   const DistributionsTabContent(),
+                  // Les activités de l'école, et ce que le soutien pétrolier
+                  // doit y faire.
+                  const ActivitesCelluleTab(
+                    acteur: ActeurTache.st,
+                    cellule: 'le Soutien pétrolier',
+                  ),
                 ],
               ),
             ),

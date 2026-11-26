@@ -1,3 +1,5 @@
+import 'package:sig_ensoa/modules/logistique/data/models/oa.dart';
+import 'package:sig_ensoa/modules/logistique/features/oa/activites_cellule_tab.dart';
 import 'package:flutter/material.dart';
 
 import 'package:sig_ensoa/core/theme.dart';
@@ -33,7 +35,7 @@ class _GarageWorkspaceScreenState extends State<GarageWorkspaceScreen>
   @override
   void initState() {
     super.initState();
-    _onglets = TabController(length: 5, vsync: this);
+    _onglets = TabController(length: 6, vsync: this);
     _onglets.addListener(() {
       if (!_onglets.indexIsChanging) setState(() {});
     });
@@ -83,6 +85,11 @@ class _GarageWorkspaceScreenState extends State<GarageWorkspaceScreen>
               DemandesReparationTab(),
               // Les véhicules au garage, et la validation de leur retour.
               ReparationsTab(),
+              // Les activités de l'école, et ce que le Garage doit y faire.
+              ActivitesCelluleTab(
+                acteur: ActeurTache.garage,
+                cellule: 'le Garage',
+              ),
             ],
           ),
         ),
@@ -121,6 +128,7 @@ class _BarreOnglets extends StatelessWidget {
           Tab(text: 'Ordres de mission'),
           Tab(text: 'Demandes de réparation'),
           Tab(text: 'Réparations'),
+          Tab(text: 'Activités'),
         ],
       ),
     );

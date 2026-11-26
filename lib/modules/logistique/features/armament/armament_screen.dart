@@ -1,3 +1,6 @@
+import 'package:sig_ensoa/modules/logistique/data/models/oa.dart';
+import 'package:sig_ensoa/modules/logistique/data/repositories/oa_providers.dart';
+import 'package:sig_ensoa/modules/logistique/features/oa/activites_cellule_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -49,7 +52,7 @@ class _ArmamentScreenState extends ConsumerState<ArmamentScreen>
   @override
   void initState() {
     super.initState();
-    _rubriques = TabController(length: 4, vsync: this);
+    _rubriques = TabController(length: 5, vsync: this);
     _rubriques.addListener(() {
       if (_rubriques.indexIsChanging) return;
       setState(() {});
@@ -83,6 +86,9 @@ class _ArmamentScreenState extends ConsumerState<ArmamentScreen>
       case 3:
         ref.read(equipementsProvider.notifier).refresh();
         ref.read(mouvementsArticleProvider.notifier).refresh();
+      case 4:
+        ref.read(activitesProvider.notifier).refresh();
+        ref.read(tachesProvider.notifier).refresh();
     }
   }
 
@@ -126,6 +132,11 @@ class _ArmamentScreenState extends ConsumerState<ArmamentScreen>
               const _RubriqueArmement(),
               const _RubriqueStock(famille: FamilleArticle.munition),
               const _RubriqueStock(famille: FamilleArticle.equipement),
+              // Les activités de l'école, et ce que l'Armurerie doit y faire.
+              const ActivitesCelluleTab(
+                acteur: ActeurTache.armurerie,
+                cellule: "l'Armurerie",
+              ),
             ],
           ),
         ),
@@ -151,6 +162,7 @@ class _BarreRubriques extends StatelessWidget {
     'Armement',
     'Munitions',
     'Équipements',
+    'Activités',
   ];
 
   @override

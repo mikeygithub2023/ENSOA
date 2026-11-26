@@ -1,3 +1,5 @@
+import 'package:sig_ensoa/modules/logistique/data/repositories/oa_providers.dart';
+import 'package:sig_ensoa/modules/logistique/features/oa/activites_cellule_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -22,7 +24,7 @@ class _PoliceScreenState extends ConsumerState<PoliceScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() {});
@@ -49,6 +51,9 @@ class _PoliceScreenState extends ConsumerState<PoliceScreen>
         ref.read(passagesVehiculesProvider.notifier).refresh();
         ref.read(vehiculesProvider.notifier).refresh();
         ref.read(mouvementsVehiculeProvider.notifier).refresh();
+      case 2:
+        ref.read(activitesProvider.notifier).refresh();
+        ref.read(tachesProvider.notifier).refresh();
     }
   }
 
@@ -79,13 +84,21 @@ class _PoliceScreenState extends ConsumerState<PoliceScreen>
               tabs: const [
                 Tab(text: 'Visiteurs'),
                 Tab(text: 'Véhicules'),
+                Tab(text: 'Activités'),
               ],
             ),
             const SizedBox(height: 12),
             Expanded(
               child: TabBarView(
                 controller: _tabController,
-                children: const [VisiteursTabContent(), VehiculesTabContent()],
+                children: const [
+                  VisiteursTabContent(),
+                  VehiculesTabContent(),
+                  // Le Poste de Police ne reçoit pas de tâche en tant que
+                  // service : il y voit les activités, et les tâches où l'un
+                  // des siens est nommément désigné.
+                  ActivitesCelluleTab(cellule: 'le Poste de Police'),
+                ],
               ),
             ),
           ],

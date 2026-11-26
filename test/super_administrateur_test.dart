@@ -112,6 +112,7 @@ void main() {
       'Visites médicales',
       'Pharmacie',
       'Dépenses santé',
+      'Activités',
     ]);
   });
 

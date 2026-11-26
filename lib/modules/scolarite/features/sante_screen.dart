@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sig_ensoa/core/roles.dart';
 import 'package:sig_ensoa/features/auth/providers/auth_providers.dart';
 import 'package:sig_ensoa/models/profil.dart';
+import 'package:sig_ensoa/modules/logistique/data/models/oa.dart';
+import 'package:sig_ensoa/modules/logistique/features/oa/activites_cellule_tab.dart';
 import 'package:sig_ensoa/shared/widgets/rubrique_a_onglets.dart';
 import 'consultations/consultations_screen.dart';
 import 'depenses/depenses_screen.dart';
@@ -21,6 +23,14 @@ List<(String, Widget Function())> ongletsSante(Profil profil) => [
     ('Pharmacie', () => const MedicamentsScreen()),
   if (profil.peut(Permission.gererDepensesSante))
     ('Dépenses santé', () => const DepensesScreen()),
+  // Les activités de l'école, et ce que le service de santé doit y faire.
+  (
+    'Activités',
+    () => const ActivitesCelluleTab(
+      acteur: ActeurTache.sante,
+      cellule: 'le Service de santé',
+    ),
+  ),
 ];
 
 /// Consultations, visites médicales, pharmacie et dépenses sous une seule
